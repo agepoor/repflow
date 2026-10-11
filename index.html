@@ -32,6 +32,9 @@ h2{font-size:20px;margin:0}
 .muted{color:var(--tx2);font-size:14px}
 .card{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
 .rcard{display:flex;align-items:center;gap:16px}
+.rcard{transition:transform .15s;gap:12px}
+.rcard.drag{transition:none;position:relative;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.5);background:var(--raise)}
+.handle{color:var(--tx2);touch-action:none;cursor:grab;padding:12px 4px;margin:-12px 0 -12px -6px;display:flex;opacity:.6}
 .rcard .dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
 .rcard .info{flex:1;min-width:0}
 .rcard .go{width:52px;height:52px;border-radius:50%;padding:0;font-size:20px}
@@ -182,7 +185,7 @@ let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 if(!R){R=PRESETS();persist();}
 function persist(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));}
-function addPresets(){const P=PRESETS(),names=new Set(P.map(r=>r.name));R=R.filter(r=>!names.has(r.name)).concat(P);persist();renderList();}
+function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.name);R=R.filter((r,k)=>k===i||r.name!==p.name);const j=R.findIndex(r=>r.name===p.name);if(j>=0)R[j]=p;else R.push(p);});persist();renderList();}
 
 /* ---------- views ---------- */
 function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);}
@@ -190,7 +193,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
 function renderList(){
   document.getElementById('list').innerHTML=R.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
-   return `<div class="card rcard"><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
+   return `<div class="card rcard"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}</div></div>
    <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')">▶</button></div>`}).join('')||'<p class="muted">No routines yet.</p>';
 }
@@ -395,6 +398,18 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
 /* ---------- import/export ---------- */
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
 function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
+
+/* drag to reorder routines */
+document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h)return;e.preventDefault();
+  const list=e.currentTarget,card=h.closest('.rcard'),cards=[...list.querySelectorAll('.rcard')],from=cards.indexOf(card),n=cards.length;
+  if(n<2)return;const y0=e.clientY,step=cards[1].getBoundingClientRect().top-cards[0].getBoundingClientRect().top;let to=from;
+  h.setPointerCapture(e.pointerId);card.classList.add('drag');buzz(15);
+  const move=ev=>{const dy=ev.clientY-y0;card.style.transform=`translateY(${dy}px)`;
+    to=Math.max(0,Math.min(n-1,from+Math.round(dy/step)));
+    cards.forEach((c,k)=>{if(c===card)return;const sh=(from<to&&k>from&&k<=to)?-step:(from>to&&k>=to&&k<from)?step:0;c.style.transform=sh?`translateY(${sh}px)`:'';});};
+  const up=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);
+    if(to!==from){const [r]=R.splice(from,1);R.splice(to,0,r);persist();}renderList();};
+  h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
 
 renderList();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
