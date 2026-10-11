@@ -313,7 +313,7 @@ async function startRun(id){const r=R.find(r=>r.id===id);ac();
   rName.textContent=r.icon+' '+r.name;run.classList.add('on');
   if(S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}
   enter(0);requestAnimationFrame(loop);}
-function stopRun(){if(!X)return;if(X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on');show('lib');}
+function stopRun(){if(X&&X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on');show('lib');}
 function togglePause(){if(!X)return;X.paused=!X.paused;pp.innerHTML=X.paused?'<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>':'<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';if(X.paused)speechSynthesis.cancel();X.last=performance.now();}
 function jump(d){if(!X)return;const j=X.i+d;if(j<0)return;if(j>=X.steps.length)return finish();enter(j);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
