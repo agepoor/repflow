@@ -112,6 +112,7 @@ h2{font-size:20px;margin:0}
       <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
       <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
       <div><label>Color</label><select id="eColor"></select></div>
+      <div><label>Length of a second (s)</label><input id="eSec" type="number" min="0.25" max="3" step="0.05"></div>
     </div>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
   </div>
@@ -194,9 +195,9 @@ function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggl
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
 function renderList(){
-  document.getElementById('list').innerHTML=R.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
+  document.getElementById('list').innerHTML=R.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0)*(r.sec||1);
    return `<div class="card rcard"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}</div></div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · 1 s = ${r.sec} s`:''}</div></div>
    <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')">▶</button></div>`}).join('')||'<p class="muted">No routines yet.</p>';
 }
 
@@ -206,7 +207,7 @@ const BT={reps:['🔢','Reps / counts','orange'],timed:['⏱','Timed','red'],box
 function newRoutine(){cur={id:uid(),name:'New routine',icon:'🏋️',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
 function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
 function fillEditor(){
-  eIcon.value=cur.icon;eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';
+  eIcon.value=cur.icon;eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';eSec.value=cur.sec||1;
   eColor.innerHTML=Object.keys(COLORS).map(c=>`<option ${c===cur.color?'selected':''}>${c}</option>`).join('');
   renderBlocks();
 }
@@ -238,9 +239,9 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=eIcon.value||'🏋️';cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;cur.notes=eNotes.value;}
-['eRounds','eRest','ePrep'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
-function summary(){readHead();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
+function readHead(){cur.icon=eIcon.value||'🏋️';cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;cur.notes=eNotes.value;cur.sec=Math.min(3,Math.max(0.25,+eSec.value||1));}
+['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
+function summary(){readHead();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0)*(cur.sec||1);
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
   eSummary.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
 function saveRoutine(start){readHead();delete cur._new;const i=R.findIndex(r=>r.id===cur.id);if(i>=0)R[i]=cur;else R.push(cur);persist();renderList();
@@ -334,7 +335,7 @@ function finish(){const r=X.r;speechSynthesis.cancel();bell();buzz([200,100,200,
   X={done:true};}
 function loop(now){if(!X)return;if(X.done){X=null;return;}
   const dt=(now-X.last)/1000;X.last=now;
-  if(!X.paused){X.t+=dt;tick();}
+  if(!X.paused){X.t+=dt/(X.r.sec||1);tick();}
   if(X&&!X.done)render();
   requestAnimationFrame(loop);}
 function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
