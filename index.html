@@ -91,7 +91,8 @@ h2{font-size:20px;margin:0}
   <div class="row" style="margin-top:24px">
     <button class="ghost" onclick="exportAll()">Export JSON</button>
     <label class="ghost" style="cursor:pointer;padding:8px 14px">Import JSON<input type="file" accept=".json" hidden onchange="importAll(this)"></label>
-    <button class="ghost" onclick="if(confirm('Reset the 5 default routines to their original version? Routines with the same name are replaced (duplicates removed); your own routines are kept.'))addPresets()">Restore presets</button>
+    <button class="ghost" onclick="if(confirm('Reset the 5 default routines to their original version? Routines with the same name are replaced (duplicates removed); your own routines are kept. Use Reset all to remove those too.'))addPresets()">Restore presets</button>
+    <button class="ghost danger" onclick="resetAll()">Reset all</button>
   </div>
 </section>
 
@@ -185,6 +186,7 @@ let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 if(!R){R=PRESETS();persist();}
 function persist(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));}
+function resetAll(){if(!confirm('Delete ALL routines, including your own, and go back to the 5 default routines?\n\nTip: Export JSON first if you want a backup.'))return;R=PRESETS();persist();renderList();}
 function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.name);R=R.filter((r,k)=>k===i||r.name!==p.name);const j=R.findIndex(r=>r.name===p.name);if(j>=0)R[j]=p;else R.push(p);});persist();renderList();}
 
 /* ---------- views ---------- */
