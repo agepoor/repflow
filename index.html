@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#191919">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>RepFlow — counter & timer routines</title>
+<style>
+:root{--bg:#191919;--surf:#202020;--raise:#383836;--tx:#fff;--tx2:rgba(255,255,255,.65);--bd:rgba(255,255,255,.2);
+--blue:#5E9FE8;--green:#72BC8F;--orange:#DE9255;--red:#E97366;--yellow:#EAC26B;--purple:#BF8EDA}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:var(--surf);border-radius:8px;padding:8px 14px}
+button:hover{background:var(--raise)}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+button.ghost{background:none;border-color:transparent;color:var(--tx2)}
+button.danger{color:var(--red)}
+input,select,textarea{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;width:100%}
+input[type=checkbox]{width:auto}
+label{display:block;font-size:14px;color:var(--tx2)}
+.view{display:none;max-width:760px;margin:0 auto;padding:24px 16px 64px}
+.view.on{display:block}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}
+h1{font-size:28px;margin:0;letter-spacing:-.02em}
+h2{font-size:20px;margin:0}
+.muted{color:var(--tx2);font-size:14px}
+.card{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
+.rcard{display:flex;align-items:center;gap:16px}
+.rcard .dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
+.rcard .info{flex:1;min-width:0}
+.rcard .go{width:52px;height:52px;border-radius:50%;padding:0;font-size:20px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.block{border-left:4px solid var(--blue)}
+.block .head{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.block .head input{font-weight:600}
+.tag{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--raise);white-space:nowrap}
+.icon{padding:6px 10px}
+.settings{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--tx)}
+/* runner */
+#run{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:space-between;padding:20px 16px calc(20px + env(safe-area-inset-bottom));transition:background .3s;user-select:none}
+#run.on{display:flex}
+#run .top{width:100%;max-width:760px}
+#run .bar{height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:8px}
+#run .bar i{display:block;height:100%;background:var(--tx);width:0;transition:width .2s}
+#run .meta{display:flex;justify-content:space-between;font-size:14px;color:var(--tx2)}
+#stage{position:relative;width:min(82vw,62vh);aspect-ratio:1;display:grid;place-items:center}
+#stage svg{position:absolute;inset:0;transform:rotate(-90deg)}
+#stage .center{text-align:center;z-index:1;padding:0 12%}
+#phase{font-size:clamp(16px,3.5vh,24px);font-weight:700;text-transform:uppercase;letter-spacing:.12em}
+#big{font-size:clamp(64px,18vh,170px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+#cueLine{font-size:clamp(22px,5vh,40px);font-weight:700;line-height:1.15}
+#sub{font-size:clamp(16px,3vh,22px);color:var(--tx2);min-height:1.5em}
+#call{font-size:clamp(28px,7vh,64px);font-weight:800;min-height:1.2em;text-align:center;letter-spacing:-.02em}
+#pips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:90vw;min-height:14px}
+#pips b{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .15s}
+#pips b.done{background:var(--tx)}
+#pips b.now{background:var(--tx);transform:scale(1.5)}
+#next{font-size:15px;color:var(--tx2);text-align:center}
+#run .ctrl{display:flex;gap:16px;align-items:center}
+#run .ctrl button{width:60px;height:60px;border-radius:50%;padding:0;font-size:22px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
+#run .ctrl #pp{width:84px;height:84px;font-size:30px;background:var(--tx);color:var(--bg)}
+#tapHint{font-size:14px;color:var(--tx2)}
+.flash{animation:fl .25s}
+@keyframes fl{0%{transform:scale(1.08)}100%{transform:scale(1)}}
+#done{text-align:center}
+</style>
+</head>
+<body>
+
+<!-- LIBRARY -->
+<section id="lib" class="view on">
+  <header>
+    <div><h1>RepFlow</h1><div class="muted">Count-based & timed routines</div></div>
+    <div class="row">
+      <button class="ghost" onclick="openSettings()" title="Settings">⚙︎</button>
+      <button class="primary" onclick="newRoutine()">+ Routine</button>
+    </div>
+  </header>
+  <div id="list"></div>
+  <div class="row" style="margin-top:24px">
+    <button class="ghost" onclick="exportAll()">Export JSON</button>
+    <label class="ghost" style="cursor:pointer;padding:8px 14px">Import JSON<input type="file" accept=".json" hidden onchange="importAll(this)"></label>
+    <button class="ghost" onclick="if(confirm('Restore the default routines? Your own routines are kept.'))addPresets()">Restore presets</button>
+  </div>
+</section>
+
+<!-- EDITOR -->
+<section id="edit" class="view">
+  <header>
+    <button class="ghost" onclick="closeEditor()">← Back</button>
+    <div class="row"><button class="danger ghost" onclick="deleteRoutine()">Delete</button><button class="primary" onclick="saveRoutine(true)">Save & start</button></div>
+  </header>
+  <div class="card">
+    <div class="row" style="flex-wrap:nowrap">
+      <input id="eIcon" style="width:56px;text-align:center;font-size:22px" maxlength="2">
+      <input id="eName" style="font-size:20px;font-weight:700" placeholder="Routine name">
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div><label>Rounds</label><input id="eRounds" type="number" min="1"></div>
+      <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
+      <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
+      <div><label>Color</label><select id="eColor"></select></div>
+    </div>
+    <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
+  </div>
+  <div id="blocks"></div>
+  <div class="row">
+    <span class="muted">Add block:</span>
+    <button onclick="addBlock('reps')">🔢 Reps / counts</button>
+    <button onclick="addBlock('timed')">⏱ Timed</button>
+    <button onclick="addBlock('boxing')">🥊 Boxing combos</button>
+    <button onclick="addBlock('rest')">😮‍💨 Rest</button>
+  </div>
+  <p class="muted" id="eSummary" style="margin-top:24px"></p>
+</section>
+
+<!-- SETTINGS -->
+<section id="set" class="view">
+  <header><button class="ghost" onclick="show('lib')">← Back</button><h2>Settings</h2><span></span></header>
+  <div class="card settings" id="setForm"></div>
+  <div class="card"><button onclick="testAudio()">▶ Test sound & voice</button></div>
+</section>
+
+<!-- RUNNER -->
+<div id="run">
+  <div class="top">
+    <div class="meta"><span id="rName"></span><span id="rRound"></span></div>
+    <div class="bar"><i id="rBar"></i></div>
+  </div>
+  <div id="call"></div>
+  <div id="stage" onclick="tap()">
+    <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="5"/>
+      <circle id="ring" cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="289.03" stroke-dashoffset="0"/></svg>
+    <div class="center">
+      <div id="phase"></div>
+      <div id="big">0</div>
+      <div id="cueLine"></div>
+      <div id="sub"></div>
+    </div>
+  </div>
+  <div id="pips"></div>
+  <div id="next"></div>
+  <div id="tapHint"></div>
+  <div class="ctrl">
+    <button onclick="stopRun()" title="Stop"><svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <button onclick="jump(-1)" title="Previous">⏮</button>
+    <button id="pp" onclick="togglePause()"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    <button onclick="jump(1)" title="Next">⏭</button>
+    <button id="muteBtn" onclick="toggleMute()" title="Sound">🔊</button>
+  </div>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const COLORS={orange:'#DE9255',red:'#E97366',blue:'#5E9FE8',green:'#72BC8F',purple:'#BF8EDA',yellow:'#EAC26B',teal:'#4FB9C9',pink:'#DF84A8'};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const PRESETS=()=>[
+ {id:uid(),name:'Burpees 12-count',icon:'🌪️',color:'orange',rounds:3,rest:75,prep:10,
+  notes:'Breathe in on the way down (1–4), out on the push-up (5) and the jump (12). Pick a pace you can hold for 3 rounds.',
+  blocks:[
+   {id:uid(),type:'reps',name:'A · Reps',reps:8,counts:12,tempo:1,mode:'guided',repPause:2,cues:'',lastOnly:false,restAfter:0},
+   {id:uid(),type:'reps',name:'B · Finisher non-stop',reps:5,counts:12,tempo:0.8,mode:'guided',repPause:0,cues:'',lastOnly:true,restAfter:0}]},
+ {id:uid(),name:'Quick burpee snack',icon:'⚡',color:'yellow',rounds:1,rest:0,prep:5,notes:'Short version: 6 burpees, ~2 min.',
+  blocks:[{id:uid(),type:'reps',name:'Burpees',reps:6,counts:12,tempo:1,mode:'guided',repPause:2,cues:'',lastOnly:false,restAfter:0}]},
+ {id:uid(),name:'Burpee Tabata',icon:'🔥',color:'red',rounds:8,rest:10,prep:10,notes:'20 s max effort, 10 s rest, 8 rounds.',
+  blocks:[{id:uid(),type:'timed',name:'Burpees — max reps',work:20,cue:'Go go go',lastOnly:false,restAfter:0}]},
+ {id:uid(),name:'Boxing 3 × 3 min',icon:'🥊',color:'blue',rounds:3,rest:60,prep:10,notes:'1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 lead uppercut · 6 rear uppercut',
+  blocks:[{id:uid(),type:'boxing',name:'Shadow boxing',work:180,combos:'1-2\n1-1-2\n1-2-3\n1-2-3-2\n1-6-3-2\n2-3-2\n1-2 slip slip\n3-2-3\njab body\n1-2-5-2',minGap:3,maxGap:6,lastOnly:false,restAfter:0}]},
+ {id:uid(),name:'Push-up tap counter',icon:'💪',color:'green',rounds:3,rest:60,prep:5,notes:'Tap the circle for each rep — set pace yourself.',
+  blocks:[{id:uid(),type:'reps',name:'Push-ups',reps:15,counts:1,tempo:2,mode:'tap',repPause:0,cues:'',lastOnly:false,restAfter:0}]}
+];
+const DEF_SET={voice:true,beeps:true,lang:'en-US',speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
+let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
+let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
+if(!R){R=PRESETS();persist();}
+function persist(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));}
+function addPresets(){R=R.concat(PRESETS());persist();renderList();}
+
+/* ---------- views ---------- */
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
+function renderList(){
+  document.getElementById('list').innerHTML=R.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
+   return `<div class="card rcard"><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}</div></div>
+   <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')">▶</button></div>`}).join('')||'<p class="muted">No routines yet.</p>';
+}
+
+/* ---------- editor ---------- */
+let cur=null;
+const BT={reps:['🔢','Reps / counts','orange'],timed:['⏱','Timed','red'],boxing:['🥊','Boxing combos','blue'],rest:['😮‍💨','Rest','green']};
+function newRoutine(){cur={id:uid(),name:'New routine',icon:'🏋️',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
+function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
+function fillEditor(){
+  eIcon.value=cur.icon;eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';
+  eColor.innerHTML=Object.keys(COLORS).map(c=>`<option ${c===cur.color?'selected':''}>${c}</option>`).join('');
+  renderBlocks();
+}
+function num(id,k,v,lbl,step=1,min=0){return `<div><label>${lbl}</label><input type="number" step="${step}" min="${min}" value="${v}" oninput="setB('${id}','${k}',+this.value)"></div>`}
+function renderBlocks(){
+  blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
+   if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
+     <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
+     ${num(b.id,'tempo',b.tempo,'Seconds per count',0.1,0.2)}${num(b.id,'repPause',b.repPause,'Breather between reps (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+     <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)">`;
+   if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
+   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}${num(b.id,'minGap',b.minGap,'Min s between calls',0.5,1)}${num(b.id,'maxGap',b.maxGap,'Max s between calls',0.5,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <label style="margin-top:12px">Combo pool — one per line, called out at random</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value)">${esc(b.combos)}</textarea>`;
+   if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
+   return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span>${ic}</span>
+    <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
+    <button class="icon ghost" onclick="mv(${i},-1)">↑</button><button class="icon ghost" onclick="mv(${i},1)">↓</button>
+    <button class="icon ghost" onclick="dup(${i})" title="Duplicate">⎘</button><button class="icon ghost danger" onclick="rm(${i})">×</button></div>
+    ${f}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
+  summary();
+}
+function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);b[k]=v;if(k==='mode')renderBlocks();summary();}
+function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
+  const d={reps:{name:'Burpees',reps:10,counts:12,tempo:1,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
+  boxing:{name:'Shadow boxing',work:120,combos:'1-2\n1-2-3\n1-1-2\n2-3-2',minGap:3,maxGap:6},rest:{name:'Rest',work:30}}[t];
+  cur.blocks.push({...base,...d});renderBlocks();}
+function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
+function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
+function rm(i){cur.blocks.splice(i,1);renderBlocks();}
+function readHead(){cur.icon=eIcon.value||'🏋️';cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;cur.notes=eNotes.value;}
+['eRounds','eRest','ePrep'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
+function summary(){readHead();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
+  const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
+  eSummary.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
+function saveRoutine(start){readHead();delete cur._new;const i=R.findIndex(r=>r.id===cur.id);if(i>=0)R[i]=cur;else R.push(cur);persist();renderList();
+  if(start)startRun(cur.id);else show('lib');}
+function closeEditor(){saveRoutine(false);}
+function deleteRoutine(){if(!confirm('Delete this routine?'))return;R=R.filter(r=>r.id!==cur.id);persist();renderList();show('lib');}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  const voices=speechSynthesis.getVoices().map(v=>v.lang).filter((v,i,a)=>a.indexOf(v)===i).sort();
+  const langs=voices.length?voices:['en-US','en-GB','nl-NL','es-ES'];
+  setForm.innerHTML=`
+  <label class="chk"><input type="checkbox" ${S.beeps?'checked':''} onchange="S.beeps=this.checked;persist()"> Beeps</label>
+  <label class="chk"><input type="checkbox" ${S.voice?'checked':''} onchange="S.voice=this.checked;persist()"> Voice coach</label>
+  <label class="chk"><input type="checkbox" ${S.vibrate?'checked':''} onchange="S.vibrate=this.checked;persist()"> Vibrate (Android)</label>
+  <label class="chk"><input type="checkbox" ${S.wake?'checked':''} onchange="S.wake=this.checked;persist()"> Keep screen on</label>
+  <div><label>Voice language</label><select onchange="S.lang=this.value;persist()">${langs.map(l=>`<option ${l===S.lang?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div><label>Speak counts</label><select onchange="S.speakCounts=this.value;persist()">
+    ${[['every','Every count'],['reps','Rep numbers only'],['off','Off']].map(([v,l])=>`<option value="${v}" ${S.speakCounts===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${S.countdown}" oninput="S.countdown=+this.value;persist()"></div>
+  <div><label>Volume</label><input type="range" min="0" max="1" step="0.05" value="${S.volume}" oninput="S.volume=+this.value;persist()"></div>
+  <div><label>Voice speed</label><input type="range" min="0.7" max="1.8" step="0.05" value="${S.rate}" oninput="S.rate=+this.value;persist()"></div>`;
+  show('set');
+}
+speechSynthesis.onvoiceschanged=()=>{if(document.getElementById('set').classList.contains('on'))openSettings();};
+
+/* ---------- audio ---------- */
+let AC=null,muted=false;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
+function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted)return;const c=ac(),o=c.createOscillator(),g=c.createGain();
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(S.volume*vol,c.currentTime+.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
+function bell(){[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
+function say(t,interrupt=true){if(!S.voice||muted||!t)return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;u.rate=S.rate;u.volume=S.volume;speechSynthesis.speak(u);}
+function buzz(p){if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}
+function testAudio(){ac();beep(660);setTimeout(()=>beep(990),200);setTimeout(()=>say(S.lang.startsWith('nl')?'Klaar? Gaan!':'Ready? Go!'),400);}
+function toggleMute(){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(muted)speechSynthesis.cancel();}
+
+/* ---------- build step list ---------- */
+function build(r){const st=[];const P=(s)=>st.push(s);
+  if(r.prep>0)P({type:'time',kind:'prep',label:'Get ready',dur:r.prep,round:1});
+  for(let k=1;k<=r.rounds;k++){const last=k===r.rounds;
+    const bl=r.blocks.filter(b=>!b.lastOnly||last);
+    bl.forEach((b,bi)=>{
+      if(b.type==='reps'){const counts=Math.max(1,b.counts|0),reps=Math.max(1,b.reps|0);
+        const per=counts*b.tempo+(b.repPause||0);
+        P({type:'reps',kind:'work',label:b.name,reps,counts,tempo:b.tempo,mode:b.mode,repPause:b.repPause||0,
+          display:b.display||'both',cues:(b.cues||'').split(',').map(s=>s.trim()).filter(Boolean),dur:b.mode==='tap'?0:reps*per-(b.repPause||0),round:k});}
+      else if(b.type==='timed')P({type:'time',kind:'work',label:b.name,dur:b.work,cue:b.cue,round:k});
+      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,round:k});
+      else if(b.type==='rest')P({type:'time',kind:'rest',label:b.name||'Rest',dur:b.work,round:k});
+      if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
+    });
+    if(!last&&r.rest>0)P({type:'time',kind:'rest',label:'Round rest',dur:r.rest,round:k});
+  }
+  return st;}
+
+/* ---------- runner ---------- */
+let X=null; // run state
+const PH={prep:'#5E9FE8',work:null,rest:'#46A171'};
+async function startRun(id){const r=R.find(r=>r.id===id);ac();
+  pp.innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:''};
+  if(!X.steps.length){alert('Add a block first.');return;}
+  rName.textContent=r.icon+' '+r.name;run.classList.add('on');
+  if(S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}
+  enter(0);requestAnimationFrame(loop);}
+function stopRun(){if(!X)return;if(X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on');show('lib');}
+function togglePause(){if(!X)return;X.paused=!X.paused;pp.innerHTML=X.paused?'<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>':'<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';if(X.paused)speechSynthesis.cancel();X.last=performance.now();}
+function jump(d){if(!X)return;const j=X.i+d;if(j<0)return;if(j>=X.steps.length)return finish();enter(j);}
+function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
+function enter(i){X.i=i;X.t=0;X.lastCount=-1;X.lastSec=null;X.tapCount=0;X.callText='';X.nextCall=1.5;
+  const s=X.steps[i];const c=color(s);
+  run.style.background=`radial-gradient(circle at 50% 45%, ${c}55, #191919 75%), #191919`;ring.style.stroke=c;
+  phase.textContent=s.label;phase.style.color=c;call.textContent='';
+  rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
+  const n=X.steps[i+1];next.textContent=n?`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
+  tapHint.textContent=s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
+  pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';
+  // announcements
+  if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
+    say(s.type==='reps'?`${s.label}. ${s.reps} reps`:(s.boxing?`${s.label}. Fight!`:(s.cue||s.label)));}
+  else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${s.label}. ${fmt(s.dur)} seconds`.replace(/(\d+):(\d+) seconds/,'$1 minutes $2'));}
+  else say(`${X.r.name}. Get ready`);
+  render();}
+function finish(){const r=X.r;speechSynthesis.cancel();bell();buzz([200,100,200,100,400]);say('Done. Great work!');
+  if(X.wl)X.wl.release();
+  const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
+  X=null;run.style.background='#191919';pp.innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';phase.textContent='Done';phase.style.color='#72BC8F';big.textContent='✓';cueLine.textContent='';fitBig();
+  sub.textContent=tot?`${tot} reps`:'';call.textContent='';next.textContent='';pips.innerHTML='';tapHint.textContent='Tap × to close';
+  ring.style.strokeDashoffset=0;ring.style.stroke='#72BC8F';rBar.style.width='100%';
+  X={done:true};}
+function loop(now){if(!X)return;if(X.done){X=null;return;}
+  const dt=(now-X.last)/1000;X.last=now;
+  if(!X.paused){X.t+=dt;tick();}
+  if(X&&!X.done)render();
+  requestAnimationFrame(loop);}
+function tick(){const s=X.steps[X.i];
+  if(s.type==='time'){
+    const left=s.dur-X.t;const sec=Math.ceil(left);
+    if(sec!==X.lastSec){X.lastSec=sec;
+      if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
+      if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
+      if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
+    if(s.boxing&&X.t>=X.nextCall&&left>1.5){const c=s.combos[Math.random()*s.combos.length|0]||'';X.callText=c;call.textContent=c;call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
+      beep(1500,.05,'square',.4);say(c.replace(/-/g,' '));X.nextCall=X.t+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap);}
+    if(left<=0)return jump(1);
+  } else if(s.mode==='guided'){
+    const per=s.counts*s.tempo+s.repPause;const rep=Math.floor(X.t/per);const inRep=X.t-rep*per;
+    if(rep>=s.reps)return jump(1);
+    const c=inRep<s.counts*s.tempo?Math.floor(inRep/s.tempo):-2; // -2 = breather
+    const key=rep*1000+c;
+    if(key!==X.lastCount&&c>=0){X.lastCount=key;countFx(rep,c,s);}
+  }}
+function countFx(rep,c,s){ // rep 0-based, c 0-based
+  const first=c===0;beep(first?1175:740,first?.12:.06,first?'square':'sine',first?.7:.5);if(first)buzz(40);
+  const lbl=s.cues[c];
+  if(S.speakCounts==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)));
+  else if(S.speakCounts==='reps'&&first)say(String(rep+1));
+  big.classList.remove('flash');void big.offsetWidth;big.classList.add('flash');}
+function tap(){if(!X||X.done||X.paused)return;const s=X.steps[X.i];if(s.type!=='reps'||s.mode!=='tap')return;ac();
+  const total=s.reps*s.counts;const c=X.tapCount%s.counts,rep=Math.floor(X.tapCount/s.counts);countFx(rep,c,s);X.tapCount++;
+  if(X.tapCount>=total){setTimeout(()=>X&&X.steps&&jump(1),350);}render();}
+document.addEventListener('keydown',e=>{if(!run.classList.contains('on'))return;if(e.code==='Space'){e.preventDefault();const s=X&&X.steps&&X.steps[X.i];if(s&&s.mode==='tap')tap();else togglePause();}
+  if(e.code==='ArrowRight')jump(1);if(e.code==='ArrowLeft')jump(-1);if(e.code==='Escape')stopRun();});
+function fitBig(){const L=String(big.textContent).length;big.style.fontSize=L<=4?'':`min(${Math.round(680/L)}px, ${(72/L).toFixed(1)}vh, ${Math.round(220/L)}vw)`;}
+function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
+  if(s.type==='time'){const left=Math.max(0,s.dur-X.t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=X.t/s.dur;sub.textContent=s.boxing?'':(s.kind==='work'?'':'breathe');}
+  else{let rep,c,breather=false;
+    if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;rep=Math.floor(X.t/per);const inRep=X.t-rep*per;c=Math.floor(inRep/s.tempo);
+      if(inRep>=s.counts*s.tempo){breather=true;c=s.counts-1;}frac=X.t/s.dur;}
+    else{rep=Math.floor(X.tapCount/s.counts);c=X.tapCount%s.counts;frac=X.tapCount/(s.reps*s.counts);if(X.tapCount>=s.reps*s.counts){rep=s.reps-1;c=s.counts;}}
+    rep=Math.min(rep,s.reps-1);
+    let bigTxt,cueTxt='',subTxt;
+    if(s.counts>1){const cue=s.cues[Math.min(c,s.counts-1)]||'';const n=s.mode==='tap'?c:c+1;
+      const d=cue?s.display:'number';
+      if(breather){bigTxt='·';subTxt=`breathe · next rep ${rep+2}`;}
+      else{subTxt=`rep ${rep+1} / ${s.reps}`;
+        if(d==='cue'){bigTxt=cue;subTxt=`count ${n} · `+subTxt;}
+        else if(d==='number'){bigTxt=n;if(cue)subTxt+=' · '+cue;}
+        else{bigTxt=n;cueTxt=cue;}}}
+    else{bigTxt=s.mode==='tap'?X.tapCount:rep+1;subTxt=`of ${s.reps}`;}
+    big.textContent=bigTxt;cueLine.textContent=cueTxt;sub.textContent=subTxt;fitBig();
+    [...pips.children].forEach((p,k)=>{p.className=k<rep||(k===rep&&s.mode==='tap'&&X.tapCount>=s.reps*s.counts)?'done':k===rep?'now':'';});
+  }
+  ring.style.strokeDashoffset=289.03*(1-Math.min(1,frac));
+  // overall progress
+  const tot=X.steps.length;rBar.style.width=((X.i+Math.min(1,frac))/tot*100)+'%';}
+
+/* ---------- import/export ---------- */
+function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
+function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
+
+renderList();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
+// re-acquire wake lock after switching apps mid-workout
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&X&&X.steps&&S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}});
+</script>
+</body>
+</html>
