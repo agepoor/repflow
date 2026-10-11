@@ -88,7 +88,7 @@ h2{font-size:20px;margin:0}
   <div class="row" style="margin-top:24px">
     <button class="ghost" onclick="exportAll()">Export JSON</button>
     <label class="ghost" style="cursor:pointer;padding:8px 14px">Import JSON<input type="file" accept=".json" hidden onchange="importAll(this)"></label>
-    <button class="ghost" onclick="if(confirm('Restore the default routines? Your own routines are kept.'))addPresets()">Restore presets</button>
+    <button class="ghost" onclick="if(confirm('Reset the 5 default routines to their original version? Routines with the same name are replaced (duplicates removed); your own routines are kept.'))addPresets()">Restore presets</button>
   </div>
 </section>
 
@@ -182,7 +182,7 @@ let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 if(!R){R=PRESETS();persist();}
 function persist(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));}
-function addPresets(){R=R.concat(PRESETS());persist();renderList();}
+function addPresets(){const P=PRESETS(),names=new Set(P.map(r=>r.name));R=R.filter(r=>!names.has(r.name)).concat(P);persist();renderList();}
 
 /* ---------- views ---------- */
 function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);}
@@ -215,8 +215,8 @@ function renderBlocks(){
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)">`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
-   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}${num(b.id,'minGap',b.minGap,'Min s between calls',0.5,1)}${num(b.id,'maxGap',b.maxGap,'Max s between calls',0.5,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
-     <label style="margin-top:12px">Combo pool — one per line, called out at random</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value)">${esc(b.combos)}</textarea>`;
+   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}${num(b.id,'minGap',b.minGap,'Min s between calls',0.5,1)}${num(b.id,'maxGap',b.maxGap,'Max s between calls',0.5,1)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value)">${esc(b.combos)}</textarea>`;
    if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span>${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -285,7 +285,7 @@ function build(r){const st=[];const P=(s)=>st.push(s);
         P({type:'reps',kind:'work',label:b.name,reps,counts,tempo:b.tempo,mode:b.mode,repPause:b.repPause||0,
           display:b.display||'both',cues:(b.cues||'').split(',').map(s=>s.trim()).filter(Boolean),dur:b.mode==='tap'?0:reps*per-(b.repPause||0),round:k});}
       else if(b.type==='timed')P({type:'time',kind:'work',label:b.name,dur:b.work,cue:b.cue,round:k});
-      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,round:k});
+      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,order:b.order||'random',repeat:Math.max(1,b.repeat|0||1),bid:b.id,round:k});
       else if(b.type==='rest')P({type:'time',kind:'rest',label:b.name||'Rest',dur:b.work,round:k});
       if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
     });
@@ -297,7 +297,7 @@ function build(r){const st=[];const P=(s)=>st.push(s);
 let X=null; // run state
 const PH={prep:'#5E9FE8',work:null,rest:'#46A171'};
 async function startRun(id){const r=R.find(r=>r.id===id);ac();
-  pp.innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:''};
+  pp.innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:'',box:{}};
   if(!X.steps.length){alert('Add a block first.');return;}
   rName.textContent=r.icon+' '+r.name;run.classList.add('on');
   if(S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}
@@ -332,6 +332,14 @@ function loop(now){if(!X)return;if(X.done){X=null;return;}
   if(!X.paused){X.t+=dt;tick();}
   if(X&&!X.done)render();
   requestAnimationFrame(loop);}
+function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
+  const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0});
+  if(B.left>0){B.left--;return L[B.last];} // repeat same combo
+  let k;
+  if(s.order==='sequence'){k=(B.last+1)%n;}
+  else if(s.order==='shuffle'){if(!B.bag.length){B.bag=[...Array(n).keys()].sort(()=>Math.random()-.5);if(n>1&&B.bag[0]===B.last)B.bag.push(B.bag.shift());}k=B.bag.shift();}
+  else{k=Math.random()*n|0;if(n>1&&k===B.last)k=(k+1+(Math.random()*(n-1)|0))%n;}
+  B.last=k;B.left=s.repeat-1;B.num=k+1;return L[k];}
 function tick(){const s=X.steps[X.i];
   if(s.type==='time'){
     const left=s.dur-X.t;const sec=Math.ceil(left);
@@ -339,7 +347,7 @@ function tick(){const s=X.steps[X.i];
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
-    if(s.boxing&&X.t>=X.nextCall&&left>1.5){const c=s.combos[Math.random()*s.combos.length|0]||'';X.callText=c;call.textContent=c;call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
+    if(s.boxing&&X.t>=X.nextCall&&left>1.5){const c=nextCombo(s);X.callText=c;call.textContent=c;call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
       beep(1500,.05,'square',.4);say(c.replace(/-/g,' '));X.nextCall=X.t+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap);}
     if(left<=0)return jump(1);
   } else if(s.mode==='guided'){
@@ -362,7 +370,7 @@ document.addEventListener('keydown',e=>{if(!run.classList.contains('on'))return;
   if(e.code==='ArrowRight')jump(1);if(e.code==='ArrowLeft')jump(-1);if(e.code==='Escape')stopRun();});
 function fitBig(){const L=String(big.textContent).length;big.style.fontSize=L<=4?'':`min(${Math.round(680/L)}px, ${(72/L).toFixed(1)}vh, ${Math.round(220/L)}vw)`;}
 function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
-  if(s.type==='time'){const left=Math.max(0,s.dur-X.t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=X.t/s.dur;sub.textContent=s.boxing?'':(s.kind==='work'?'':'breathe');}
+  if(s.type==='time'){const left=Math.max(0,s.dur-X.t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=X.t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
   else{let rep,c,breather=false;
     if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;rep=Math.floor(X.t/per);const inRep=X.t-rep*per;c=Math.floor(inRep/s.tempo);
       if(inRep>=s.counts*s.tempo){breather=true;c=s.counts-1;}frac=X.t/s.dur;}
