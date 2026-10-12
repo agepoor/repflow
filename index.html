@@ -339,9 +339,11 @@ function renderBlocks(){
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
-   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}<div><label>Count length per punch (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'minGap',b.minGap,'Extra s between calls (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s between calls (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
-     <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Time per call</b> = count length × number of moves in the combo (e.g. "1-2 slip" = 3) + extra seconds. The voice always finishes the whole line before the next call. <b style="color:var(--tx)">Pause after full pool</b>: extra break each time every combo has been called once. <b style="color:var(--tx)">Rest after block</b>: starts only after the full Round length is over.</p>
-     <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value)">${esc(b.combos)}</textarea>`;
+   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}<div><label>Count length per punch (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s between calls (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s between calls (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Time per call</b> = count length × number of moves in the combo (e.g. "1-2 slip" = 3) + extra seconds. The voice always finishes the whole line before the next call. <b style="color:var(--tx)">Pause after full pool</b>: extra break once every combo in the pool has been called at least once (in Random order that can take more calls than the pool size). <b style="color:var(--tx)">Rest after block</b>: starts only after the full Round length is over.</p>
+     <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea>
+     <p class="muted" style="margin:6px 0 4px;font-size:13px">Each line is split into moves at <b style="color:var(--tx)">spaces</b>, <b style="color:var(--tx)">dashes (-)</b> and <b style="color:var(--tx)">commas</b>. Join words with <b style="color:var(--tx)">_</b> to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p>
+     <div id="pv-${b.id}">${poolPreview(b.id)}</div>`;
    if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -462,16 +464,23 @@ function loop(now){if(!X)return;if(X.done){X=null;return;}
   if(!X.paused){X.t+=dt;tick();}
   if(X&&!X.done)render();
   requestAnimationFrame(loop);}
-function moves(c){return Math.max(1,c.split(/[\s\-–—,·]+/).filter(Boolean).length);}
+function movesOf(c){return c.split(/[\s\-–—,·]+/).filter(Boolean);}
+function moves(c){return Math.max(1,movesOf(c).length);}
+const spoken=c=>c.replace(/_/g,' ');
+function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1);
+  const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';
+  return L.map(l=>{const m=movesOf(l);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px">${m.map(t=>`<span class="tag">${esc(spoken(t))}</span>`).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra</span></div>`;}).join('');}
+function pvUpd(id){const e=document.getElementById('pv-'+id);if(e)e.innerHTML=poolPreview(id);}
 function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
-  const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,picks:0});
+  const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
   B.poolDone=false;
-  if(B.left>0){B.left--;B.poolDone=B.left===0&&B.picks%n===0;return L[B.last];} // repeat same combo
+  if(B.left>0){B.left--;poolChk(B,n);return L[B.last];} // repeat same combo
   let k;
   if(s.order==='sequence'){k=(B.last+1)%n;}
   else if(s.order==='shuffle'){if(!B.bag.length){B.bag=[...Array(n).keys()].sort(()=>Math.random()-.5);if(n>1&&B.bag[0]===B.last)B.bag.push(B.bag.shift());}k=B.bag.shift();}
   else{k=Math.random()*n|0;if(n>1&&k===B.last)k=(k+1+(Math.random()*(n-1)|0))%n;}
-  B.last=k;B.left=s.repeat-1;B.num=k+1;B.picks=(B.picks||0)+1;B.poolDone=B.left===0&&B.picks%n===0;return L[k];}
+  B.last=k;B.left=s.repeat-1;B.num=k+1;B.seen.add(k);poolChk(B,n);return L[k];}
+function poolChk(B,n){if(B.left===0&&B.seen.size>=n){B.poolDone=true;B.seen=new Set();}}
 function tick(){const s=X.steps[X.i];
   if(s.type==='time'){
     const left=s.dur-X.t;const sec=Math.ceil(left);
@@ -479,8 +488,8 @@ function tick(){const s=X.steps[X.i];
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
-    if(s.boxing&&X.t>=X.nextCall&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&X.t-X.nextCall<4)){const c=nextCombo(s);X.callText=c;call.textContent=c;{const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;}call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
-      beep(1500,.05,'square',.4);say(c.replace(/-/g,' '),false);X.nextCall=X.t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);}
+    if(s.boxing&&X.t>=X.nextCall&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&X.t-X.nextCall<4)){const c=nextCombo(s);X.callText=c;call.textContent=spoken(c);{const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;}call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
+      beep(1500,.05,'square',.4);say(spoken(c).replace(/-/g,' '),false);X.nextCall=X.t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);}
     if(left<=0)return jump(1);
   } else if(s.mode==='guided'){
     const per=s.counts*s.tempo+s.repPause;const rep=Math.floor(X.t/per);const inRep=X.t-rep*per;
