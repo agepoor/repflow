@@ -137,9 +137,9 @@ header{flex-wrap:nowrap}
       <div><label>Rounds</label><input id="eRounds" type="number" min="1"></div>
       <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
       <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
-      <div><label>Length of a second (s)</label><input id="eSec" type="number" min="0.25" max="3" step="0.05"></div>
+      <div><label>Count length ×</label><input id="eSec" type="number" min="0.25" max="3" step="0.05"></div>
     </div>
-    <p class="muted" style="margin:6px 0 0;font-size:13px">Length of a second only stretches the counted moves in rep blocks. Rests, breathers, timed blocks and boxing calls always use real seconds.</p>
+    <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Count length ×</b> stretches every count in rep blocks (1 = as set, 1.5 = each count 50% longer). Rests, breathers, timed blocks and boxing always use real seconds.</p>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
   </div>
   <div id="blocks"></div>
@@ -298,7 +298,7 @@ function renderList(){
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
    return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · 1 s = ${r.sec} s`:''}</div></div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ×${r.sec}`:''}</div></div>
    <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',22)}</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
@@ -328,7 +328,7 @@ function renderBlocks(){
   blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
    if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
-     ${num(b.id,'tempo',b.tempo,'Seconds per count',0.1,0.2)}${num(b.id,'repPause',b.repPause,'Breather between reps (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     ${num(b.id,'tempo',b.tempo,'Length of one count (s)',0.1,0.2)}${num(b.id,'repPause',b.repPause,'Breather between reps (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
@@ -341,7 +341,7 @@ function renderBlocks(){
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
     <button class="icon ghost" onclick="mv(${i},-1)" title="Move up">${svgi('up',18)}</button><button class="icon ghost" onclick="mv(${i},1)" title="Move down">${svgi('down',18)}</button>
     <button class="icon ghost" onclick="dup(${i})" title="Duplicate">${svgi('copy',17)}</button><button class="icon ghost danger" onclick="rm(${i})" title="Remove">${svgi('x',18)}</button></div>
-    ${f}${b.type!=='reps'?'':`<div class="grid" style="margin-top:12px"><div><label>Length of a second for this block (s)</label><input type="number" step="0.05" min="0" max="3" value="${b.sec>0?b.sec:''}" placeholder="Routine default" oninput="setB('${b.id}','sec',+this.value||0)"></div></div><p class="muted" style="margin:6px 0 0;font-size:13px">Leave empty to use the routine's length of a second. Only affects the counts — breather and rest stay in real seconds.</p>`}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
+    ${f}${b.type!=='reps'?'':`<div class="grid" style="margin-top:12px"><div><label>Count length × (this block)</label><input type="number" step="0.05" min="0" max="3" value="${b.sec>0?b.sec:''}" placeholder="Routine default" oninput="setB('${b.id}','sec',+this.value||0)"></div></div><p class="muted" style="margin:6px 0 0;font-size:13px">Leave empty to use the routine's count length. Only affects the counts — breather and rest stay in real seconds.</p>`}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
   summary();
 }
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
