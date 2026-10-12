@@ -56,26 +56,46 @@ h2{font-size:20px;margin:0}
 #run .bar{height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:8px}
 #run .bar i{display:block;height:100%;background:var(--tx);width:0;transition:width .2s}
 #run .meta{display:flex;justify-content:space-between;font-size:14px;color:var(--tx2)}
-#stage{position:relative;width:min(82vw,62vh);aspect-ratio:1;display:grid;place-items:center}
+#stage{position:relative;width:min(80vw,50vh);aspect-ratio:1;display:grid;place-items:center;flex:none}
 #stage svg{position:absolute;inset:0;transform:rotate(-90deg)}
-#stage .center{text-align:center;z-index:1;padding:0 12%}
-#phase{font-size:clamp(16px,3.5vh,24px);font-weight:700;text-transform:uppercase;letter-spacing:.12em}
-#big{font-size:clamp(64px,18vh,170px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
-#cueLine{font-size:clamp(22px,5vh,40px);font-weight:700;line-height:1.15}
-#sub{font-size:clamp(16px,3vh,22px);color:var(--tx2);min-height:1.5em}
-#call{font-size:clamp(28px,7vh,64px);font-weight:800;min-height:1.2em;text-align:center;letter-spacing:-.02em}
+#stage .center{text-align:center;z-index:1;width:72%;display:flex;flex-direction:column;align-items:center;gap:4px}
+#phase{font-size:clamp(15px,2.6vh,20px);font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;max-width:92vw;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#big{font-size:clamp(64px,16vh,150px);font-weight:800;line-height:1;max-width:100%;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+#cueLine{font-size:clamp(20px,4.2vh,34px);font-weight:700;line-height:1.15;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#cueLine:empty{display:none}
+#sub{font-size:clamp(14px,2.4vh,19px);color:var(--tx2);min-height:1.4em;max-width:100%}
+#call{font-size:clamp(26px,6vh,56px);font-weight:800;min-height:1.2em;text-align:center;letter-spacing:-.02em;max-width:92vw;line-height:1.1}
+#call:empty{min-height:0}
 #pips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:90vw;min-height:14px}
 #pips b{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .15s}
 #pips b.done{background:var(--tx)}
 #pips b.now{background:var(--tx);transform:scale(1.5)}
 #next{font-size:15px;color:var(--tx2);text-align:center}
-#run .ctrl{display:flex;gap:16px;align-items:center}
-#run .ctrl button{width:60px;height:60px;border-radius:50%;padding:0;font-size:22px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
-#run .ctrl #pp{width:84px;height:84px;font-size:30px;background:var(--tx);color:var(--bg)}
+#run .ctrl{display:grid;grid-template-columns:1fr 1fr auto 1fr 1fr;align-items:center;justify-items:center;width:100%;max-width:400px}
+#run .ctrl button{width:56px;height:56px;border-radius:50%;padding:0;display:grid;place-items:center;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:var(--tx)}
+#run .ctrl button.sm{width:48px;height:48px;background:none;border-color:transparent;color:var(--tx2)}
+#run .ctrl #pp{width:76px;height:76px;background:var(--tx);color:var(--bg);border:none}
 #tapHint{font-size:14px;color:var(--tx2)}
 .flash{animation:fl .25s}
 @keyframes fl{0%{transform:scale(1.08)}100%{transform:scale(1)}}
 #done{text-align:center}
+
+.ic{display:block;flex:none}
+button{white-space:nowrap}
+header .row{flex-wrap:nowrap;gap:4px}
+header{flex-wrap:nowrap}
+.ib{display:inline-flex;align-items:center;gap:8px}
+.syncl{display:inline-flex;align-items:center;gap:6px}
+.iconpick{width:56px;flex:none;display:grid;place-items:center;padding:0}
+.icongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px;margin-top:12px}
+.icongrid button{height:44px;display:grid;place-items:center;padding:0;color:var(--tx2)}
+.rcard .dot{color:var(--tx)}
+.rcard .go{display:grid;place-items:center}
+.rcard .go .ic{margin-left:3px}
+.block .head .icon{display:grid;place-items:center;padding:6px 8px}
+.cuecount span{display:inline-flex;align-items:center;gap:6px}
+#rName{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#rName span{overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -85,7 +105,7 @@ h2{font-size:20px;margin:0}
   <header>
     <div><h1>RepFlow</h1><div class="muted" id="syncLine">Count-based & timed routines</div></div>
     <div class="row">
-      <button class="ghost" onclick="openSettings()" title="Settings">⚙︎</button>
+      <button class="ghost" onclick="openSettings()" title="Settings" aria-label="Settings"><span id="gearIc"></span></button>
       <button class="primary" onclick="newRoutine()">+ Routine</button>
     </div>
   </header>
@@ -107,9 +127,10 @@ h2{font-size:20px;margin:0}
   </header>
   <div class="card">
     <div class="row" style="flex-wrap:nowrap">
-      <input id="eIcon" style="width:56px;text-align:center;font-size:22px" maxlength="2">
+      <button id="eIconBtn" class="iconpick" onclick="iconGrid.hidden=!iconGrid.hidden" title="Icon"></button>
       <input id="eName" style="font-size:20px;font-weight:700" placeholder="Routine name">
     </div>
+    <div id="iconGrid" class="icongrid" hidden></div>
     <div class="grid" style="margin-top:12px">
       <div><label>Rounds</label><input id="eRounds" type="number" min="1"></div>
       <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
@@ -122,10 +143,10 @@ h2{font-size:20px;margin:0}
   <div id="blocks"></div>
   <div class="row">
     <span class="muted">Add block:</span>
-    <button onclick="addBlock('reps')">🔢 Reps / counts</button>
-    <button onclick="addBlock('timed')">⏱ Timed</button>
-    <button onclick="addBlock('boxing')">🥊 Boxing combos</button>
-    <button onclick="addBlock('rest')">😮‍💨 Rest</button>
+    <button class="ib" onclick="addBlock('reps')"><i data-ic="hash"></i>Reps / counts</button>
+    <button class="ib" onclick="addBlock('timed')"><i data-ic="timer"></i>Timed</button>
+    <button class="ib" onclick="addBlock('boxing')"><i data-ic="glove"></i>Boxing combos</button>
+    <button class="ib" onclick="addBlock('rest')"><i data-ic="moon"></i>Rest</button>
   </div>
   <p class="muted" id="eSummary" style="margin-top:24px"></p>
 </section>
@@ -134,7 +155,7 @@ h2{font-size:20px;margin:0}
 <section id="set" class="view">
   <header><button class="ghost" onclick="show('lib')">← Back</button><h2>Settings</h2><span></span></header>
   <div class="card settings" id="setForm"></div>
-  <div class="card"><button onclick="testAudio()">▶ Test sound & voice</button></div>
+  <div class="card"><button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button></div>
   <div class="card" id="syncCard"></div>
 </section>
 
@@ -145,11 +166,11 @@ h2{font-size:20px;margin:0}
     <div class="bar"><i id="rBar"></i></div>
   </div>
   <div id="call"></div>
+  <div id="phase"></div>
   <div id="stage" onclick="tap()">
     <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="5"/>
       <circle id="ring" cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="289.03" stroke-dashoffset="0"/></svg>
     <div class="center">
-      <div id="phase"></div>
       <div id="big">0</div>
       <div id="cueLine"></div>
       <div id="sub"></div>
@@ -159,31 +180,68 @@ h2{font-size:20px;margin:0}
   <div id="next"></div>
   <div id="tapHint"></div>
   <div class="ctrl">
-    <button onclick="stopRun()" title="Stop"><svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <button onclick="jump(-1)" title="Previous">⏮</button>
-    <button id="pp" onclick="togglePause()"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
-    <button onclick="jump(1)" title="Next">⏭</button>
-    <button id="muteBtn" onclick="toggleMute()" title="Sound">🔊</button>
+    <button class="sm" onclick="stopRun()" title="Stop" aria-label="Stop"></button>
+    <button class="md" onclick="jump(-1)" title="Previous" aria-label="Previous"></button>
+    <button id="pp" onclick="togglePause()" aria-label="Pause"></button>
+    <button class="md" onclick="jump(1)" title="Next" aria-label="Next"></button>
+    <button class="sm" id="muteBtn" onclick="toggleMute()" title="Sound" aria-label="Sound"></button>
   </div>
 </div>
 
 <script>
+/* ---------- flat icons (stroke, 24px grid) ---------- */
+const IC={
+ activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+ wind:'<path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>',
+ zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+ flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+ glove:'<path d="M8 12.5V8.5A5.5 5.5 0 0 1 13.5 3 5.5 5.5 0 0 1 19 8.5V13a4 4 0 0 1-4 4h-4a3 3 0 0 1-3-3"/><path d="M8 11H6.5a2.5 2.5 0 0 0 0 5H9"/><path d="M10.5 17v4h7v-4.5"/><path d="M12 8.5h4"/>',
+ dumbbell:'<path d="M6.5 6.5v11"/><path d="M17.5 6.5v11"/><path d="M3.5 9v6"/><path d="M20.5 9v6"/><path d="M6.5 12h11"/>',
+ timer:'<circle cx="12" cy="14" r="8"/><path d="M10 2h4"/><path d="M12 14l3-3"/>',
+ heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+ target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+ trending:'<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
+ mountain:'<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>',
+ repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+ star:'<path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+ hash:'<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/>',
+ moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+ sliders:'<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/>',
+ x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+ up:'<path d="m18 15-6-6-6 6"/>',down:'<path d="m6 9 6 6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',
+ copy:'<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',
+ alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+ cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+ refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+ vol:'<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+ mute:'<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>',
+ play:'<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>',
+ pause:'<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>',
+ prev:'<path d="M18 5v14l-10-7z" fill="currentColor"/><path d="M6 5v14"/>',
+ next:'<path d="M6 5v14l10-7z" fill="currentColor"/><path d="M18 5v14"/>'
+};
+function svgi(n,sz=20,sw=2){return `<svg class="ic" width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||IC.activity}</svg>`;}
+const ROUTINE_ICONS=['activity','wind','zap','flame','glove','dumbbell','timer','heart','target','trending','mountain','repeat','star'];
+const EMOJI2IC={'🌪️':'wind','🌪':'wind','⚡':'zap','🔥':'flame','🥊':'glove','💪':'dumbbell','🏋️':'dumbbell','🏋':'dumbbell','⏱':'timer','⏱️':'timer','❤️':'heart','🎯':'target'};
+const iconKey=r=>ROUTINE_ICONS.includes(r&&r.icon)?r.icon:(EMOJI2IC[r&&r.icon]||'activity');
+
 /* ---------- data ---------- */
 const COLORS={orange:'#DE9255',red:'#E97366',blue:'#5E9FE8',green:'#72BC8F',purple:'#BF8EDA',yellow:'#EAC26B',teal:'#4FB9C9',pink:'#DF84A8'};
 const uid=()=>Math.random().toString(36).slice(2,10);
 const PRESETS=()=>[
- {id:'p-burpees12',name:'Burpees 12-count',icon:'🌪️',color:'orange',rounds:3,rest:75,prep:10,
+ {id:'p-burpees12',name:'Burpees 12-count',icon:'wind',color:'orange',rounds:3,rest:75,prep:10,
   notes:'Breathe in on the way down (1–4), out on the push-up (5) and the jump (12). Pick a pace you can hold for 3 rounds.',
   blocks:[
    {id:uid(),type:'reps',name:'A · Reps',reps:8,counts:12,tempo:1,mode:'guided',repPause:2,cues:'',lastOnly:false,restAfter:0},
    {id:uid(),type:'reps',name:'B · Finisher non-stop',reps:5,counts:12,tempo:0.8,mode:'guided',repPause:0,cues:'',lastOnly:true,restAfter:0}]},
- {id:'p-snack',name:'Quick burpee snack',icon:'⚡',color:'yellow',rounds:1,rest:0,prep:5,notes:'Short version: 6 burpees, ~2 min.',
+ {id:'p-snack',name:'Quick burpee snack',icon:'zap',color:'yellow',rounds:1,rest:0,prep:5,notes:'Short version: 6 burpees, ~2 min.',
   blocks:[{id:uid(),type:'reps',name:'Burpees',reps:6,counts:12,tempo:1,mode:'guided',repPause:2,cues:'',lastOnly:false,restAfter:0}]},
- {id:'p-tabata',name:'Burpee Tabata',icon:'🔥',color:'red',rounds:8,rest:10,prep:10,notes:'20 s max effort, 10 s rest, 8 rounds.',
+ {id:'p-tabata',name:'Burpee Tabata',icon:'flame',color:'red',rounds:8,rest:10,prep:10,notes:'20 s max effort, 10 s rest, 8 rounds.',
   blocks:[{id:uid(),type:'timed',name:'Burpees — max reps',work:20,cue:'Go go go',lastOnly:false,restAfter:0}]},
- {id:'p-boxing',name:'Boxing 3 × 3 min',icon:'🥊',color:'blue',rounds:3,rest:60,prep:10,notes:'1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 lead uppercut · 6 rear uppercut',
+ {id:'p-boxing',name:'Boxing 3 × 3 min',icon:'glove',color:'blue',rounds:3,rest:60,prep:10,notes:'1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 lead uppercut · 6 rear uppercut',
   blocks:[{id:uid(),type:'boxing',name:'Shadow boxing',work:180,combos:'1-2\n1-1-2\n1-2-3\n1-2-3-2\n1-6-3-2\n2-3-2\n1-2 slip slip\n3-2-3\njab body\n1-2-5-2',minGap:3,maxGap:6,lastOnly:false,restAfter:0}]},
- {id:'p-pushup',name:'Push-up tap counter',icon:'💪',color:'green',rounds:3,rest:60,prep:5,notes:'Tap the circle for each rep — set pace yourself.',
+ {id:'p-pushup',name:'Push-up tap counter',icon:'dumbbell',color:'green',rounds:3,rest:60,prep:5,notes:'Tap the circle for each rep — set pace yourself.',
   blocks:[{id:uid(),type:'reps',name:'Push-ups',reps:15,counts:1,tempo:2,mode:'tap',repPause:0,cues:'',lastOnly:false,restAfter:0}]}
 ];
 const DEF_SET={voice:true,beeps:true,lang:'en-US',speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
@@ -214,11 +272,11 @@ function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=se
 function renderList(){
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0)*(r.sec||1);
-   return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
+   return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · 1 s = ${r.sec} s`:''}</div></div>
-   <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')">▶</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
-  document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-block;width:12px;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">›</span> Archived (${arc.length})</button>`+
-   (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
+   <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',22)}</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
+  document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
+   (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''}</div></div>
    <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`).join(''):'');
 }
@@ -228,11 +286,13 @@ function toggleArchiveCur(){readHead();if(cur.archived)delete cur.archived;else 
 
 /* ---------- editor ---------- */
 let cur=null;
-const BT={reps:['🔢','Reps / counts','orange'],timed:['⏱','Timed','red'],boxing:['🥊','Boxing combos','blue'],rest:['😮‍💨','Rest','green']};
-function newRoutine(){cur={id:uid(),name:'New routine',icon:'🏋️',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
+const BT={reps:[svgi('hash',18),'Reps / counts','orange'],timed:[svgi('timer',18),'Timed','red'],boxing:[svgi('glove',18),'Boxing combos','blue'],rest:[svgi('moon',18),'Rest','green']};
+function newRoutine(){cur={id:uid(),name:'New routine',icon:'activity',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
 function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
+function renderIconPick(){const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
+  iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){
-  eIcon.value=cur.icon;eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.textContent=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;
+  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.textContent=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;
   eColor.innerHTML=Object.keys(COLORS).map(c=>`<option ${c===cur.color?'selected':''}>${c}</option>`).join('');
   renderBlocks();
 }
@@ -249,17 +309,17 @@ function renderBlocks(){
    if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}${num(b.id,'minGap',b.minGap,'Min s between calls',0.5,1)}${num(b.id,'maxGap',b.maxGap,'Max s between calls',0.5,1)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value)">${esc(b.combos)}</textarea>`;
    if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
-   return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span>${ic}</span>
+   return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
-    <button class="icon ghost" onclick="mv(${i},-1)">↑</button><button class="icon ghost" onclick="mv(${i},1)">↓</button>
-    <button class="icon ghost" onclick="dup(${i})" title="Duplicate">⎘</button><button class="icon ghost danger" onclick="rm(${i})">×</button></div>
+    <button class="icon ghost" onclick="mv(${i},-1)" title="Move up">${svgi('up',18)}</button><button class="icon ghost" onclick="mv(${i},1)" title="Move down">${svgi('down',18)}</button>
+    <button class="icon ghost" onclick="dup(${i})" title="Duplicate">${svgi('copy',17)}</button><button class="icon ghost danger" onclick="rm(${i})" title="Remove">${svgi('x',18)}</button></div>
     ${f}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
   summary();
 }
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
   if(!n)return '';const ok=n===c;const col=ok?'var(--green)':'var(--orange)';
   const msg=ok?'matches counts per rep':n<c?`${c-n} short — counts ${n+1}–${c} show numbers`:`${n-c} extra — cue${n-c>1?'s':''} after count ${c} ignored`;
-  return `<span style="color:${col}">${ok?'✓':'!'} ${n} cue${n>1?'s':''} / ${c} counts per rep · ${msg}</span>`;}
+  return `<span style="color:${col}">${svgi(ok?'check':'alert',14,2.5)} ${n} cue${n>1?'s':''} / ${c} counts per rep · ${msg}</span>`;}
 function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();summary();}
 function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
   const d={reps:{name:'Burpees',reps:10,counts:12,tempo:1,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
@@ -268,7 +328,7 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=eIcon.value||'🏋️';cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;cur.notes=eNotes.value;cur.sec=Math.min(3,Math.max(0.25,+eSec.value||1));}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(3,Math.max(0.25,+eSec.value||1));}
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 function summary(){readHead();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0)*(cur.sec||1);
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
@@ -308,7 +368,7 @@ function bell(){[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),
 function say(t,interrupt=true){if(!S.voice||muted||!t)return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;u.rate=S.rate;u.volume=S.volume;speechSynthesis.speak(u);}
 function buzz(p){if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}
 function testAudio(){ac();beep(660);setTimeout(()=>beep(990),200);setTimeout(()=>say(S.lang.startsWith('nl')?'Klaar? Gaan!':'Ready? Go!'),400);}
-function toggleMute(){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(muted)speechSynthesis.cancel();}
+function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22);if(muted)speechSynthesis.cancel();}
 
 /* ---------- build step list ---------- */
 function build(r){const st=[];const P=(s)=>st.push(s);
@@ -333,13 +393,13 @@ function build(r){const st=[];const P=(s)=>st.push(s);
 let X=null; // run state
 const PH={prep:'#5E9FE8',work:null,rest:'#46A171'};
 async function startRun(id){const r=R.find(r=>r.id===id);ac();
-  pp.innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:'',box:{}};
+  pp.innerHTML=svgi('pause',30);X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:'',box:{}};
   if(!X.steps.length){alert('Add a block first.');return;}
-  rName.textContent=r.icon+' '+r.name;run.classList.add('on');
+  rName.innerHTML=svgi(iconKey(r),16)+'<span>'+esc(r.name)+'</span>';run.classList.add('on');
   if(S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}
   enter(0);requestAnimationFrame(loop);}
 function stopRun(){if(X&&X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on');show('lib');}
-function togglePause(){if(!X)return;X.paused=!X.paused;pp.innerHTML=X.paused?'<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>':'<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';if(X.paused)speechSynthesis.cancel();X.last=performance.now();}
+function togglePause(){if(!X)return;X.paused=!X.paused;pp.innerHTML=svgi(X.paused?'play':'pause',30);if(X.paused)speechSynthesis.cancel();X.last=performance.now();}
 function jump(d){if(!X)return;const j=X.i+d;if(j<0)return;if(j>=X.steps.length)return finish();enter(j);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
 function enter(i){X.i=i;X.t=0;X.lastCount=-1;X.lastSec=null;X.tapCount=0;X.callText='';X.nextCall=1.5;
@@ -359,7 +419,7 @@ function enter(i){X.i=i;X.t=0;X.lastCount=-1;X.lastSec=null;X.tapCount=0;X.callT
 function finish(){const r=X.r;speechSynthesis.cancel();bell();buzz([200,100,200,100,400]);say('Done. Great work!');
   if(X.wl)X.wl.release();
   const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
-  X=null;run.style.background='#191919';pp.innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';phase.textContent='Done';phase.style.color='#72BC8F';big.textContent='✓';cueLine.textContent='';fitBig();
+  X=null;run.style.background='#191919';pp.innerHTML=svgi('pause',30);phase.textContent='Done';phase.style.color='#72BC8F';big.innerHTML=svgi('check',120,2.5);big.style.fontSize='';cueLine.textContent='';
   sub.textContent=tot?`${tot} reps`:'';call.textContent='';next.textContent='';pips.innerHTML='';tapHint.textContent='Tap × to close';
   ring.style.strokeDashoffset=0;ring.style.stroke='#72BC8F';rBar.style.width='100%';
   X={done:true};}
@@ -383,7 +443,7 @@ function tick(){const s=X.steps[X.i];
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
-    if(s.boxing&&X.t>=X.nextCall&&left>1.5){const c=nextCombo(s);X.callText=c;call.textContent=c;call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
+    if(s.boxing&&X.t>=X.nextCall&&left>1.5){const c=nextCombo(s);X.callText=c;call.textContent=c;{const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;}call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
       beep(1500,.05,'square',.4);say(c.replace(/-/g,' '));X.nextCall=X.t+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap);}
     if(left<=0)return jump(1);
   } else if(s.mode==='guided'){
@@ -404,7 +464,8 @@ function tap(){if(!X||X.done||X.paused)return;const s=X.steps[X.i];if(s.type!=='
   if(X.tapCount>=total){setTimeout(()=>X&&X.steps&&jump(1),350);}render();}
 document.addEventListener('keydown',e=>{if(!run.classList.contains('on'))return;if(e.code==='Space'){e.preventDefault();const s=X&&X.steps&&X.steps[X.i];if(s&&s.mode==='tap')tap();else togglePause();}
   if(e.code==='ArrowRight')jump(1);if(e.code==='ArrowLeft')jump(-1);if(e.code==='Escape')stopRun();});
-function fitBig(){const L=String(big.textContent).length;big.style.fontSize=L<=4?'':`min(${Math.round(680/L)}px, ${(72/L).toFixed(1)}vh, ${Math.round(220/L)}vw)`;}
+function fitBig(){const t=String(big.textContent),L=t.length;if(L<=4){big.style.fontSize='';return;}const w=Math.max(...t.split(/\s+/).map(x=>x.length),Math.ceil(L/2));big.style.fontSize=`min(${Math.round(380/w)}px, ${(40/w).toFixed(1)}vh, ${Math.round(118/w)}vw)`;}
+function fitCue(){const L=cueLine.textContent.length;cueLine.style.fontSize=L<=10?'':`min(${Math.round(420/L)+10}px, ${(4.6*10/L+1.2).toFixed(1)}vh)`;}
 function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
   if(s.type==='time'){const left=Math.max(0,s.dur-X.t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=X.t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
   else{let rep,c,breather=false;
@@ -421,7 +482,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
         else if(d==='number'){bigTxt=n;if(cue)subTxt+=' · '+cue;}
         else{bigTxt=n;cueTxt=cue;}}}
     else{bigTxt=s.mode==='tap'?X.tapCount:rep+1;subTxt=`of ${s.reps}`;}
-    big.textContent=bigTxt;cueLine.textContent=cueTxt;sub.textContent=subTxt;fitBig();
+    big.textContent=bigTxt;cueLine.textContent=cueTxt;sub.textContent=subTxt;fitBig();fitCue();
     [...pips.children].forEach((p,k)=>{p.className=k<rep||(k===rep&&s.mode==='tap'&&X.tapCount>=s.reps*s.counts)?'done':k===rep?'now':'';});
   }
   ring.style.strokeDashoffset=289.03*(1-Math.min(1,frac));
@@ -436,7 +497,8 @@ function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
 function saveSY(){localStorage.setItem('rf_sync',JSON.stringify(SY));}
 function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
-  el.textContent=!SY.token?'Count-based & timed routines':({busy:'☁ Syncing…',ok:'☁ Synced '+t,offline:'☁ Offline — syncs when back online',auth:'⚠ Sync: token invalid — check Settings',err:'⚠ Sync failed — will retry'}[st]||'☁ Sync on');}
+  const lbl=!SY.token?'Count-based & timed routines':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
+  el.innerHTML=!SY.token?lbl:`<span class="syncl">${svgi(st==='auth'||st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;}
   const sl=document.getElementById('syncStatus');if(sl)sl.textContent=el?el.textContent:'';}
 async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+SY.token,Accept:'application/vnd.github+json','Content-Type':'application/json'}});
   if(r.status===401||r.status===403){const e=new Error('auth');e.auth=true;throw e;}if(!r.ok){const e=new Error('http '+r.status);e.status=r.status;throw e;}return r.status===204?null:r.json();}
@@ -471,7 +533,7 @@ async function connectSync(){const t=document.getElementById('tokIn').value.trim
   await syncNow();if(syncState==='auth'){alert('GitHub did not accept this token. Make sure it has the "gist" scope.');SY={token:'',gistId:'',last:0};saveSY();}openSettings();}
 function disconnectSync(){if(!confirm('Stop syncing on this device? Your routines stay on this device and in your GitHub gist.'))return;SY={token:'',gistId:'',last:0};saveSY();setSync('');openSettings();}
 function syncCard(){return SY.token?`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" id="syncStatus" style="margin:0 0 12px"></p>
-  <div class="row"><button onclick="syncNow()">⟳ Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
+  <div class="row"><button class="ib" onclick="syncNow()">${svgi('refresh',16)}Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
   <p class="muted" style="margin:12px 0 0">Routines are stored in a private gist “RepFlow sync” on your GitHub account and sync automatically. Audio settings stay per device.</p>`
  :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines in a private gist on your GitHub account. Do this once on every device.</p>
   <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked; pick an expiry (or none).</li><li>Paste it below and press Connect.</li></ol>
@@ -492,6 +554,8 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
       const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>r.archived?-1:i).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}renderList();};
   h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
 
+gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
+document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);
 renderList();setSync('');scheduleSync(200);
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 // re-acquire wake lock after switching apps mid-workout
