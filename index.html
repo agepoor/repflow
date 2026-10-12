@@ -189,10 +189,13 @@ let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null;
+const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
+function canon(list){const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
+  return list.map(r=>{const pid=P[r.name];if(pid&&r.id!==pid&&!have.has(pid)){have.add(pid);return {...r,id:pid};}return r;});}
 let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderTs:0};
 const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
 let SNAP=null;const snapOf=()=>{const m={};R.forEach(r=>m[r.id]=sig(r));return {m,order:R.map(r=>r.id).join(',')};};
-if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else SNAP=snapOf(); // fresh defaults never override synced data
+if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else{R=canon(R);SNAP=snapOf();saveRaw();} // fresh defaults never override synced data
 function saveRaw(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));localStorage.setItem('rf_meta',JSON.stringify(META));}
 function persist(){const now=Date.now();let changed=false;const seen=new Set();
   R.forEach(r=>{seen.add(r.id);if(SNAP.m[r.id]!==sig(r)){r.upd=now;changed=true;}});
@@ -429,7 +432,7 @@ async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-sto
   if(r.status===401||r.status===403){const e=new Error('auth');e.auth=true;throw e;}if(!r.ok){const e=new Error('http '+r.status);e.status=r.status;throw e;}return r.status===204?null:r.json();}
 function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs}};}
 function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{}).forEach(([k,v])=>{if(!(del[k]>=v))del[k]=v;});
-  const by={};[...(Rm.routines||[]),...(L.routines||[])].forEach(r=>{const o=by[r.id];if(!o||(r.upd||0)>(o.upd||0))by[r.id]=r;});
+  const by={};[...canon(Rm.routines||[]),...canon(L.routines||[])].forEach(r=>{const o=by[r.id];if(!o||(r.upd||0)>(o.upd||0))by[r.id]=r;});
   let list=Object.values(by).filter(r=>!(del[r.id]>=(r.upd||0)));
   // collapse identical copies (same content, different id) — e.g. presets created on two devices
   const strip=r=>{const {id,upd,...x}=r;return JSON.stringify({...x,blocks:(x.blocks||[]).map(({id,...b})=>b)});};const keep={};
