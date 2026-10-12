@@ -77,6 +77,7 @@ h2{font-size:20px;margin:0}
 #run .ctrl #pp{width:76px;height:76px;background:var(--tx);color:var(--bg);border:none}
 #tapHint{font-size:14px;color:var(--tx2)}
 .flash{animation:fl .25s}
+details.info{margin-top:8px;font-size:13px;color:var(--tx2)}details.info>summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;color:var(--tx2);user-select:none}details.info>summary::-webkit-details-marker{display:none}details.info>summary:before{content:'';width:0;height:0;border-left:6px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}details.info[open]>summary:before{transform:rotate(90deg)}details.info>summary:hover{color:var(--tx)}details.info .body{margin:6px 0 0 17px;line-height:1.5}details.info .body p{margin:0 0 6px}
 @keyframes fl{0%{transform:scale(1.08)}100%{transform:scale(1)}}
 #done{text-align:center}
 
@@ -139,7 +140,7 @@ header{flex-wrap:nowrap}
       <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
-    <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Count length</b> = how long one count of a move takes. Used by rep blocks (per count) and boxing blocks (per punch/move) that leave their own count length empty.</p>
+    <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
   </div>
   <div id="blocks"></div>
@@ -339,11 +340,10 @@ function renderBlocks(){
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
-   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}<div><label>Count length per punch (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s between calls (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s between calls (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
-     <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Time per call</b> = count length × number of moves in the combo (e.g. "1-2 slip" = 3) + extra seconds. The voice always finishes the whole line before the next call. <b style="color:var(--tx)">Pause after full pool</b>: extra break once every combo in the pool has been called at least once (in Random order that can take more calls than the pool size). <b style="color:var(--tx)">Rest after block</b>: starts only after the full Round length is over.</p>
+   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea>
-     <p class="muted" style="margin:6px 0 4px;font-size:13px">Each line is split into moves at <b style="color:var(--tx)">spaces</b>, <b style="color:var(--tx)">dashes (-)</b> and <b style="color:var(--tx)">commas</b>. Join words with <b style="color:var(--tx)">_</b> to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p>
-     <div id="pv-${b.id}">${poolPreview(b.id)}</div>`;
+     ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
+     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. The voice always finishes the line before the next call.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Round length.</p>`)}`;
    if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -470,6 +470,8 @@ const spoken=c=>c.replace(/_/g,' ');
 function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1);
   const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';
   return L.map(l=>{const m=movesOf(l);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px">${m.map(t=>`<span class="tag">${esc(spoken(t))}</span>`).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra</span></div>`;}).join('');}
+const OPEN=new Set();
+function info(k,title,body){return `<details class="info" ${OPEN.has(k)?'open':''} ontoggle="this.open?OPEN.add('${k}'):OPEN.delete('${k}')"><summary>${title}</summary><div class="body">${body}</div></details>`;}
 function pvUpd(id){const e=document.getElementById('pv-'+id);if(e)e.innerHTML=poolPreview(id);}
 function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
