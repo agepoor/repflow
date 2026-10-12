@@ -90,6 +90,10 @@ header{flex-wrap:nowrap}
 .iconpick:hover{background:var(--surf)}
 .icongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px;margin-top:12px}
 .icongrid[hidden]{display:none}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.swatches button{width:34px;height:34px;border-radius:50%;padding:0;background:var(--c);border:2px solid transparent;display:grid;place-items:center;color:#191919;transition:transform .1s}
+.swatches button:hover{background:var(--c);transform:scale(1.08)}
+.swatches button.on{box-shadow:0 0 0 2px var(--surf),0 0 0 4px var(--c)}
 .icongrid button{height:44px;display:grid;place-items:center;padding:0;color:var(--tx2)}
 .rcard .dot{color:var(--tx)}
 .rcard .go{display:grid;place-items:center}
@@ -127,11 +131,12 @@ header{flex-wrap:nowrap}
       <input id="eName" style="font-size:20px;font-weight:700" placeholder="Routine name">
     </div>
     <div id="iconGrid" class="icongrid" hidden></div>
+    <input type="hidden" id="eColor">
+    <div class="swatches" id="eColorPick" role="radiogroup" aria-label="Color"></div>
     <div class="grid" style="margin-top:12px">
       <div><label>Rounds</label><input id="eRounds" type="number" min="1"></div>
       <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
       <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
-      <div><label>Color</label><select id="eColor"></select></div>
       <div><label>Length of a second (s)</label><input id="eSec" type="number" min="0.25" max="3" step="0.05"></div>
     </div>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
@@ -308,11 +313,13 @@ let cur=null;
 const BT={reps:[svgi('hash',18),'Reps / counts','orange'],timed:[svgi('timer',18),'Timed','red'],boxing:[svgi('glove',18),'Boxing combos','blue'],rest:[svgi('moon',18),'Rest','green']};
 function newRoutine(){cur={id:uid(),name:'New routine',icon:'activity',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
 function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
+function renderSwatches(){eColorPick.innerHTML=Object.entries(COLORS).map(([n,c])=>`<button role="radio" aria-checked="${n===eColor.value}" aria-label="${n}" title="${n}" class="${n===eColor.value?'on':''}" style="--c:${c}" onclick="pickColor('${n}')">${n===eColor.value?svgi('check',16,3):''}</button>`).join('');}
+function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick();}
 function renderIconPick(){const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){
   renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.textContent=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;
-  eColor.innerHTML=Object.keys(COLORS).map(c=>`<option ${c===cur.color?'selected':''}>${c}</option>`).join('');
+  eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();
   renderBlocks();
 }
 function num(id,k,v,lbl,step=1,min=0){return `<div><label>${lbl}</label><input type="number" step="${step}" min="${min}" value="${v}" oninput="setB('${id}','${k}',+this.value)"></div>`}
