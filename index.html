@@ -121,6 +121,21 @@ header{flex-wrap:nowrap}
 #doneView .acts{display:flex;gap:10px;width:100%;margin-top:10px}
 #doneView .acts button{flex:1;height:48px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 @media (max-width:480px){header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}}
+#histBtn{gap:6px;color:var(--tx2)}#histBtn.on{color:#DE9255}#histBtn b{font-variant-numeric:tabular-nums}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.hstat{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:14px 8px;text-align:center}
+.hstat b{display:flex;align-items:center;justify-content:center;gap:6px;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.hstat span{font-size:12px;color:var(--tx2)}.hstat.fire b{color:#DE9255}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px}
+.heat i{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.06)}.heat i.l1{background:rgba(114,188,143,.4)}.heat i.l2{background:rgba(114,188,143,.7)}.heat i.l3{background:#72BC8F}.heat i.fut{background:none}.heat i.today{outline:1.5px solid var(--tx2);outline-offset:1px}
+.heatwrap{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:stretch}.heatdays{display:grid;grid-template-rows:repeat(7,1fr);gap:3px;font-size:10px;color:var(--tx2);line-height:1}.heatdays span{display:flex;align-items:center}
+.legend{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:12px;color:var(--tx2);margin-top:8px}.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.hday{font-size:13px;color:var(--tx2);margin:16px 0 6px;font-weight:600}
+.hitem{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surf);border:1px solid var(--bd);border-radius:12px;margin-bottom:6px}
+.hitem .dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none}
+.hitem .info{flex:1;min-width:0}.hitem .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hitem .info span{font-size:13px;color:var(--tx2)}
+#doneView .streak{display:inline-flex;align-items:center;gap:6px;color:#DE9255;font-weight:700;font-size:15px;margin-top:-8px}
+@media (max-width:480px){.hstat b{font-size:22px}.hstats{gap:6px}}
 </style>
 </head>
 <body>
@@ -130,12 +145,22 @@ header{flex-wrap:nowrap}
   <header>
     <div><h1>RepFlow</h1><div class="muted" id="syncLine">Count-based & timed routines</div></div>
     <div class="row">
+      <button class="ghost ib" id="histBtn" onclick="openHist()" title="History" aria-label="History"></button>
       <button class="ghost" onclick="openSettings()" title="Settings" aria-label="Settings"><span id="gearIc"></span></button>
       <button class="primary" onclick="newRoutine()">+ Routine</button>
     </div>
   </header>
   <div id="list"></div>
   <div id="arch" style="margin-top:16px"></div>
+</section>
+
+<!-- HISTORY -->
+<section id="hist" class="view">
+  <header>
+    <button class="ghost ib hb" onclick="show('lib')" title="Back"><i data-ic="back"></i><span class="lbl">Back</span></button>
+    <h2 style="margin:0">History</h2><span style="width:44px"></span>
+  </header>
+  <div id="histBody"></div>
 </section>
 
 <!-- EDITOR -->
@@ -292,6 +317,7 @@ const PRESETS0=()=>[
 ];
 const DEF_SET={voice:true,beeps:true,lang:'en-US',voiceURI:'',pitch:1,speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
 let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
+let H=JSON.parse(localStorage.getItem('rf_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf_hdel')||'{}');
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null;
@@ -320,7 +346,7 @@ function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.na
 function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
-function renderList(){
+function renderList(){updHistBtn();
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
    return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
@@ -480,8 +506,9 @@ function finish(){const r=X.r;speechSynthesis.cancel();bell();buzz([200,100,200,
   if(X.wl)X.wl.release();
   const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),el=X.el||0,calls=X.calls||0;
   X=null;run.style.background='#191919';
-  const e=Math.round(el),st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(tot)st.push([tot,'Reps']);if(calls)st.push([calls,'Combos']);
-  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>
+  const e=Math.round(el),L=logWorkout({id:uid(),rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:Date.now(),dur:e,rounds:r.rounds,reps:tot,calls});updHistBtn();
+  const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(tot)st.push([tot,'Reps']);if(calls)st.push([calls,'Combos']);
+  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
     <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}')">${svgi('play',18)}Again</button></div>`;
   run.classList.add('fin');
@@ -567,8 +594,45 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
   const tot=X.steps.length;rBar.style.width=((X.i+Math.min(1,frac))/tot*100)+'%';}
 
 /* ---------- import/export ---------- */
-function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
-function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r=mig(r);r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
+/* ---------- history & streaks ---------- */
+function saveH(){localStorage.setItem('rf_hist',JSON.stringify(H));localStorage.setItem('rf_hdel',JSON.stringify(HDEL));}
+const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
+const dayAdd=(k,n)=>{const d=kd(k);d.setDate(d.getDate()+n);return dk(d.getTime());};
+const weekStart=k=>dayAdd(k,-((kd(k).getDay()+6)%7));
+const mmss=e=>{e=Math.round(e||0);const h=Math.floor(e/3600),m=Math.floor(e%3600/60),s=e%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;};
+function streaks(list=H){const days=new Set(list.map(h=>dk(h.ts))),today=dk(Date.now());
+  let cur=0,k=days.has(today)?today:dayAdd(today,-1);while(days.has(k)){cur++;k=dayAdd(k,-1);}
+  let best=0,run=0,prev=null;[...days].sort().forEach(d=>{run=prev&&dayAdd(prev,1)===d?run+1:1;best=Math.max(best,run);prev=d;});
+  return {cur,best,today:days.has(today)};}
+function logWorkout(e){const before=streaks().best;H.push(e);saveH();scheduleSync();const st=streaks();return {...st,newBest:st.cur>1&&st.cur>before};}
+function updHistBtn(){const b=document.getElementById('histBtn');if(!b)return;const st=streaks();b.classList.toggle('on',st.today);b.innerHTML=svgi('flame',20)+(st.cur?`<b>${st.cur}</b>`:'');b.title=st.cur?`${st.cur}-day streak · History`:'History';}
+function openHist(){renderHist();show('hist');}
+function delHist(id){if(!confirm('Remove this workout from your history?'))return;HDEL[id]=Date.now();H=H.filter(h=>h.id!==id);saveH();scheduleSync();renderHist();updHistBtn();}
+function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today);
+  const week=H.filter(h=>dk(h.ts)>=ws).length;
+  const cnt={};H.forEach(h=>{const k=dk(h.ts);cnt[k]=(cnt[k]||0)+1;});
+  const W=17,start=dayAdd(ws,-(W-1)*7);let cells='';
+  for(let i=0;i<W*7;i++){const k=dayAdd(start,i),c=cnt[k]||0;cells+=`<i class="${k>today?'fut':c>=3?'l3':c===2?'l2':c?'l1':''}${k===today?' today':''}" title="${k}: ${c} workout${c!==1?'s':''}"></i>`;}
+  const mins=Math.round(H.reduce((a,h)=>a+(h.dur||0),0)/60);
+  let html=`<div class="hstats">
+    <div class="hstat fire"><b>${svgi('flame',20)}${st.cur}</b><span>day streak</span></div>
+    <div class="hstat"><b>${st.best}</b><span>best streak</span></div>
+    <div class="hstat"><b>${week}</b><span>this week</span></div>
+    <div class="hstat"><b>${H.length}</b><span>workouts</span></div></div>
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><b>Last ${W} weeks</b><span class="muted" style="font-size:13px">${mins} min total</span></div>
+    <div class="heatwrap"><div class="heatdays">${['M','','W','','F','','S'].map(d=>`<span>${d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
+    <div class="legend">Less <i style="background:rgba(255,255,255,.06)"></i><i style="background:rgba(114,188,143,.4)"></i><i style="background:rgba(114,188,143,.7)"></i><i style="background:#72BC8F"></i> More</div></div>`;
+  if(!H.length)html+=`<p class="muted" style="text-align:center;margin-top:24px">No workouts yet. Finish a routine and it shows up here.</p>`;
+  const yest=dayAdd(today,-1);let last='';
+  [...H].sort((a,b)=>b.ts-a.ts).slice(0,100).forEach(h=>{const k=dk(h.ts);
+    if(k!==last){last=k;html+=`<div class="hday">${k===today?'Today':k===yest?'Yesterday':kd(k).toLocaleDateString([],{weekday:'long',day:'numeric',month:'short'})}</div>`;}
+    const c=COLORS[h.color]||COLORS.blue,bits=[new Date(h.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),mmss(h.dur),`${h.rounds} round${h.rounds!==1?'s':''}`];
+    if(h.reps)bits.push(`${h.reps} reps`);if(h.calls)bits.push(`${h.calls} combos`);
+    html+=`<div class="hitem"><div class="dot" style="background:${c}26;color:${c}">${svgi(h.icon||'activity',18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:6px;color:var(--tx2)">${svgi('trash',16)}</button></div>`;});
+  histBody.innerHTML=html;}
+function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
+function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r=mig(r);r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
 /* ---------- sync via private GitHub Gist ---------- */
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
@@ -579,7 +643,7 @@ function setSync(st){syncState=st;const el=document.getElementById('syncLine');i
   const sl=document.getElementById('syncStatus');if(sl)sl.textContent=el?el.textContent:'';}
 async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+SY.token,Accept:'application/vnd.github+json','Content-Type':'application/json'}});
   if(r.status===401||r.status===403){const e=new Error('auth');e.auth=true;throw e;}if(!r.ok){const e=new Error('http '+r.status);e.status=r.status;throw e;}return r.status===204?null:r.json();}
-function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs}};}
+function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs},history:H,hdel:HDEL};}
 function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{}).forEach(([k,v])=>{if(!(del[k]>=v))del[k]=v;});
   const by={};[...canon(Rm.routines||[]),...canon(L.routines||[])].forEach(r=>{const o=by[r.id];if(!o||(r.upd||0)>(o.upd||0))by[r.id]=r;});
   let list=Object.values(by).filter(r=>!(del[r.id]>=(r.upd||0)));
@@ -590,7 +654,10 @@ function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{
   const lo=L.order||{ids:[],ts:0},ro=Rm.order||{ids:[],ts:0};const [w,o]=(lo.ts||0)>(ro.ts||0)?[lo,ro]:[ro,lo];
   const pos=id=>{let i=w.ids.indexOf(id);if(i>=0)return i;i=o.ids.indexOf(id);return i>=0?1e4+i:2e4;};
   list.sort((a,b)=>pos(a.id)-pos(b.id));
-  return {app:'repflow',v:1,routines:list,deleted:del,order:{ids:list.map(r=>r.id),ts:Math.max(lo.ts||0,ro.ts||0)}};}
+  const hd={...(Rm.hdel||{})};Object.entries(L.hdel||{}).forEach(([k,v])=>{if(!(hd[k]>=v))hd[k]=v;});
+  const hm={};[...(Rm.history||[]),...(L.history||[])].forEach(h=>{if(h&&h.id)hm[h.id]=h;});
+  const history=Object.values(hm).filter(h=>!hd[h.id]).sort((a,b)=>a.ts-b.ts);
+  return {app:'repflow',v:1,routines:list,deleted:del,order:{ids:list.map(r=>r.id),ts:Math.max(lo.ts||0,ro.ts||0)},history,hdel:hd};}
 async function findGist(){if(SY.gistId){try{return await gh('/gists/'+SY.gistId);}catch(e){if(e.status!==404)throw e;SY.gistId='';}}
   for(let pg=1;pg<=5;pg++){const l=await gh(`/gists?per_page=100&page=${pg}`);const g=l.find(g=>g.description===GDESC&&g.files&&g.files[GFILE]);
     if(g){SY.gistId=g.id;saveSY();return await gh('/gists/'+g.id);}if(l.length<100)break;}
@@ -600,7 +667,7 @@ async function syncNow(){if(!SY.token)return;if(syncBusy){syncAgain=true;return;
   try{const g=await findGist();const f=g.files[GFILE];let txt=f.content;if(f.truncated)txt=await (await fetch(f.raw_url,{cache:'no-store'})).text();
     let remote={};try{remote=JSON.parse(txt||'{}');}catch(e){}
     const m=merge(localDoc(),remote);
-    R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;SNAP=snapOf();saveRaw();renderList();
+    R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;H=m.history;HDEL=m.hdel;saveH();SNAP=snapOf();saveRaw();renderList();if(document.getElementById('hist').classList.contains('on'))renderHist();
     const out=JSON.stringify(m);if(out!==txt)await gh('/gists/'+SY.gistId,{method:'PATCH',body:JSON.stringify({files:{[GFILE]:{content:out}}})});
     SY.last=Date.now();saveSY();setSync('ok');}
   catch(e){setSync(e.auth?'auth':(navigator.onLine===false||e instanceof TypeError)?'offline':'err');}
@@ -611,7 +678,7 @@ async function connectSync(){const t=document.getElementById('tokIn').value.trim
 function disconnectSync(){if(!confirm('Stop syncing on this device? Your routines stay on this device and in your GitHub gist.'))return;SY={token:'',gistId:'',last:0};saveSY();setSync('');openSettings();}
 function syncCard(){return SY.token?`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" id="syncStatus" style="margin:0 0 12px"></p>
   <div class="row"><button class="ib" onclick="syncNow()">${svgi('refresh',16)}Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
-  <p class="muted" style="margin:12px 0 0">Routines are stored in a private gist “RepFlow sync” on your GitHub account and sync automatically. Audio settings stay per device.</p>`
+  <p class="muted" style="margin:12px 0 0">Routines and history are stored in a private gist “RepFlow sync” on your GitHub account and sync automatically. Audio settings stay per device.</p>`
  :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines in a private gist on your GitHub account. Do this once on every device.</p>
   <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked; pick an expiry (or none).</li><li>Paste it below and press Connect.</li></ol>
   <div class="row" style="flex-wrap:nowrap"><input id="tokIn" type="password" placeholder="ghp_…" autocomplete="off"><button class="primary" onclick="connectSync()">Connect</button></div>`;}
