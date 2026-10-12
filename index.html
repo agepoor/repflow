@@ -201,7 +201,8 @@ header{flex-wrap:nowrap}
 <section id="set" class="view">
   <header><button class="ghost" onclick="show('lib')">← Back</button><h2>Settings</h2><span></span></header>
   <div class="card settings" id="setForm"></div>
-  <div class="card"><button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button></div>
+  <div class="card"><div class="row" style="flex-wrap:wrap;gap:8px"><button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button><button class="ib ghost" onclick="resetAudio()"><i data-ic="refresh"></i>Reset to defaults</button></div>
+    <p class="muted" style="margin:10px 0 0;font-size:13px">Reset restores beeps, voice coach, language, voice, speed, pitch, volume, spoken counts and countdown beeps. Vibrate and Keep screen on stay as they are.</p></div>
   <div class="card" id="syncCard"></div>
   <div class="card">
     <h2 style="margin-bottom:8px">Backup</h2>
@@ -470,6 +471,9 @@ function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return
 function pickVoice(){return S.voiceURI?speechSynthesis.getVoices().find(v=>v.voiceURI===S.voiceURI)||null:null;}
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
 function buzz(p){if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}
+function resetAudio(){if(!confirm('Reset all sound & voice settings to their defaults?'))return;
+  ['beeps','voice','lang','voiceURI','pitch','rate','volume','speakCounts','countdown'].forEach(k=>S[k]=DEF_SET[k]);
+  persist();openSettings();testAudio();}
 function testAudio(){ac();beep(660);setTimeout(()=>beep(990),200);setTimeout(()=>say(S.lang.startsWith('nl')?'Klaar? Gaan!':'Ready? Go!'),400);}
 function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22);if(muted)speechSynthesis.cancel();}
 
