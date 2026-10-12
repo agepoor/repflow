@@ -82,7 +82,7 @@ h2{font-size:20px;margin:0}
 <!-- LIBRARY -->
 <section id="lib" class="view on">
   <header>
-    <div><h1>RepFlow</h1><div class="muted">Count-based & timed routines</div></div>
+    <div><h1>RepFlow</h1><div class="muted" id="syncLine">Count-based & timed routines</div></div>
     <div class="row">
       <button class="ghost" onclick="openSettings()" title="Settings">⚙︎</button>
       <button class="primary" onclick="newRoutine()">+ Routine</button>
@@ -133,6 +133,7 @@ h2{font-size:20px;margin:0}
   <header><button class="ghost" onclick="show('lib')">← Back</button><h2>Settings</h2><span></span></header>
   <div class="card settings" id="setForm"></div>
   <div class="card"><button onclick="testAudio()">▶ Test sound & voice</button></div>
+  <div class="card" id="syncCard"></div>
 </section>
 
 <!-- RUNNER -->
@@ -169,25 +170,35 @@ h2{font-size:20px;margin:0}
 const COLORS={orange:'#DE9255',red:'#E97366',blue:'#5E9FE8',green:'#72BC8F',purple:'#BF8EDA',yellow:'#EAC26B',teal:'#4FB9C9',pink:'#DF84A8'};
 const uid=()=>Math.random().toString(36).slice(2,10);
 const PRESETS=()=>[
- {id:uid(),name:'Burpees 12-count',icon:'🌪️',color:'orange',rounds:3,rest:75,prep:10,
+ {id:'p-burpees12',name:'Burpees 12-count',icon:'🌪️',color:'orange',rounds:3,rest:75,prep:10,
   notes:'Breathe in on the way down (1–4), out on the push-up (5) and the jump (12). Pick a pace you can hold for 3 rounds.',
   blocks:[
    {id:uid(),type:'reps',name:'A · Reps',reps:8,counts:12,tempo:1,mode:'guided',repPause:2,cues:'',lastOnly:false,restAfter:0},
    {id:uid(),type:'reps',name:'B · Finisher non-stop',reps:5,counts:12,tempo:0.8,mode:'guided',repPause:0,cues:'',lastOnly:true,restAfter:0}]},
- {id:uid(),name:'Quick burpee snack',icon:'⚡',color:'yellow',rounds:1,rest:0,prep:5,notes:'Short version: 6 burpees, ~2 min.',
+ {id:'p-snack',name:'Quick burpee snack',icon:'⚡',color:'yellow',rounds:1,rest:0,prep:5,notes:'Short version: 6 burpees, ~2 min.',
   blocks:[{id:uid(),type:'reps',name:'Burpees',reps:6,counts:12,tempo:1,mode:'guided',repPause:2,cues:'',lastOnly:false,restAfter:0}]},
- {id:uid(),name:'Burpee Tabata',icon:'🔥',color:'red',rounds:8,rest:10,prep:10,notes:'20 s max effort, 10 s rest, 8 rounds.',
+ {id:'p-tabata',name:'Burpee Tabata',icon:'🔥',color:'red',rounds:8,rest:10,prep:10,notes:'20 s max effort, 10 s rest, 8 rounds.',
   blocks:[{id:uid(),type:'timed',name:'Burpees — max reps',work:20,cue:'Go go go',lastOnly:false,restAfter:0}]},
- {id:uid(),name:'Boxing 3 × 3 min',icon:'🥊',color:'blue',rounds:3,rest:60,prep:10,notes:'1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 lead uppercut · 6 rear uppercut',
+ {id:'p-boxing',name:'Boxing 3 × 3 min',icon:'🥊',color:'blue',rounds:3,rest:60,prep:10,notes:'1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 lead uppercut · 6 rear uppercut',
   blocks:[{id:uid(),type:'boxing',name:'Shadow boxing',work:180,combos:'1-2\n1-1-2\n1-2-3\n1-2-3-2\n1-6-3-2\n2-3-2\n1-2 slip slip\n3-2-3\njab body\n1-2-5-2',minGap:3,maxGap:6,lastOnly:false,restAfter:0}]},
- {id:uid(),name:'Push-up tap counter',icon:'💪',color:'green',rounds:3,rest:60,prep:5,notes:'Tap the circle for each rep — set pace yourself.',
+ {id:'p-pushup',name:'Push-up tap counter',icon:'💪',color:'green',rounds:3,rest:60,prep:5,notes:'Tap the circle for each rep — set pace yourself.',
   blocks:[{id:uid(),type:'reps',name:'Push-ups',reps:15,counts:1,tempo:2,mode:'tap',repPause:0,cues:'',lastOnly:false,restAfter:0}]}
 ];
 const DEF_SET={voice:true,beeps:true,lang:'en-US',speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
 let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
-if(!R){R=PRESETS();persist();}
-function persist(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));}
+let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
+let syncState='',syncBusy=false,syncAgain=false,syncTimer=null;
+let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderTs:0};
+const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
+let SNAP=null;const snapOf=()=>{const m={};R.forEach(r=>m[r.id]=sig(r));return {m,order:R.map(r=>r.id).join(',')};};
+if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else SNAP=snapOf(); // fresh defaults never override synced data
+function saveRaw(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));localStorage.setItem('rf_meta',JSON.stringify(META));}
+function persist(){const now=Date.now();let changed=false;const seen=new Set();
+  R.forEach(r=>{seen.add(r.id);if(SNAP.m[r.id]!==sig(r)){r.upd=now;changed=true;}});
+  Object.keys(SNAP.m).forEach(id=>{if(!seen.has(id)){META.deleted[id]=now;changed=true;}});
+  const ord=R.map(r=>r.id).join(',');if(ord!==SNAP.order){META.orderTs=now;changed=true;}
+  SNAP=snapOf();saveRaw();if(changed)scheduleSync();}
 function resetAll(){if(!confirm('Delete ALL routines, including your own, and go back to the 5 default routines?\n\nTip: Export JSON first if you want a backup.'))return;R=PRESETS();persist();renderList();}
 function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.name);R=R.filter((r,k)=>k===i||r.name!==p.name);const j=R.findIndex(r=>r.name===p.name);if(j>=0)R[j]=p;else R.push(p);});persist();renderList();}
 
@@ -269,6 +280,7 @@ function openSettings(){
   <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${S.countdown}" oninput="S.countdown=+this.value;persist()"></div>
   <div><label>Volume</label><input type="range" min="0" max="1" step="0.05" value="${S.volume}" oninput="S.volume=+this.value;persist()"></div>
   <div><label>Voice speed</label><input type="range" min="0.7" max="1.8" step="0.05" value="${S.rate}" oninput="S.rate=+this.value;persist()"></div>`;
+  document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
   show('set');
 }
 speechSynthesis.onvoiceschanged=()=>{if(document.getElementById('set').classList.contains('on'))openSettings();};
@@ -407,6 +419,53 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
 function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
+/* ---------- sync via private GitHub Gist ---------- */
+const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
+function saveSY(){localStorage.setItem('rf_sync',JSON.stringify(SY));}
+function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
+  el.textContent=!SY.token?'Count-based & timed routines':({busy:'☁ Syncing…',ok:'☁ Synced '+t,offline:'☁ Offline — syncs when back online',auth:'⚠ Sync: token invalid — check Settings',err:'⚠ Sync failed — will retry'}[st]||'☁ Sync on');}
+  const sl=document.getElementById('syncStatus');if(sl)sl.textContent=el?el.textContent:'';}
+async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+SY.token,Accept:'application/vnd.github+json','Content-Type':'application/json'}});
+  if(r.status===401||r.status===403){const e=new Error('auth');e.auth=true;throw e;}if(!r.ok){const e=new Error('http '+r.status);e.status=r.status;throw e;}return r.status===204?null:r.json();}
+function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs}};}
+function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{}).forEach(([k,v])=>{if(!(del[k]>=v))del[k]=v;});
+  const by={};[...(Rm.routines||[]),...(L.routines||[])].forEach(r=>{const o=by[r.id];if(!o||(r.upd||0)>(o.upd||0))by[r.id]=r;});
+  let list=Object.values(by).filter(r=>!(del[r.id]>=(r.upd||0)));
+  // collapse identical copies (same content, different id) — e.g. presets created on two devices
+  const strip=r=>{const {id,upd,...x}=r;return JSON.stringify({...x,blocks:(x.blocks||[]).map(({id,...b})=>b)});};const keep={};
+  const rid=new Set((Rm.routines||[]).map(r=>r.id));list.sort((a,b)=>(rid.has(b.id)-rid.has(a.id))||(a.id<b.id?-1:1)).forEach(r=>{const k=strip(r);if(keep[k])del[r.id]=Math.max(Date.now(),r.upd||0);else keep[k]=r;});
+  list=list.filter(r=>!(del[r.id]>=(r.upd||0)));
+  const lo=L.order||{ids:[],ts:0},ro=Rm.order||{ids:[],ts:0};const [w,o]=(lo.ts||0)>(ro.ts||0)?[lo,ro]:[ro,lo];
+  const pos=id=>{let i=w.ids.indexOf(id);if(i>=0)return i;i=o.ids.indexOf(id);return i>=0?1e4+i:2e4;};
+  list.sort((a,b)=>pos(a.id)-pos(b.id));
+  return {app:'repflow',v:1,routines:list,deleted:del,order:{ids:list.map(r=>r.id),ts:Math.max(lo.ts||0,ro.ts||0)}};}
+async function findGist(){if(SY.gistId){try{return await gh('/gists/'+SY.gistId);}catch(e){if(e.status!==404)throw e;SY.gistId='';}}
+  for(let pg=1;pg<=5;pg++){const l=await gh(`/gists?per_page=100&page=${pg}`);const g=l.find(g=>g.description===GDESC&&g.files&&g.files[GFILE]);
+    if(g){SY.gistId=g.id;saveSY();return await gh('/gists/'+g.id);}if(l.length<100)break;}
+  const g=await gh('/gists',{method:'POST',body:JSON.stringify({description:GDESC,public:false,files:{[GFILE]:{content:JSON.stringify(localDoc())}}})});
+  SY.gistId=g.id;saveSY();return g;}
+async function syncNow(){if(!SY.token)return;if(syncBusy){syncAgain=true;return;}syncBusy=true;setSync('busy');
+  try{const g=await findGist();const f=g.files[GFILE];let txt=f.content;if(f.truncated)txt=await (await fetch(f.raw_url,{cache:'no-store'})).text();
+    let remote={};try{remote=JSON.parse(txt||'{}');}catch(e){}
+    const m=merge(localDoc(),remote);
+    R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;SNAP=snapOf();saveRaw();renderList();
+    const out=JSON.stringify(m);if(out!==txt)await gh('/gists/'+SY.gistId,{method:'PATCH',body:JSON.stringify({files:{[GFILE]:{content:out}}})});
+    SY.last=Date.now();saveSY();setSync('ok');}
+  catch(e){setSync(e.auth?'auth':(navigator.onLine===false||e instanceof TypeError)?'offline':'err');}
+  finally{syncBusy=false;if(syncAgain){syncAgain=false;scheduleSync(300);}}}
+function scheduleSync(ms=1500){if(!SY.token)return;clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,ms);}
+async function connectSync(){const t=document.getElementById('tokIn').value.trim();if(!t)return;SY={token:t,gistId:'',last:0};saveSY();
+  await syncNow();if(syncState==='auth'){alert('GitHub did not accept this token. Make sure it has the "gist" scope.');SY={token:'',gistId:'',last:0};saveSY();}openSettings();}
+function disconnectSync(){if(!confirm('Stop syncing on this device? Your routines stay on this device and in your GitHub gist.'))return;SY={token:'',gistId:'',last:0};saveSY();setSync('');openSettings();}
+function syncCard(){return SY.token?`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" id="syncStatus" style="margin:0 0 12px"></p>
+  <div class="row"><button onclick="syncNow()">⟳ Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
+  <p class="muted" style="margin:12px 0 0">Routines are stored in a private gist “RepFlow sync” on your GitHub account and sync automatically. Audio settings stay per device.</p>`
+ :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines in a private gist on your GitHub account. Do this once on every device.</p>
+  <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked; pick an expiry (or none).</li><li>Paste it below and press Connect.</li></ol>
+  <div class="row" style="flex-wrap:nowrap"><input id="tokIn" type="password" placeholder="ghp_…" autocomplete="off"><button class="primary" onclick="connectSync()">Connect</button></div>`;}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300);});
+addEventListener('online',()=>scheduleSync(300));
+
 /* drag to reorder routines */
 document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h)return;e.preventDefault();
   const list=e.currentTarget,card=h.closest('.rcard'),cards=[...list.querySelectorAll('.rcard')],from=cards.indexOf(card),n=cards.length;
@@ -419,7 +478,7 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
     if(to!==from){const [r]=R.splice(from,1);R.splice(to,0,r);persist();}renderList();};
   h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
 
-renderList();
+renderList();setSync('');scheduleSync(200);
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 // re-acquire wake lock after switching apps mid-workout
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&X&&X.steps&&S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}});
