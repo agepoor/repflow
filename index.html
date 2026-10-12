@@ -40,7 +40,10 @@ h2{font-size:20px;margin:0}
 .rcard .info{flex:1;min-width:0}
 .rcard .go{width:52px;height:52px;border-radius:50%;padding:0;font-size:20px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;align-items:end}
+.grid>div{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+.grid>div>label{line-height:1.25;margin-bottom:4px}
+.grid input,.grid select{height:40px}
 .block{border-left:4px solid var(--blue)}
 .block .head{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .block .head input{font-weight:600}
@@ -103,6 +106,8 @@ header{flex-wrap:nowrap}
 .cuecount span{display:inline-flex;align-items:center;gap:6px}
 #rName{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #rName span{overflow:hidden;text-overflow:ellipsis}
+.block .head input{flex:1;min-width:0}
+@media (max-width:480px){.block .head{gap:2px}.block .head .icon{padding:6px 4px}.block .head input{margin-right:4px}.grid{gap:10px}}
 </style>
 </head>
 <body>
@@ -335,7 +340,7 @@ function renderBlocks(){
   blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
    if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
-     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather between reps (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
