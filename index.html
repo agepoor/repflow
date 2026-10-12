@@ -33,6 +33,7 @@ h2{font-size:20px;margin:0}
 .card{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
 .rcard{display:flex;align-items:center;gap:16px}
 .rcard{transition:transform .15s;gap:12px}
+.rcard.arch{opacity:.6}
 .rcard.drag{transition:none;position:relative;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.5);background:var(--raise)}
 .handle{color:var(--tx2);touch-action:none;cursor:grab;padding:12px 4px;margin:-12px 0 -12px -6px;display:flex;opacity:.6}
 .rcard .dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
@@ -89,6 +90,7 @@ h2{font-size:20px;margin:0}
     </div>
   </header>
   <div id="list"></div>
+  <div id="arch" style="margin-top:16px"></div>
   <div class="row" style="margin-top:24px">
     <button class="ghost" onclick="exportAll()">Export JSON</button>
     <label class="ghost" style="cursor:pointer;padding:8px 14px">Import JSON<input type="file" accept=".json" hidden onchange="importAll(this)"></label>
@@ -101,7 +103,7 @@ h2{font-size:20px;margin:0}
 <section id="edit" class="view">
   <header>
     <button class="ghost" onclick="closeEditor()">← Back</button>
-    <div class="row"><button class="danger ghost" onclick="deleteRoutine()">Delete</button><button class="primary" onclick="saveRoutine(true)">Save & start</button></div>
+    <div class="row"><button class="ghost" id="archBtn" onclick="toggleArchiveCur()">Archive</button><button class="danger ghost" onclick="deleteRoutine()">Delete</button><button class="primary" onclick="saveRoutine(true)">Save & start</button></div>
   </header>
   <div class="card">
     <div class="row" style="flex-wrap:nowrap">
@@ -210,11 +212,19 @@ function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggl
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
 function renderList(){
-  document.getElementById('list').innerHTML=R.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0)*(r.sec||1);
-   return `<div class="card rcard"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
+  const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
+  document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0)*(r.sec||1);
+   return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · 1 s = ${r.sec} s`:''}</div></div>
-   <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')">▶</button></div>`}).join('')||'<p class="muted">No routines yet.</p>';
+   <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')">▶</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
+  document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-block;width:12px;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">›</span> Archived (${arc.length})</button>`+
+   (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22">${esc(r.icon)}</div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''}</div></div>
+   <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`).join(''):'');
 }
+let archOpen=false;
+function setArchived(id,v){const r=R.find(r=>r.id===id);if(!r)return;if(v)r.archived=true;else delete r.archived;persist();renderList();}
+function toggleArchiveCur(){readHead();if(cur.archived)delete cur.archived;else cur.archived=true;saveRoutine(false);}
 
 /* ---------- editor ---------- */
 let cur=null;
@@ -222,7 +232,7 @@ const BT={reps:['🔢','Reps / counts','orange'],timed:['⏱','Timed','red'],box
 function newRoutine(){cur={id:uid(),name:'New routine',icon:'🏋️',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
 function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
 function fillEditor(){
-  eIcon.value=cur.icon;eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';eSec.value=cur.sec||1;
+  eIcon.value=cur.icon;eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.textContent=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;
   eColor.innerHTML=Object.keys(COLORS).map(c=>`<option ${c===cur.color?'selected':''}>${c}</option>`).join('');
   renderBlocks();
 }
@@ -478,7 +488,8 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
     to=Math.max(0,Math.min(n-1,from+Math.round(dy/step)));
     cards.forEach((c,k)=>{if(c===card)return;const sh=(from<to&&k>from&&k<=to)?-step:(from>to&&k>=to&&k<from)?step:0;c.style.transform=sh?`translateY(${sh}px)`:'';});};
   const up=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);
-    if(to!==from){const [r]=R.splice(from,1);R.splice(to,0,r);persist();}renderList();};
+    if(to!==from){const ids=cards.map(c=>c.dataset.id);const [m]=ids.splice(from,1);ids.splice(to,0,m);
+      const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>r.archived?-1:i).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}renderList();};
   h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
 
 renderList();setSync('');scheduleSync(200);
