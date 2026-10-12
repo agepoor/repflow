@@ -343,7 +343,24 @@ function resetAll(){if(!confirm('Delete ALL routines, including your own, and go
 function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.name);R=R.filter((r,k)=>k===i||r.name!==p.name);const j=R.findIndex(r=>r.name===p.name);if(j>=0)R[j]=p;else R.push(p);});persist();renderList();}
 
 /* ---------- views ---------- */
-function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);}
+let ROUTING=false;
+function routeOf(v){return v==='hist'?'#/history':v==='set'?'#/settings':v==='edit'&&cur?(cur._new?'#/new':'#/edit/'+cur.id):'#/';}
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);
+  if(v!=='edit')sessionStorage.removeItem('rf_draft');
+  if(ROUTING)return;const h=routeOf(v),st=history.state&&history.state.rf;
+  if(v==='lib'){if(st){ROUTING=true;history.back();}else if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
+  else if(location.hash!==h){st?history.replaceState({rf:1},'',h):history.pushState({rf:1},'',h);}}
+function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){try{readHead();sessionStorage.setItem('rf_draft',JSON.stringify(cur));}catch(e){}}}
+addEventListener('pagehide',saveDraft);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveDraft();});
+function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf_draft')||'null');}catch(e){}
+  ROUTING=true;try{let m;
+    if(h==='#/history')openHist();
+    else if(h==='#/settings')openSettings();
+    else if((m=h.match(/^#\/edit\/(.+)$/))&&R.find(r=>r.id===m[1])){if(view!=='edit'||!cur||cur.id!==m[1]){if(d&&d.id===m[1]){cur=d;fillEditor();show('edit');}else openEditor(m[1]);}}
+    else if(h==='#/new'&&d&&d._new){cur=d;fillEditor();show('edit');}
+    else{if(view==='edit'&&cur)saveRoutine(false);else show('lib');if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
+  }finally{ROUTING=false;}}
+addEventListener('popstate',()=>{if(ROUTING){ROUTING=false;return;}if(run.classList.contains('on')){ROUTING=true;stopRun();ROUTING=false;}route();});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
 function renderList(){updHistBtn();
@@ -700,7 +717,7 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
 document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);
-renderList();setSync('');scheduleSync(200);
+renderList();route();setSync('');scheduleSync(200);
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 // re-acquire wake lock after switching apps mid-workout
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&X&&X.steps&&S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}});
