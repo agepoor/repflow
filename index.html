@@ -136,6 +136,9 @@ header{flex-wrap:nowrap}
 .hitem .info{flex:1;min-width:0}.hitem .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hitem .info span{font-size:13px;color:var(--tx2)}
 #doneView .streak{display:inline-flex;align-items:center;gap:6px;color:#DE9255;font-weight:700;font-size:15px;margin-top:-8px}
 @media (max-width:480px){.hstat b{font-size:22px}.hstats{gap:6px}}
+.sflow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}.sround{border:1px dashed var(--bd);border-radius:10px;padding:6px 10px 10px;width:100%}.sround .sflow{margin-top:4px}.sround .sl{font-size:12px;color:var(--tx2);font-weight:600}
+.sc{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:4px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--bd);white-space:nowrap;color:var(--tx)}.sc svg{color:var(--c,var(--tx2))}
+.sc.rest,.sc.rrest{background:rgba(114,188,143,.12);border-color:rgba(114,188,143,.35);color:#9fd4b3}.sc.rrest{border-style:dashed}.sc.prep{color:var(--tx2)}.sc.done{color:#72BC8F}.sa{color:var(--tx2);font-size:13px}
 </style>
 </head>
 <body>
@@ -178,14 +181,16 @@ header{flex-wrap:nowrap}
     <input type="hidden" id="eColor">
     <div class="swatches" id="eColorPick" role="radiogroup" aria-label="Color"></div>
     <div class="grid" style="margin-top:12px">
-      <div><label>Rounds</label><input id="eRounds" type="number" min="1"></div>
+      <div><label>Rounds</label><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated"></div>
       <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
       <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
+    <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
     <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
   </div>
+  <div class="card" id="eStruct"></div>
   <div id="blocks"></div>
   <div class="row">
     <span class="muted">Add block:</span>
@@ -403,10 +408,10 @@ function renderBlocks(){
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
-   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Round length (s)',1,1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Duration (s)',1,1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea>
      ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
-     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. The voice always finishes the line before the next call.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Round length.</p>`)}`;
+     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. The voice always finishes the line before the next call.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
    if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -429,7 +434,21 @@ function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlock
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
 function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));cur.cv=2;}
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
-function summary(){readHead();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
+function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
+function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur)return;const r=cur,bl=r.blocks||[];
+  if(!bl.length){el.innerHTML=`<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;return;}
+  const chip=(txt,kind,ic,c)=>`<span class="sc ${kind||''}"${c?` style="--c:${c}"`:''}>${ic?svgi(ic,14):''}${txt}</span>`,ar='<span class="sa">→</span>';
+  const normal=bl.filter(b=>!b.lastOnly),fin=bl.filter(b=>b.lastOnly);
+  const one=(list,isLast)=>list.map((b,i)=>{const d=bDur(b,r),bt=BT[b.type]||[];let h=b.type==='rest'?chip(`${esc(b.name||'Rest')} ${mmss(d)}`,'rest',null):chip(`${esc(b.name)} ${d==null?'· tap':mmss(d)}`,'',b.type==='reps'?'hash':b.type==='timed'?'timer':'glove',COLORS[bt[2]]);
+    const lastInRound=i===list.length-1;if(b.restAfter>0&&b.type!=='rest'&&!(isLast&&lastInRound))h+=ar+chip(`Rest ${mmss(b.restAfter)}`,'rest');return h;}).join(ar);
+  const n=Math.max(1,r.rounds|0);let html=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>Structure</b><span class="muted" style="font-size:13px">one round = all blocks, top to bottom</span></div><div class="sflow">`;
+  if(r.prep>0)html+=chip(`Get ready ${mmss(r.prep)}`,'prep');
+  if(n>1){html+=`<div class="sround"><div class="sl">${n>2?`Rounds 1–${n-1}`:'Round 1'}</div><div class="sflow">${one(normal,false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}</div></div>`;}
+  const lastList=bl;
+  html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(lastList,true)}${chip('Done','done','check')}</div></div></div>`;
+  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}</p>`;
+  el.innerHTML=html;}
+function summary(){readHead();renderStruct();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
   eSummary.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
 function saveRoutine(start){readHead();delete cur._new;const i=R.findIndex(r=>r.id===cur.id);if(i>=0)R[i]=cur;else R.push(cur);persist();renderList();
