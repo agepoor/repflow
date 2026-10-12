@@ -289,7 +289,7 @@ const PRESETS0=()=>[
  {id:'p-pushup',name:'Push-up tap counter',icon:'dumbbell',color:'green',rounds:3,rest:60,prep:5,notes:'Tap the circle for each rep — set pace yourself.',
   blocks:[{id:uid(),type:'reps',name:'Push-ups',reps:15,counts:1,tempo:2,mode:'tap',repPause:0,cues:'',lastOnly:false,restAfter:0}]}
 ];
-const DEF_SET={voice:true,beeps:true,lang:'en-US',speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
+const DEF_SET={voice:true,beeps:true,lang:'en-US',voiceURI:'',pitch:1,speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
 let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
@@ -401,12 +401,14 @@ function openSettings(){
   <label class="chk"><input type="checkbox" ${S.voice?'checked':''} onchange="S.voice=this.checked;persist()"> Voice coach</label>
   <label class="chk"><input type="checkbox" ${S.vibrate?'checked':''} onchange="S.vibrate=this.checked;persist()"> Vibrate (Android)</label>
   <label class="chk"><input type="checkbox" ${S.wake?'checked':''} onchange="S.wake=this.checked;persist()"> Keep screen on</label>
-  <div><label>Voice language</label><select onchange="S.lang=this.value;persist()">${langs.map(l=>`<option ${l===S.lang?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div><label>Voice language</label><select onchange="S.lang=this.value;S.voiceURI='';persist();openSettings()">${langs.map(l=>`<option ${l===S.lang?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div><label>Voice</label><div style="display:flex;gap:8px"><select style="flex:1;min-width:0" onchange="S.voiceURI=this.value;persist();testVoice()"><option value="">Default for ${esc(S.lang)}</option>${langVoices().map(v=>`<option value="${esc(v.voiceURI)}" ${v.voiceURI===S.voiceURI?'selected':''}>${esc(v.name)}${v.localService?'':' · online'}</option>`).join('')}</select><button type="button" class="ib" style="padding:4px 12px" onclick="testVoice()" title="Test voice">${svgi('play',14)}Test</button></div></div>
   <div><label>Speak counts</label><select onchange="S.speakCounts=this.value;persist()">
     ${[['every','Every count'],['reps','Rep numbers only'],['off','Off']].map(([v,l])=>`<option value="${v}" ${S.speakCounts===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${S.countdown}" oninput="S.countdown=+this.value;persist()"></div>
   <div><label>Volume</label><input type="range" min="0" max="1" step="0.05" value="${S.volume}" oninput="S.volume=+this.value;persist()"></div>
-  <div><label>Voice speed</label><input type="range" min="0.7" max="1.8" step="0.05" value="${S.rate}" oninput="S.rate=+this.value;persist()"></div>`;
+  <div><label>Voice speed</label><input type="range" min="0.7" max="1.8" step="0.05" value="${S.rate}" oninput="S.rate=+this.value;persist()" onchange="testVoice()"></div>
+  <div><label>Voice pitch</label><input type="range" min="0.5" max="1.5" step="0.05" value="${S.pitch}" oninput="S.pitch=+this.value;persist()" onchange="testVoice()"></div>`;
   document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
   show('set');
 }
@@ -419,7 +421,10 @@ function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted)return;const c=a
   o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(S.volume*vol,c.currentTime+.01);
   g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
 function bell(){[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
-function say(t,interrupt=true){if(!S.voice||muted||!t)return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;u.rate=S.rate;u.volume=S.volume;speechSynthesis.speak(u);}
+function say(t,interrupt=true){if(!S.voice||muted||!t)return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;speechSynthesis.speak(u);}
+function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-')===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
+function pickVoice(){return S.voiceURI?speechSynthesis.getVoices().find(v=>v.voiceURI===S.voiceURI)||null:null;}
+function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
 function buzz(p){if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}
 function testAudio(){ac();beep(660);setTimeout(()=>beep(990),200);setTimeout(()=>say(S.lang.startsWith('nl')?'Klaar? Gaan!':'Ready? Go!'),400);}
 function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22);if(muted)speechSynthesis.cancel();}
