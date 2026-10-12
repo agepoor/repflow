@@ -655,11 +655,11 @@ function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
 function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r=mig(r);r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
-/* ---------- sync via private GitHub Gist ---------- */
+/* ---------- sync via secret GitHub Gist ---------- */
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
 function saveSY(){localStorage.setItem('rf_sync',JSON.stringify(SY));}
 function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
-  const lbl=!SY.token?'Count-based & timed routines':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
+  const lbl=!SY.token?'Count-based & timed routines':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid or expired — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
   el.innerHTML=!SY.token?lbl:`<span class="syncl">${svgi(st==='auth'||st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;}
   const sl=document.getElementById('syncStatus');if(sl)sl.textContent=el?el.textContent:'';}
 async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+SY.token,Accept:'application/vnd.github+json','Content-Type':'application/json'}});
@@ -695,13 +695,14 @@ async function syncNow(){if(!SY.token)return;if(syncBusy){syncAgain=true;return;
   finally{syncBusy=false;if(syncAgain){syncAgain=false;scheduleSync(300);}}}
 function scheduleSync(ms=1500){if(!SY.token)return;clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,ms);}
 async function connectSync(){const t=document.getElementById('tokIn').value.trim();if(!t)return;SY={token:t,gistId:'',last:0};saveSY();
-  await syncNow();if(syncState==='auth'){alert('GitHub did not accept this token. Make sure it has the "gist" scope.');SY={token:'',gistId:'',last:0};saveSY();}openSettings();}
+  await syncNow();if(syncState==='auth'){alert('GitHub did not accept this token. Make sure it has the "gist" scope and has not expired.');SY={token:'',gistId:'',last:0};saveSY();}openSettings();}
 function disconnectSync(){if(!confirm('Stop syncing on this device? Your routines stay on this device and in your GitHub gist.'))return;SY={token:'',gistId:'',last:0};saveSY();setSync('');openSettings();}
 function syncCard(){return SY.token?`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" id="syncStatus" style="margin:0 0 12px"></p>
   <div class="row"><button class="ib" onclick="syncNow()">${svgi('refresh',16)}Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
-  <p class="muted" style="margin:12px 0 0">Routines and history are stored in a private gist “RepFlow sync” on your GitHub account and sync automatically. Audio settings stay per device.</p>`
- :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines in a private gist on your GitHub account. Do this once on every device.</p>
-  <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked; pick an expiry (or none).</li><li>Paste it below and press Connect.</li></ol>
+  <p class="muted" style="margin:12px 0 0">Routines and history are stored in a secret gist “RepFlow sync” on your GitHub account and sync automatically. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Audio settings stay per device.</p>
+  <p class="muted" style="margin:8px 0 0">If sync says the token is invalid, it has probably expired: create a new one and connect again.</p>`
+ :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines and history in a secret gist on your own GitHub account. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Do this once on every device.</p>
+  <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked. GitHub’s default expiry is 30 days, after which sync stops until you add a new token; pick a longer expiry (or none) to avoid that.</li><li>Paste it below and press Connect.</li></ol>
   <div class="row" style="flex-wrap:nowrap"><input id="tokIn" type="password" placeholder="ghp_…" autocomplete="off"><button class="primary" onclick="connectSync()">Connect</button></div>`;}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300);});
 addEventListener('online',()=>scheduleSync(300));
