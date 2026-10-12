@@ -137,9 +137,9 @@ header{flex-wrap:nowrap}
       <div><label>Rounds</label><input id="eRounds" type="number" min="1"></div>
       <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
       <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
-      <div><label>Count length ×</label><input id="eSec" type="number" min="0.25" max="3" step="0.05"></div>
+      <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
-    <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Count length ×</b> stretches every count in rep blocks (1 = as set, 1.5 = each count 50% longer). Rests, breathers, timed blocks and boxing always use real seconds.</p>
+    <p class="muted" style="margin:6px 0 0;font-size:13px"><b style="color:var(--tx)">Count length</b> = how long one count of a move takes. Used by every block that leaves its own count length empty.</p>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
   </div>
   <div id="blocks"></div>
@@ -254,7 +254,8 @@ const iconKey=r=>ROUTINE_ICONS.includes(r&&r.icon)?r.icon:(EMOJI2IC[r&&r.icon]||
 /* ---------- data ---------- */
 const COLORS={orange:'#DE9255',red:'#E97366',blue:'#5E9FE8',green:'#72BC8F',purple:'#BF8EDA',yellow:'#EAC26B',teal:'#4FB9C9',pink:'#DF84A8'};
 const uid=()=>Math.random().toString(36).slice(2,10);
-const PRESETS=()=>[
+const PRESETS=()=>PRESETS0().map(mig);
+const PRESETS0=()=>[
  {id:'p-burpees12',name:'Burpees 12-count',icon:'wind',color:'orange',rounds:3,rest:75,prep:10,
   notes:'Breathe in on the way down (1–4), out on the push-up (5) and the jump (12). Pick a pace you can hold for 3 rounds.',
   blocks:[
@@ -275,7 +276,12 @@ let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null;
 const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
-function canon(list){const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
+/* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
+function mig(r){if(r.cv>=2)return r;const rs=r.sec||1;
+  return {...r,cv:2,sec:rs,blocks:(r.blocks||[]).map(b=>{if(b.type!=='reps'){const {sec,...x}=b;return x;}
+    const {sec,...x}=b;const eff=Math.round((b.tempo||1)*((sec>0?sec:rs))*1000)/1000;
+    if(Math.abs(eff-rs)<1e-9)delete x.tempo;else x.tempo=eff;return x;})};}
+function canon(list){list=list.map(mig);const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
   return list.map(r=>{const pid=P[r.name];if(pid&&r.id!==pid&&!have.has(pid)){have.add(pid);return {...r,id:pid};}return r;});}
 let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderTs:0};
 const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
@@ -298,7 +304,7 @@ function renderList(){
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
    return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ×${r.sec}`:''}</div></div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}</div></div>
    <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',22)}</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
@@ -328,7 +334,7 @@ function renderBlocks(){
   blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
    if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
-     ${num(b.id,'tempo',b.tempo,'Length of one count (s)',0.1,0.2)}${num(b.id,'repPause',b.repPause,'Breather between reps (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather between reps (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
      <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
@@ -341,7 +347,7 @@ function renderBlocks(){
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
     <button class="icon ghost" onclick="mv(${i},-1)" title="Move up">${svgi('up',18)}</button><button class="icon ghost" onclick="mv(${i},1)" title="Move down">${svgi('down',18)}</button>
     <button class="icon ghost" onclick="dup(${i})" title="Duplicate">${svgi('copy',17)}</button><button class="icon ghost danger" onclick="rm(${i})" title="Remove">${svgi('x',18)}</button></div>
-    ${f}${b.type!=='reps'?'':`<div class="grid" style="margin-top:12px"><div><label>Count length × (this block)</label><input type="number" step="0.05" min="0" max="3" value="${b.sec>0?b.sec:''}" placeholder="Routine default" oninput="setB('${b.id}','sec',+this.value||0)"></div></div><p class="muted" style="margin:6px 0 0;font-size:13px">Leave empty to use the routine's count length. Only affects the counts — breather and rest stay in real seconds.</p>`}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
+    ${f}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
   summary();
 }
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
@@ -350,13 +356,13 @@ function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Bool
   return `<span style="color:${col}">${svgi(ok?'check':'alert',14,2.5)} ${n} cue${n>1?'s':''} / ${c} counts per rep · ${msg}</span>`;}
 function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();summary();}
 function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
-  const d={reps:{name:'Burpees',reps:10,counts:12,tempo:1,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
+  const d={reps:{name:'Burpees',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
   boxing:{name:'Shadow boxing',work:120,combos:'1-2\n1-2-3\n1-1-2\n2-3-2',minGap:3,maxGap:6},rest:{name:'Rest',work:30}}[t];
   cur.blocks.push({...base,...d});renderBlocks();}
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(3,Math.max(0.25,+eSec.value||1));}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));cur.cv=2;}
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 function summary(){readHead();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
@@ -405,7 +411,7 @@ function build(r){const st=[];const P=(s)=>st.push(s);
     const bl=r.blocks.filter(b=>!b.lastOnly||last);
     bl.forEach((b,bi)=>{
       if(b.type==='reps'){const counts=Math.max(1,b.counts|0),reps=Math.max(1,b.reps|0);
-        const tempo=b.tempo*((b.sec>0?b.sec:r.sec)||1),per=counts*tempo+(b.repPause||0);
+        const tempo=b.tempo>0?b.tempo:(r.sec||1),per=counts*tempo+(b.repPause||0);
         P({type:'reps',kind:'work',label:b.name,reps,counts,tempo,mode:b.mode,repPause:b.repPause||0,
           display:b.display||'both',cues:(b.cues||'').split(',').map(s=>s.trim()).filter(Boolean),dur:b.mode==='tap'?0:reps*per-(b.repPause||0),round:k});}
       else if(b.type==='timed')P({type:'time',kind:'work',label:b.name,dur:b.work,cue:b.cue,round:k});
@@ -520,7 +526,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
 
 /* ---------- import/export ---------- */
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
-function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
+function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r=mig(r);r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
 /* ---------- sync via private GitHub Gist ---------- */
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
