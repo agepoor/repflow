@@ -108,6 +108,18 @@ header{flex-wrap:nowrap}
 #rName span{overflow:hidden;text-overflow:ellipsis}
 .block .head input{flex:1;min-width:0}
 @media (max-width:480px){.block .head{gap:2px}.block .head .icon{padding:6px 4px}.block .head input{margin-right:4px}.grid{gap:10px}}
+#doneView{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:18px;width:100%;max-width:420px;text-align:center}
+#run.fin>*:not(#doneView){display:none!important}#run.fin #doneView{display:flex}
+#doneView .badge{width:96px;height:96px;border-radius:50%;background:rgba(114,188,143,.15);color:#72BC8F;display:grid;place-items:center;animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+#doneView h2{margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em}
+#doneView .dname{display:inline-flex;align-items:center;gap:8px;color:var(--tx2);font-size:15px;margin-top:-10px}
+#doneView .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;width:100%;margin-top:6px}
+#doneView .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 8px}
+#doneView .stat b{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+#doneView .stat span{font-size:13px;color:var(--tx2)}
+#doneView .acts{display:flex;gap:10px;width:100%;margin-top:10px}
+#doneView .acts button{flex:1;height:48px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 </style>
 </head>
 <body>
@@ -203,6 +215,7 @@ header{flex-wrap:nowrap}
   <div id="pips"></div>
   <div id="next"></div>
   <div id="tapHint"></div>
+  <div id="doneView"></div>
   <div class="ctrl">
     <button class="sm" onclick="stopRun()" title="Stop" aria-label="Stop"></button>
     <button class="md" onclick="jump(-1)" title="Previous" aria-label="Previous"></button>
@@ -436,10 +449,10 @@ const PH={prep:'#5E9FE8',work:null,rest:'#46A171'};
 async function startRun(id){const r=R.find(r=>r.id===id);ac();
   pp.innerHTML=svgi('pause',30);X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:'',box:{}};
   if(!X.steps.length){alert('Add a block first.');return;}
-  rName.innerHTML=svgi(iconKey(r),16)+'<span>'+esc(r.name)+'</span>';run.classList.add('on');
+  rName.innerHTML=svgi(iconKey(r),16)+'<span>'+esc(r.name)+'</span>';run.classList.remove('fin');run.classList.add('on');
   if(S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}
   enter(0);requestAnimationFrame(loop);}
-function stopRun(){if(X&&X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on');show('lib');}
+function stopRun(){if(X&&X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on','fin');show('lib');}
 function togglePause(){if(!X)return;X.paused=!X.paused;pp.innerHTML=svgi(X.paused?'play':'pause',30);if(X.paused)speechSynthesis.cancel();X.last=performance.now();}
 function jump(d){if(!X)return;const j=X.i+d;if(j<0)return;if(j>=X.steps.length)return finish();enter(j);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
@@ -459,14 +472,17 @@ function enter(i){X.i=i;X.t=0;X.lastCount=-1;X.lastSec=null;X.tapCount=0;X.callT
   render();}
 function finish(){const r=X.r;speechSynthesis.cancel();bell();buzz([200,100,200,100,400]);say('Done. Great work!');
   if(X.wl)X.wl.release();
-  const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
-  X=null;run.style.background='#191919';pp.innerHTML=svgi('pause',30);phase.textContent='Done';phase.style.color='#72BC8F';big.innerHTML=svgi('check',120,2.5);big.style.fontSize='';cueLine.textContent='';
-  sub.textContent=tot?`${tot} reps`:'';call.textContent='';next.textContent='';pips.innerHTML='';tapHint.textContent='Tap × to close';
-  ring.style.strokeDashoffset=0;ring.style.stroke='#72BC8F';rBar.style.width='100%';
+  const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),el=X.el||0,calls=X.calls||0;
+  X=null;run.style.background='#191919';
+  const e=Math.round(el),st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(tot)st.push([tot,'Reps']);if(calls)st.push([calls,'Combos']);
+  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>
+    <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}')">${svgi('play',18)}Again</button></div>`;
+  run.classList.add('fin');
   X={done:true};}
 function loop(now){if(!X)return;if(X.done){X=null;return;}
   const dt=(now-X.last)/1000;X.last=now;
-  if(!X.paused){X.t+=dt;tick();}
+  if(!X.paused){X.t+=dt;X.el=(X.el||0)+dt;tick();}
   if(X&&!X.done)render();
   requestAnimationFrame(loop);}
 function movesOf(c){return c.split(/[\s\-–—,·]+/).filter(Boolean);}
@@ -495,7 +511,7 @@ function tick(){const s=X.steps[X.i];
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
-    if(s.boxing&&X.t>=X.nextCall&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&X.t-X.nextCall<4)){const c=nextCombo(s);X.callText=c;call.textContent=spoken(c);{const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;}call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
+    if(s.boxing&&X.t>=X.nextCall&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&X.t-X.nextCall<4)){const c=nextCombo(s);X.callText=c;call.textContent=spoken(c);X.calls=(X.calls||0)+1;{const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;}call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
       beep(1500,.05,'square',.4);say(spoken(c).replace(/-/g,' '),false);X.nextCall=X.t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);}
     if(left<=0)return jump(1);
   } else if(s.mode==='guided'){
