@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>RepFlow — counter & timer routines</title>
+<title>Workout Pacer — Think once. Move without thinking.</title>
 <style>
 :root{--bg:#191919;--surf:#202020;--raise:#383836;--tx:#fff;--tx2:rgba(255,255,255,.65);--bd:rgba(255,255,255,.2);
 --blue:#5E9FE8;--green:#72BC8F;--orange:#DE9255;--red:#E97366;--yellow:#EAC26B;--purple:#BF8EDA}
@@ -146,7 +146,7 @@ header{flex-wrap:nowrap}
 <!-- LIBRARY -->
 <section id="lib" class="view on">
   <header>
-    <div><h1>RepFlow</h1><div class="muted" id="syncLine">Count-based & timed routines</div></div>
+    <div><h1>Workout Pacer</h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
     <div class="row">
       <button class="ghost ib" id="histBtn" onclick="openHist()" title="History" aria-label="History"></button>
       <button class="ghost" onclick="openSettings()" title="Settings" aria-label="Settings"><span id="gearIc"></span></button>
@@ -691,14 +691,14 @@ function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today
     if(h.reps)bits.push(`${h.reps} reps`);if(h.calls)bits.push(`${h.calls} combos`);
     html+=`<div class="hitem"><div class="dot" style="background:${c}26;color:${c}">${svgi(h.icon||'activity',18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:6px;color:var(--tx2)">${svgi('trash',16)}</button></div>`;});
   histBody.innerHTML=html;}
-function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
+function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='workout-pacer-routines.json';a.click();}
 function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;(Array.isArray(list)?list:[list]).forEach(r=>{if(!r||typeof r!=='object')return;r=mig(r);r.id=uid();r=norm({...r,blocks:(r.blocks||[]).map(b=>({...b,id:uid()}))});delete r.upd;R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
 /* ---------- sync via secret GitHub Gist ---------- */
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
 function saveSY(){store(localStorage,'rf_sync',JSON.stringify(SY));}
 function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
-  const lbl=!SY.token?'Count-based & timed routines':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid or expired — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
+  const lbl=!SY.token?'Think once. Move without thinking.':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid or expired — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
   el.innerHTML=!SY.token?lbl:`<span class="syncl">${svgi(st==='auth'||st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;}
   const sl=document.getElementById('syncStatus');if(sl)sl.textContent=el?el.textContent:'';}
 async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+SY.token,Accept:'application/vnd.github+json','Content-Type':'application/json'}});

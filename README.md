@@ -1,4 +1,6 @@
-# RepFlow
+# Workout Pacer
+
+*Think once. Move without thinking.*
 
 Visual, audio-guided counter & timer for burpees, rep/count-based exercises and boxing drills.
 
