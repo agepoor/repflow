@@ -403,7 +403,7 @@ function renderSwatches(){eColorPick.innerHTML=Object.entries(COLORS).map(([n,c]
 function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick();}
 function renderIconPick(){const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
-function fillEditor(){
+function fillEditor(){cur=norm(mig(cur));
   renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;
   eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();
   renderBlocks();
@@ -434,7 +434,7 @@ function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Bool
   if(!n)return '';const ok=n===c;const col=ok?'var(--green)':'var(--orange)';
   const msg=ok?'matches counts per rep':n<c?`${c-n} short — counts ${n+1}–${c} show numbers`:`${n-c} extra — cue${n-c>1?'s':''} after count ${c} ignored`;
   return `<span style="color:${col}">${svgi(ok?'check':'alert',14,2.5)} ${n} cue${n>1?'s':''} / ${c} counts per rep · ${msg}</span>`;}
-function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();summary();}
+function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();summary();}
 function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
   const d={reps:{name:'Burpees',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
   boxing:{name:'Shadow boxing',work:120,combos:'1-2\n1-2-3\n1-1-2\n2-3-2',minGap:1,maxGap:2},rest:{name:'Rest',work:30}}[t];
