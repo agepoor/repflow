@@ -200,7 +200,6 @@ header{flex-wrap:nowrap}
     <button class="ib" onclick="addBlock('boxing')"><i data-ic="glove"></i>Boxing combos</button>
     <button class="ib" onclick="addBlock('rest')"><i data-ic="moon"></i>Rest</button>
   </div>
-  <p class="muted" id="eSummary" style="margin-top:24px"></p>
 </section>
 
 <!-- SETTINGS -->
@@ -469,10 +468,11 @@ function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur
   const lastList=bl;
   html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(lastList,true)}${chip('Done','done','check')}</div></div></div>`;
   html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}</p>`;
+  html+=`<p id="eSummary" style="margin:10px 0 0;font-size:14px;font-weight:600;color:var(--tx)"></p>`;
   el.innerHTML=html;}
 function summary(){readHead();renderStruct();queueAutosave();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
-  eSummary.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
+  const sm=document.getElementById('eSummary');if(sm)sm.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
 function saveRoutine(start){clearTimeout(autoT);autoT=null;readHead();delete cur._new;const i=R.findIndex(r=>r.id===cur.id);if(i>=0)R[i]=cur;else R.push(cur);persist();renderList();
   if(start)startRun(cur.id);else show('lib');}
 function closeEditor(){saveRoutine(false);}
