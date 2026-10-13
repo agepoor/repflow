@@ -326,7 +326,7 @@ let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF
 let H=JSON.parse(localStorage.getItem('rf_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf_hdel')||'{}');
 let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
 let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
-let syncState='',syncBusy=false,syncAgain=false,syncTimer=null;
+let syncState='',syncBusy=false,syncAgain=false,syncTimer=null,syncFails=0,retryIn=0;
 const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
 /* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
 function mig(r){if(r.cv>=2)return r;const rs=r.sec||1;
@@ -349,7 +349,11 @@ let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderT
 const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
 let SNAP=null;const snapOf=()=>{const m={};R.forEach(r=>m[r.id]=sig(r));return {m,order:R.map(r=>r.id).join(',')};};
 if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else{R=canon(R);SNAP=snapOf();saveRaw();} // fresh defaults never override synced data
-function saveRaw(){localStorage.setItem('rf_routines',JSON.stringify(R));localStorage.setItem('rf_set',JSON.stringify(S));localStorage.setItem('rf_meta',JSON.stringify(META));}
+/* every write goes through store(): a failed save (storage full/blocked) is shown instead of silently lost */
+var storeWarned=false;
+function store(area,k,v){try{area.setItem(k,v);storeWarned=false;return true;}catch(e){if(!storeWarned){storeWarned=true;toast('Could not save on this device (storage full or blocked). Export a JSON backup in Settings.');}return false;}}
+function toast(msg){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','alert');t.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:max-content;max-width:90%;background:#3a2020;color:#fff;border:1px solid #E06C6C;padding:12px 16px;border-radius:12px;z-index:9999;font-size:15px;cursor:pointer';t.onclick=()=>t.remove();document.body.appendChild(t);}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),8000);}
+function saveRaw(){store(localStorage,'rf_routines',JSON.stringify(R));store(localStorage,'rf_set',JSON.stringify(S));store(localStorage,'rf_meta',JSON.stringify(META));}
 function persist(){const now=Date.now();let changed=false;const seen=new Set();
   R.forEach(r=>{seen.add(r.id);if(SNAP.m[r.id]!==sig(r)){r.upd=now;changed=true;}});
   Object.keys(SNAP.m).forEach(id=>{if(!seen.has(id)){META.deleted[id]=now;changed=true;}});
@@ -366,7 +370,12 @@ function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggl
   if(ROUTING)return;const h=routeOf(v),st=history.state&&history.state.rf;
   if(v==='lib'){if(st){ROUTING=true;history.back();}else if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
   else if(location.hash!==h){st?history.replaceState({rf:1},'',h):history.pushState({rf:1},'',h);}}
-function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){try{readHead();sessionStorage.setItem('rf_draft',JSON.stringify(cur));}catch(e){}}}
+function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){if(autoT)autosave();try{readHead();store(sessionStorage,'rf_draft',JSON.stringify(cur));}catch(e){}}}
+/* editor autosave: every change is written to the library shortly after you stop typing (and right away when the app is hidden) */
+let autoT=null;const editOn=()=>document.getElementById('edit').classList.contains('on');
+function queueAutosave(){if(!cur||!editOn())return;clearTimeout(autoT);autoT=setTimeout(autosave,600);}
+function autosave(){clearTimeout(autoT);autoT=null;if(!cur||!editOn())return;readHead();const c=JSON.parse(JSON.stringify(cur));delete c._new;
+  const i=R.findIndex(r=>r.id===c.id);if(i>=0)R[i]=c;else R.push(c);persist();}
 addEventListener('pagehide',saveDraft);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveDraft();});
 function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf_draft')||'null');}catch(e){}
   ROUTING=true;try{let m;
@@ -401,7 +410,7 @@ function newRoutine(){cur={id:uid(),name:'New routine',icon:'activity',color:'or
 function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
 function renderSwatches(){eColorPick.innerHTML=Object.entries(COLORS).map(([n,c])=>`<button role="radio" aria-checked="${n===eColor.value}" aria-label="${n}" title="${n}" class="${n===eColor.value?'on':''}" style="--c:${c}" onclick="pickColor('${n}')">${n===eColor.value?svgi('check',16,3):''}</button>`).join('');}
 function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick();}
-function renderIconPick(){const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
+function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){cur=norm(mig(cur));
   renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;
@@ -443,6 +452,7 @@ function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
 function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));cur.cv=2;}
+['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
 function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur)return;const r=cur,bl=r.blocks||[];
@@ -458,13 +468,13 @@ function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur
   html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(lastList,true)}${chip('Done','done','check')}</div></div></div>`;
   html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}</p>`;
   el.innerHTML=html;}
-function summary(){readHead();renderStruct();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
+function summary(){readHead();renderStruct();queueAutosave();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
   eSummary.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
-function saveRoutine(start){readHead();delete cur._new;const i=R.findIndex(r=>r.id===cur.id);if(i>=0)R[i]=cur;else R.push(cur);persist();renderList();
+function saveRoutine(start){clearTimeout(autoT);autoT=null;readHead();delete cur._new;const i=R.findIndex(r=>r.id===cur.id);if(i>=0)R[i]=cur;else R.push(cur);persist();renderList();
   if(start)startRun(cur.id);else show('lib');}
 function closeEditor(){saveRoutine(false);}
-function deleteRoutine(){if(!confirm('Delete this routine?'))return;R=R.filter(r=>r.id!==cur.id);persist();renderList();show('lib');}
+function deleteRoutine(){if(!confirm('Delete this routine?'))return;clearTimeout(autoT);autoT=null;R=R.filter(r=>r.id!==cur.id);persist();renderList();show('lib');}
 
 /* ---------- settings ---------- */
 function openSettings(){
@@ -645,7 +655,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
 
 /* ---------- import/export ---------- */
 /* ---------- history & streaks ---------- */
-function saveH(){localStorage.setItem('rf_hist',JSON.stringify(H));localStorage.setItem('rf_hdel',JSON.stringify(HDEL));}
+function saveH(){store(localStorage,'rf_hist',JSON.stringify(H));store(localStorage,'rf_hdel',JSON.stringify(HDEL));}
 const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
 const dayAdd=(k,n)=>{const d=kd(k);d.setDate(d.getDate()+n);return dk(d.getTime());};
@@ -686,7 +696,7 @@ function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{
 
 /* ---------- sync via secret GitHub Gist ---------- */
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
-function saveSY(){localStorage.setItem('rf_sync',JSON.stringify(SY));}
+function saveSY(){store(localStorage,'rf_sync',JSON.stringify(SY));}
 function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
   const lbl=!SY.token?'Count-based & timed routines':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid or expired — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
   el.innerHTML=!SY.token?lbl:`<span class="syncl">${svgi(st==='auth'||st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;}
@@ -719,9 +729,10 @@ async function syncNow(){if(!SY.token)return;if(syncBusy){syncAgain=true;return;
     const m=merge(localDoc(),remote);
     R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;H=m.history;HDEL=m.hdel;saveH();SNAP=snapOf();saveRaw();renderList();if(document.getElementById('hist').classList.contains('on'))renderHist();
     const out=JSON.stringify(m);if(out!==txt)await gh('/gists/'+SY.gistId,{method:'PATCH',body:JSON.stringify({files:{[GFILE]:{content:out}}})});
-    SY.last=Date.now();saveSY();setSync('ok');}
-  catch(e){setSync(e.auth?'auth':(navigator.onLine===false||e instanceof TypeError)?'offline':'err');}
-  finally{syncBusy=false;if(syncAgain){syncAgain=false;scheduleSync(300);}}}
+    SY.last=Date.now();saveSY();syncFails=0;setSync('ok');}
+  catch(e){setSync(e.auth?'auth':(navigator.onLine===false||e instanceof TypeError)?'offline':'err');
+    if(!e.auth){syncAgain=false;retryIn=Math.min(300000,5000*2**Math.min(6,syncFails++));}}
+  finally{syncBusy=false;if(syncAgain){syncAgain=false;scheduleSync(300);}else if(retryIn){scheduleSync(retryIn);}retryIn=0;}}
 function scheduleSync(ms=1500){if(!SY.token)return;clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,ms);}
 async function connectSync(){const t=document.getElementById('tokIn').value.trim();if(!t)return;SY={token:t,gistId:'',last:0};saveSY();
   await syncNow();if(syncState==='auth'){alert('GitHub did not accept this token. Make sure it has the "gist" scope and has not expired.');SY={token:'',gistId:'',last:0};saveSY();}openSettings();}
