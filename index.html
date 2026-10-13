@@ -333,7 +333,17 @@ function mig(r){if(r.cv>=2)return r;const rs=r.sec||1;
   return {...r,cv:2,sec:rs,blocks:(r.blocks||[]).map(b=>{if(b.type!=='reps'){const {sec,...x}=b;return x;}
     const {sec,...x}=b;const eff=Math.round((b.tempo||1)*((sec>0?sec:rs))*1000)/1000;
     if(Math.abs(eff-rs)<1e-9)delete x.tempo;else x.tempo=eff;return x;})};}
-function canon(list){list=list.map(mig);const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
+/* repair blocks: every block needs a unique id (inputs edit blocks by id) and its type's defaults */
+const BDEF={reps:{name:'Reps',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
+  boxing:{name:'Shadow boxing',work:120,combos:'1-2',minGap:1,maxGap:2},rest:{name:'Rest',work:30}};
+function norm(r){if(!r||typeof r!=='object')return r;const seen=new Set();let fixed=false;
+  const blocks=(Array.isArray(r.blocks)?r.blocks:[]).filter(b=>b&&typeof b==='object').map((b,i)=>{const t=BDEF[b.type]?b.type:'timed';
+    let id=b.id!=null&&b.id!==''?String(b.id):'';if(!id||seen.has(id)){id=(r.id||'r')+'-b'+i;while(seen.has(id))id+='x';}seen.add(id);
+    const x={...BDEF[t],lastOnly:false,restAfter:0,...b,id,type:t};['reps','counts','repPause','work','minGap','maxGap','restAfter','tempo','repeat','poolPause'].forEach(k=>{if(k in x&&typeof x[k]!=='number'){const n=+x[k];x[k]=isFinite(n)?n:(BDEF[t][k]??0);}});
+    if(JSON.stringify(x)!==JSON.stringify(b))fixed=true;return x;});
+  const out={...r,blocks};if(!(+out.rounds>=1)){out.rounds=1;fixed=true;}if(typeof out.rest!=='number'){out.rest=+out.rest||0;fixed=true;}if(typeof out.prep!=='number'){out.prep=+out.prep||0;fixed=true;}
+  if(!out.name){out.name='Routine';fixed=true;}return fixed||!Array.isArray(r.blocks)?out:r;}
+function canon(list){list=list.filter(r=>r&&typeof r==='object').map(r=>norm(mig(r)));const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
   return list.map(r=>{const pid=P[r.name];if(pid&&r.id!==pid&&!have.has(pid)){have.add(pid);return {...r,id:pid};}return r;});}
 let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderTs:0};
 const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
@@ -672,7 +682,7 @@ function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today
     html+=`<div class="hitem"><div class="dot" style="background:${c}26;color:${c}">${svgi(h.icon||'activity',18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:6px;color:var(--tx2)">${svgi('trash',16)}</button></div>`;});
   histBody.innerHTML=html;}
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='repflow-routines.json';a.click();}
-function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;list.forEach(r=>{r=mig(r);r.id=uid();R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
+function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;(Array.isArray(list)?list:[list]).forEach(r=>{if(!r||typeof r!=='object')return;r=mig(r);r.id=uid();r=norm({...r,blocks:(r.blocks||[]).map(b=>({...b,id:uid()}))});delete r.upd;R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
 /* ---------- sync via secret GitHub Gist ---------- */
 const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
