@@ -44,6 +44,8 @@ h2{font-size:20px;margin:0}
 .grid>div{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
 .grid>div>label{line-height:1.25;margin-bottom:4px}
 .grid input,.grid select{height:40px}
+input.dur.bad,input.dur.bad:focus{border-color:var(--red)!important}
+label .dh{color:var(--tx2);opacity:.75}label .dh.bad{color:var(--red);opacity:1}
 .block{border-left:4px solid var(--blue)}
 .block .head{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .block .head input{font-weight:600}
@@ -182,8 +184,8 @@ header{flex-wrap:nowrap}
     <div class="swatches" id="eColorPick" role="radiogroup" aria-label="Color"></div>
     <div class="grid" style="margin-top:12px">
       <div><label>Rounds</label><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated"></div>
-      <div><label>Rest between rounds (s)</label><input id="eRest" type="number" min="0"></div>
-      <div><label>Get-ready (s)</label><input id="ePrep" type="number" min="0"></div>
+      <div><label>Rest between rounds <span class="dh"></span></label><input id="eRest" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"></div>
+      <div><label>Get-ready <span class="dh"></span></label><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
     <label class="chk" style="margin-top:12px"><input type="checkbox" id="eLog"> Log finished workouts (history &amp; streaks)</label>
@@ -389,6 +391,22 @@ function route(){const h=location.hash||'#/',view=(document.querySelector('.view
 addEventListener('popstate',()=>{if(ROUTING){ROUTING=false;return;}if(run.classList.contains('on')){ROUTING=true;stopRun();ROUTING=false;}route();});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
+/* Durations: stored as whole seconds; typed as 90, 1:30, 1.30, 20m, 1m30, 1m 30s, 1h; shown as m:ss */
+function parseDur(v){v=String(v??'').trim().toLowerCase().replace(/,/g,'.');if(v==='')return null;
+  let m=v.match(/^(\d+)$/);if(m)return +m[1];
+  m=v.match(/^(?:(\d+)[:.])?(\d+)[:.](\d{1,2})$/);if(m&&+m[3]<60&&(!m[1]||+m[2]<60))return (+m[1]||0)*3600+ +m[2]*60+ +m[3];
+  m=v.match(/^(?:(\d+(?:\.\d+)?)\s*h(?:rs?|ours?)?)?\s*(?:(\d+(?:\.\d+)?)\s*m(?:in(?:utes?|s)?)?)?\s*(?:(\d+)\s*(?:s(?:ec(?:onds?|s)?)?)?)?$/);
+  if(m&&(m[1]||m[2]||m[3]))return Math.round((+m[1]||0)*3600+(+m[2]||0)*60+(+m[3]||0));
+  return NaN;}
+function fmtDur(s){s=Math.max(0,Math.round(+s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return h?`${h}:${p(m)}:${p(x)}`:`${m}:${p(x)}`;}
+function durWords(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return [h&&h+' h',m&&m+' min',(x||!s)&&x+' s'].filter(Boolean).join(' ');}
+function durHint(el,txt,bad){const h=el.parentNode.querySelector('.dh');if(h){h.textContent=txt;h.classList.toggle('bad',!!bad);}el.classList.toggle('bad',!!bad);}
+function durSet(el,s){el.dataset.v=Math.max(0,Math.round(+s||0));el.value=fmtDur(el.dataset.v);durHint(el,'');}
+function durIn(el,set){const min=+el.dataset.min||0;let s=parseDur(el.value);if(s===null&&min===0)s=0;
+  if(s===null||isNaN(s)||s<min){durHint(el,s===null||isNaN(s)?'· try 1:30':`· min ${durWords(min)}`,true);return;}
+  el.dataset.v=s;durHint(el,'· '+durWords(s));if(set)set(s);}
+function durOut(el){durSet(el,el.dataset.v);}
+function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"></div>`}
 function renderList(){updHistBtn();
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
@@ -414,7 +432,7 @@ function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){cur=norm(mig(cur));
-  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;eRest.value=cur.rest;ePrep.value=cur.prep;eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.checked=!cur.nolog;
+  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.checked=!cur.nolog;
   eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();
   renderBlocks();
 }
@@ -423,16 +441,16 @@ function renderBlocks(){
   blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
    if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
-     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
-   if(b.type==='timed')f=`<div class="grid">${num(b.id,'work',b.work,'Work (s)',1,1)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+   if(b.type==='timed')f=`<div class="grid">${dur(b.id,'work',b.work,'Work',1)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
-   if(b.type==='boxing')f=`<div class="grid">${num(b.id,'work',b.work,'Duration (s)',1,1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${num(b.id,'restAfter',b.restAfter,'Rest after block (s)')}</div>
+   if(b.type==='boxing')f=`<div class="grid">${dur(b.id,'work',b.work,'Duration',1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea>
      ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
      ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. The voice always finishes the line before the next call.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
-   if(b.type==='rest')f=`<div class="grid">${num(b.id,'work',b.work,'Rest (s)',1,1)}</div>`;
+   if(b.type==='rest')f=`<div class="grid">${dur(b.id,'work',b.work,'Rest',1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
     <button class="icon ghost" onclick="mv(${i},-1)" title="Move up">${svgi('up',18)}</button><button class="icon ghost" onclick="mv(${i},1)" title="Move down">${svgi('down',18)}</button>
@@ -452,7 +470,7 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.value||0;cur.prep=+ePrep.value||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));if(eLog.checked)delete cur.nolog;else cur.nolog=true;cur.cv=2;}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));if(eLog.checked)delete cur.nolog;else cur.nolog=true;cur.cv=2;}
 ['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
