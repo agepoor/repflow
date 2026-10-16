@@ -45,6 +45,8 @@ h2{font-size:20px;margin:0}
 .grid>div>label{line-height:1.25;margin-bottom:4px}
 .grid input,.grid select{height:40px}
 input.dur.bad,input.dur.bad:focus{border-color:var(--red)!important}
+
+.durw{position:relative}.durw input{padding-right:62px}.durw .ds{position:absolute;top:4px;bottom:4px;width:28px;padding:0;border:none;background:var(--surf);border-radius:6px;color:var(--tx2);font-size:18px;line-height:1;touch-action:manipulation;user-select:none}.durw .ds:hover,.durw .ds:active{background:var(--raise);color:var(--tx)}.durw .ds[data-d="-1"]{right:34px}.durw .ds[data-d="1"]{right:4px}
 label .dh{color:var(--tx2);opacity:.75}label .dh.bad{color:var(--red);opacity:1}
 .block{border-left:4px solid var(--blue)}
 .block .head{display:flex;gap:8px;align-items:center;margin-bottom:12px}
@@ -184,8 +186,8 @@ header{flex-wrap:nowrap}
     <div class="swatches" id="eColorPick" role="radiogroup" aria-label="Color"></div>
     <div class="grid" style="margin-top:12px">
       <div><label>Rounds</label><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated"></div>
-      <div><label>Rest between rounds <span class="dh"></span></label><input id="eRest" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"></div>
-      <div><label>Get-ready <span class="dh"></span></label><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"></div>
+      <div><label>Rest between rounds <span class="dh"></span></label><div class="durw"><input id="eRest" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
+      <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
     <label class="chk" style="margin-top:12px"><input type="checkbox" id="eLog"> Log finished workouts (history &amp; streaks)</label>
@@ -400,13 +402,22 @@ function parseDur(v){v=String(v??'').trim().toLowerCase().replace(/,/g,'.');if(v
   return NaN;}
 function fmtDur(s){s=Math.max(0,Math.round(+s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return h?`${h}:${p(m)}:${p(x)}`:`${m}:${p(x)}`;}
 function durWords(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return [h&&h+' h',m&&m+' min',(x||!s)&&x+' s'].filter(Boolean).join(' ');}
-function durHint(el,txt,bad){const h=el.parentNode.querySelector('.dh');if(h){h.textContent=txt;h.classList.toggle('bad',!!bad);}el.classList.toggle('bad',!!bad);}
+function durHint(el,txt,bad){const h=(el.closest('.durw')||el).parentNode.querySelector('.dh');if(h){h.textContent=txt;h.classList.toggle('bad',!!bad);}el.classList.toggle('bad',!!bad);}
 function durSet(el,s){el.dataset.v=Math.max(0,Math.round(+s||0));el.value=fmtDur(el.dataset.v);durHint(el,'');}
 function durIn(el,set){const min=+el.dataset.min||0;let s=parseDur(el.value);if(s===null&&min===0)s=0;
   if(s===null||isNaN(s)||s<min){durHint(el,s===null||isNaN(s)?'· try 1:30':`· min ${durWords(min)}`,true);return;}
   el.dataset.v=s;durHint(el,'· '+durWords(s));if(set)set(s);}
 function durOut(el){durSet(el,el.dataset.v);}
-function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"></div>`}
+/* −/+ steppers: 5 s under 1 min, 15 s under 5 min, 30 s under 10 min, then 1 min; hold to repeat */
+function durStepSize(s){return s<60?5:s<300?15:s<600?30:60;}
+function durStep(btn){const el=btn.parentNode.querySelector('input');const min=+el.dataset.min||0;let s=parseDur(el.value);if(s===null||isNaN(s))s=+el.dataset.v||0;
+  const d=+btn.dataset.d;let n;if(d>0){const st=durStepSize(s);n=Math.floor(s/st)*st+st;}else{const st=durStepSize(Math.max(0,s-1));n=Math.ceil(s/st)*st-st;}
+  n=Math.max(min,n);el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));durSet(el,el.dataset.v);try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}}
+(()=>{let tm=null;const stop=()=>{clearTimeout(tm);tm=null;};
+  document.addEventListener('pointerdown',e=>{const b=e.target.closest('.durw .ds');if(!b)return;e.preventDefault();stop();durStep(b);
+    const rep=(ms)=>{tm=setTimeout(()=>{durStep(b);rep(Math.max(60,ms*.85));},ms);};rep(450);});
+  ['pointerup','pointercancel','pointerleave','blur'].forEach(ev=>(ev==='blur'?window:document).addEventListener(ev,stop,true));})();
+function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`}
 function renderList(){updHistBtn();
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
