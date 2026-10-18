@@ -12,4 +12,6 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 
 **Live:** https://agepoor.github.io/repflow/ — open in Chrome on Android → ⋮ → *Install app*.
 
-Icons are stored base64 in `icons/` and decoded by the Pages workflow.
+**v2 preview (this branch):** https://agepoor.github.io/repflow/v2/ — redeploys on every push to `v2`; the live app is untouched. v2 keeps its own data (storage keys `rf2_*`, gist “Workout Pacer v2 sync”) and copies v1 routines, settings and history once on first open. Merge into `main` when ready.
+
+Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages workflow runs for `/v2/`.

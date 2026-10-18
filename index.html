@@ -262,6 +262,8 @@ header{flex-wrap:nowrap}
 </div>
 
 <script>
+/* ---------- v2 preview: own storage (rf2_*) so v1 data on this origin is never touched; first open copies v1 data once (not the sync token) ---------- */
+try{if(localStorage.getItem('rf2_routines')===null)['routines','set','meta','hist','hdel'].forEach(k=>{const v=localStorage.getItem('rf_'+k);if(v!==null)localStorage.setItem('rf2_'+k,v);});}catch(e){}
 /* ---------- flat icons (stroke, 24px grid) ---------- */
 const IC={
  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -327,10 +329,10 @@ const PRESETS0=()=>[
   blocks:[{id:uid(),type:'reps',name:'Push-ups',reps:15,counts:1,tempo:2,mode:'tap',repPause:0,cues:'',lastOnly:false,restAfter:0}]}
 ];
 const DEF_SET={voice:true,beeps:true,lang:'en-US',voiceURI:'',pitch:1,speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
-let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
-let H=JSON.parse(localStorage.getItem('rf_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf_hdel')||'{}');
-let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
-let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
+let S=JSON.parse(localStorage.getItem('rf2_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
+let H=JSON.parse(localStorage.getItem('rf2_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf2_hdel')||'{}');
+let R=JSON.parse(localStorage.getItem('rf2_routines')||'null');
+let SY=JSON.parse(localStorage.getItem('rf2_sync')||'null')||{token:'',gistId:'',last:0};
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null,syncFails=0,retryIn=0;
 const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
 /* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
@@ -350,7 +352,7 @@ function norm(r){if(!r||typeof r!=='object')return r;const seen=new Set();let fi
   if(!out.name){out.name='Routine';fixed=true;}return fixed||!Array.isArray(r.blocks)?out:r;}
 function canon(list){list=list.filter(r=>r&&typeof r==='object').map(r=>norm(mig(r)));const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
   return list.map(r=>{const pid=P[r.name];if(pid&&r.id!==pid&&!have.has(pid)){have.add(pid);return {...r,id:pid};}return r;});}
-let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderTs:0};
+let META=JSON.parse(localStorage.getItem('rf2_meta')||'null')||{deleted:{},orderTs:0};
 const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
 let SNAP=null;const snapOf=()=>{const m={};R.forEach(r=>m[r.id]=sig(r));return {m,order:R.map(r=>r.id).join(',')};};
 if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else{R=canon(R);SNAP=snapOf();saveRaw();} // fresh defaults never override synced data
@@ -358,7 +360,7 @@ if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else{R=canon(
 var storeWarned=false;
 function store(area,k,v){try{area.setItem(k,v);storeWarned=false;return true;}catch(e){if(!storeWarned){storeWarned=true;toast('Could not save on this device (storage full or blocked). Export a JSON backup in Settings.');}return false;}}
 function toast(msg){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','alert');t.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:max-content;max-width:90%;background:#3a2020;color:#fff;border:1px solid #E06C6C;padding:12px 16px;border-radius:12px;z-index:9999;font-size:15px;cursor:pointer';t.onclick=()=>t.remove();document.body.appendChild(t);}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),8000);}
-function saveRaw(){store(localStorage,'rf_routines',JSON.stringify(R));store(localStorage,'rf_set',JSON.stringify(S));store(localStorage,'rf_meta',JSON.stringify(META));}
+function saveRaw(){store(localStorage,'rf2_routines',JSON.stringify(R));store(localStorage,'rf2_set',JSON.stringify(S));store(localStorage,'rf2_meta',JSON.stringify(META));}
 function persist(){const now=Date.now();let changed=false;const seen=new Set();
   R.forEach(r=>{seen.add(r.id);if(SNAP.m[r.id]!==sig(r)){r.upd=now;changed=true;}});
   Object.keys(SNAP.m).forEach(id=>{if(!seen.has(id)){META.deleted[id]=now;changed=true;}});
@@ -371,18 +373,18 @@ function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.na
 let ROUTING=false;
 function routeOf(v){return v==='hist'?'#/history':v==='set'?'#/settings':v==='edit'&&cur?(cur._new?'#/new':'#/edit/'+cur.id):'#/';}
 function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);
-  if(v!=='edit')sessionStorage.removeItem('rf_draft');
+  if(v!=='edit')sessionStorage.removeItem('rf2_draft');
   if(ROUTING)return;const h=routeOf(v),st=history.state&&history.state.rf;
   if(v==='lib'){if(st){ROUTING=true;history.back();}else if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
   else if(location.hash!==h){st?history.replaceState({rf:1},'',h):history.pushState({rf:1},'',h);}}
-function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){if(autoT)autosave();try{readHead();store(sessionStorage,'rf_draft',JSON.stringify(cur));}catch(e){}}}
+function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){if(autoT)autosave();try{readHead();store(sessionStorage,'rf2_draft',JSON.stringify(cur));}catch(e){}}}
 /* editor autosave: every change is written to the library shortly after you stop typing (and right away when the app is hidden) */
 let autoT=null;const editOn=()=>document.getElementById('edit').classList.contains('on');
 function queueAutosave(){if(!cur||!editOn())return;clearTimeout(autoT);autoT=setTimeout(autosave,600);}
 function autosave(){clearTimeout(autoT);autoT=null;if(!cur||!editOn())return;readHead();const c=JSON.parse(JSON.stringify(cur));delete c._new;
   const i=R.findIndex(r=>r.id===c.id);if(i>=0)R[i]=c;else R.push(c);persist();}
 addEventListener('pagehide',saveDraft);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveDraft();});
-function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf_draft')||'null');}catch(e){}
+function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf2_draft')||'null');}catch(e){}
   ROUTING=true;try{let m;
     if(h==='#/history')openHist();
     else if(h==='#/settings')openSettings();
@@ -686,7 +688,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
 
 /* ---------- import/export ---------- */
 /* ---------- history & streaks ---------- */
-function saveH(){store(localStorage,'rf_hist',JSON.stringify(H));store(localStorage,'rf_hdel',JSON.stringify(HDEL));}
+function saveH(){store(localStorage,'rf2_hist',JSON.stringify(H));store(localStorage,'rf2_hdel',JSON.stringify(HDEL));}
 const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
 const dayAdd=(k,n)=>{const d=kd(k);d.setDate(d.getDate()+n);return dk(d.getTime());};
@@ -726,8 +728,8 @@ function exportAll(){const a=document.createElement('a');a.href=URL.createObject
 function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;(Array.isArray(list)?list:[list]).forEach(r=>{if(!r||typeof r!=='object')return;r=mig(r);r.id=uid();r=norm({...r,blocks:(r.blocks||[]).map(b=>({...b,id:uid()}))});delete r.upd;R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
 /* ---------- sync via secret GitHub Gist ---------- */
-const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
-function saveSY(){store(localStorage,'rf_sync',JSON.stringify(SY));}
+const GH='https://api.github.com',GFILE='pacer-v2.json',GDESC='Workout Pacer v2 sync';
+function saveSY(){store(localStorage,'rf2_sync',JSON.stringify(SY));}
 function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
   const lbl=!SY.token?'Think once. Move without thinking.':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid or expired — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
   el.innerHTML=!SY.token?lbl:`<span class="syncl">${svgi(st==='auth'||st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;}
@@ -770,10 +772,10 @@ async function connectSync(){const t=document.getElementById('tokIn').value.trim
 function disconnectSync(){if(!confirm('Stop syncing on this device? Your routines stay on this device and in your GitHub gist.'))return;SY={token:'',gistId:'',last:0};saveSY();setSync('');openSettings();}
 function syncCard(){return SY.token?`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" id="syncStatus" style="margin:0 0 12px"></p>
   <div class="row"><button class="ib" onclick="syncNow()">${svgi('refresh',16)}Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
-  <p class="muted" style="margin:12px 0 0">Routines and history are stored in a secret gist “RepFlow sync” on your GitHub account and sync automatically. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Audio settings stay per device.</p>
+  <p class="muted" style="margin:12px 0 0">Routines and history are stored in a secret gist “Workout Pacer v2 sync” on your GitHub account and sync automatically. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Audio settings stay per device.</p>
   <p class="muted" style="margin:8px 0 0">If sync says the token is invalid, it has probably expired: create a new one and connect again.</p>`
  :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines and history in a secret gist on your own GitHub account. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Do this once on every device.</p>
-  <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked. GitHub’s default expiry is 30 days, after which sync stops until you add a new token; pick a longer expiry (or none) to avoid that.</li><li>Paste it below and press Connect.</li></ol>
+  <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=Workout%20Pacer%20v2%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked. GitHub’s default expiry is 30 days, after which sync stops until you add a new token; pick a longer expiry (or none) to avoid that.</li><li>Paste it below and press Connect.</li></ol>
   <div class="row" style="flex-wrap:nowrap"><input id="tokIn" type="password" placeholder="ghp_…" autocomplete="off"><button class="primary" onclick="connectSync()">Connect</button></div>`;}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300);});
 addEventListener('online',()=>scheduleSync(300));
