@@ -1,6 +1,6 @@
 {
-  "name": "Workout Pacer",
-  "short_name": "Pacer",
+  "name": "Workout Pacer v2",
+  "short_name": "Pacer v2",
   "description": "Think once. Move without thinking. Audio-guided pacer for rep, timed and boxing workouts.",
   "start_url": "./",
   "scope": "./",
