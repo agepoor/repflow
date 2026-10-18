@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Workout Pacer v2 — Think once. Move without thinking.</title>
+<title>Workout Pacer — Think once. Move without thinking.</title>
 <style>
 :root{--bg:#191919;--surf:#202020;--raise:#383836;--tx:#fff;--tx2:rgba(255,255,255,.65);--bd:rgba(255,255,255,.2);
 --blue:#5E9FE8;--green:#72BC8F;--orange:#DE9255;--red:#E97366;--yellow:#EAC26B;--purple:#BF8EDA}
@@ -154,7 +154,7 @@ header{flex-wrap:nowrap}
 <!-- LIBRARY -->
 <section id="lib" class="view on">
   <header>
-    <div><h1>Workout Pacer <span class="muted">v2</span></h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
+    <div><h1 id="appName">Workout Pacer</h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
     <div class="row">
       <button class="ghost ib" id="histBtn" onclick="openHist()" title="History" aria-label="History"></button>
       <button class="ghost" onclick="openSettings()" title="Settings" aria-label="Settings"><span id="gearIc"></span></button>
@@ -268,8 +268,10 @@ header{flex-wrap:nowrap}
 </div>
 
 <script>
-/* ---------- v2 preview: own storage (rf2_*) so v1 data on this origin is never touched; first open copies v1 data once (not the sync token) ---------- */
+/* ---------- storage: own keys (rf2_*) since v2; v1 data (rf_*) is never written. First open copies v1 routines, settings and history (not the gist token) ---------- */
 try{if(localStorage.getItem('rf2_routines')===null)['routines','set','meta','hist','hdel'].forEach(k=>{const v=localStorage.getItem('rf_'+k);if(v!==null)localStorage.setItem('rf2_'+k,v);});}catch(e){}
+// once: workouts logged in v1 after the first copy (while v2 was a preview) are added to the history too
+try{if(!localStorage.getItem('rf2_v1h')){const a=JSON.parse(localStorage.getItem('rf2_hist')||'[]')||[],d=JSON.parse(localStorage.getItem('rf2_hdel')||'{}')||{},ids=new Set(a.map(h=>h&&h.id)),b=(JSON.parse(localStorage.getItem('rf_hist')||'[]')||[]).filter(h=>h&&h.id&&!ids.has(h.id)&&!d[h.id]);if(b.length)localStorage.setItem('rf2_hist',JSON.stringify(a.concat(b).sort((x,y)=>(x.ts||0)-(y.ts||0))));localStorage.setItem('rf2_v1h','1');}}catch(e){}
 /* ---------- flat icons (stroke, 24px grid) ---------- */
 const IC={
  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -901,6 +903,8 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
 document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);
+// preview build (branch v2 at /v2/): labelled so it can't be mistaken for the live app
+if(location.pathname.includes('/v2/')){document.title=document.title.replace('Workout Pacer','Workout Pacer v2');document.getElementById('appName').insertAdjacentHTML('beforeend',' <span class="muted">v2</span>');}
 renderList();route();setSync('');restoreRun();banner();if(localStorage.getItem('rf2_acct'))cloud();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 // re-acquire wake lock after switching apps mid-workout
