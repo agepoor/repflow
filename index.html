@@ -56,6 +56,7 @@ label .dh{color:var(--tx2);opacity:.75}label .dh.bad{color:var(--red);opacity:1}
 .settings{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 .cuecount{font-size:14px;margin-top:4px;min-height:0}
 .chk{display:flex;gap:8px;align-items:center;color:var(--tx)}
+.nst{display:inline-flex;align-items:center;gap:3px;vertical-align:-2px}
 /* runner */
 #run{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:space-between;padding:20px 16px calc(20px + env(safe-area-inset-bottom));transition:background .3s;user-select:none}
 #run.on{display:flex}
@@ -131,7 +132,7 @@ header{flex-wrap:nowrap}
 .hstat b{display:flex;align-items:center;justify-content:center;gap:6px;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
 .hstat span{font-size:12px;color:var(--tx2)}.hstat.fire b{color:#DE9255}
 .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px}
-.heat i{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.06)}.heat i.l1{background:rgba(114,188,143,.4)}.heat i.l2{background:rgba(114,188,143,.7)}.heat i.l3{background:#72BC8F}.heat i.fut{background:none}.heat i.today{outline:1.5px solid var(--tx2);outline-offset:1px}
+.heat i{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.06)}.heat i.l1{background:rgba(114,188,143,.4)}.heat i.l2{background:rgba(114,188,143,.7)}.heat i.l3{background:#72BC8F}.heat i.lo{background:rgba(255,255,255,.28)}.heat i.fut{background:none}.heat i.today{outline:1.5px solid var(--tx2);outline-offset:1px}
 .heatwrap{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:stretch}.heatdays{display:grid;grid-template-rows:repeat(7,1fr);gap:3px;font-size:10px;color:var(--tx2);line-height:1}.heatdays span{display:flex;align-items:center}
 .legend{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:12px;color:var(--tx2);margin-top:8px}.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
 .hday{font-size:13px;color:var(--tx2);margin:16px 0 6px;font-weight:600}
@@ -206,7 +207,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
-    <label class="chk" style="margin-top:12px"><input type="checkbox" id="eLog"> Log finished workouts (history &amp; streaks)</label>
+    <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="eLog">Logging</label><select id="eLog"><option value="streak">Log and count for streak</option><option value="log">Log only</option><option value="off">No logging</option></select></div></div>
     <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
     <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
@@ -443,7 +444,7 @@ function renderList(){updHistBtn();
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
   document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
    return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?` · <span title="Not logged" style="display:inline-flex;align-items:center;gap:3px;vertical-align:-2px">${svgi('nolog',13)}not logged</span>`:''}</div></div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
    <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',22)}</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
@@ -464,7 +465,7 @@ function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){cur=norm(mig(cur));
-  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.checked=!cur.nolog;
+  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.value=logMode(cur);
   eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();
   renderBlocks();
 }
@@ -502,7 +503,7 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));if(eLog.checked)delete cur.nolog;else cur.nolog=true;cur.cv=2;}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;cur.cv=2;}
 ['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
@@ -661,14 +662,14 @@ function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   speechSynthesis.cancel();if(late<2000){bell();buzz([200,100,200,100,400]);say('Done. Great work!');}
   if(X.wl)X.wl.release().catch(()=>{});
   const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),calls=X.calls||0;
-  const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};
+  const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};if(r.streak===false)entry.streak=false; // Log only: in history, not in the streak
   X={done:true};run.style.background='#191919';localStorage.removeItem('rf2_run');
   const ask=!r.nolog&&late>15*60e3&&!H.some(h=>h.id===entry.id)&&!HDEL[entry.id]; // ended long before the app was opened again: ask instead of logging
   LAST={r,entry,ask,L:r.nolog||ask?null:logWorkout(entry)};updHistBtn();showDone();
   run.classList.add('on','fin');banner();}
 function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur;
   const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
-  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--blue);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Not logged</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
+  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--blue);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Not logged</div>`:(H.find(h=>h.id===entry.id)||entry).streak===false?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Logged · not counted for streak</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
     <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}')">${svgi('play',18)}Again</button></div>`;}
 function logLate(){if(!LAST||!LAST.ask)return;LAST.ask=false;LAST.L=logWorkout(LAST.entry);updHistBtn();showDone();}
@@ -767,7 +768,10 @@ const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
 const dayAdd=(k,n)=>{const d=kd(k);d.setDate(d.getDate()+n);return dk(d.getTime());};
 const weekStart=k=>dayAdd(k,-((kd(k).getDay()+6)%7));
 const mmss=e=>{e=Math.round(e||0);const h=Math.floor(e/3600),m=Math.floor(e%3600/60),s=e%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;};
-function streaks(list=H){const days=new Set(list.map(h=>dk(h.ts))),today=dk(Date.now());
+/* logging per routine: nolog = No logging; streak:false = Log only (the workout is logged with streak:false: in history, not in streaks); neither = Log and count for streak */
+function logMode(r){return r.nolog?'off':r.streak===false?'log':'streak';}
+function nsTag(t,title,s=13){return `<span class="nst" title="${title}">${svgi('nolog',s)}${t}</span>`;}
+function streaks(list=H){const days=new Set(list.filter(h=>h.streak!==false).map(h=>dk(h.ts))),today=dk(Date.now());
   let cur=0,k=days.has(today)?today:dayAdd(today,-1);while(days.has(k)){cur++;k=dayAdd(k,-1);}
   let best=0,run=0,prev=null;[...days].sort().forEach(d=>{run=prev&&dayAdd(prev,1)===d?run+1:1;best=Math.max(best,run);prev=d;});
   return {cur,best,today:days.has(today)};}
@@ -777,9 +781,9 @@ function openHist(){renderHist();show('hist');}
 function delHist(id){if(!confirm('Remove this workout from your history?'))return;HDEL[id]=Date.now();H=H.filter(h=>h.id!==id);saveH();scheduleSync();renderHist();updHistBtn();}
 function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today);
   const week=H.filter(h=>dk(h.ts)>=ws).length;
-  const cnt={};H.forEach(h=>{const k=dk(h.ts);cnt[k]=(cnt[k]||0)+1;});
+  const cnt={},sc={};H.forEach(h=>{const k=dk(h.ts);cnt[k]=(cnt[k]||0)+1;if(h.streak!==false)sc[k]=1;});let nLo=0;
   const W=17,start=dayAdd(ws,-(W-1)*7);let cells='';
-  for(let i=0;i<W*7;i++){const k=dayAdd(start,i),c=cnt[k]||0;cells+=`<i class="${k>today?'fut':c>=3?'l3':c===2?'l2':c?'l1':''}${k===today?' today':''}" title="${k}: ${c} workout${c!==1?'s':''}"></i>`;}
+  for(let i=0;i<W*7;i++){const k=dayAdd(start,i),c=cnt[k]||0,o=c&&!sc[k];if(o)nLo++;cells+=`<i class="${k>today?'fut':o?'lo':c>=3?'l3':c===2?'l2':c?'l1':''}${k===today?' today':''}" title="${k}: ${c} workout${c!==1?'s':''}${o?' (log only)':''}"></i>`;}
   const mins=Math.round(H.reduce((a,h)=>a+(h.dur||0),0)/60);
   let html=`<div class="hstats">
     <div class="hstat fire"><b>${svgi('flame',20)}${st.cur}</b><span>day streak</span></div>
@@ -788,13 +792,13 @@ function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today
     <div class="hstat"><b>${H.length}</b><span>workouts</span></div></div>
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><b>Last ${W} weeks</b><span class="muted" style="font-size:13px">${mins} min total</span></div>
     <div class="heatwrap"><div class="heatdays">${['M','','W','','F','','S'].map(d=>`<span>${d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
-    <div class="legend">Less <i style="background:rgba(255,255,255,.06)"></i><i style="background:rgba(114,188,143,.4)"></i><i style="background:rgba(114,188,143,.7)"></i><i style="background:#72BC8F"></i> More</div></div>`;
+    <div class="legend">Less <i style="background:rgba(255,255,255,.06)"></i><i style="background:rgba(114,188,143,.4)"></i><i style="background:rgba(114,188,143,.7)"></i><i style="background:#72BC8F"></i> More${nLo?`<i style="background:rgba(255,255,255,.28);margin-left:10px"></i> Log only`:''}</div></div>`;
   if(!H.length)html+=`<p class="muted" style="text-align:center;margin-top:24px">No workouts yet. Finish a routine and it shows up here.</p>`;
   const yest=dayAdd(today,-1);let last='';
   [...H].sort((a,b)=>b.ts-a.ts).slice(0,100).forEach(h=>{const k=dk(h.ts);
     if(k!==last){last=k;html+=`<div class="hday">${k===today?'Today':k===yest?'Yesterday':kd(k).toLocaleDateString([],{weekday:'long',day:'numeric',month:'short'})}</div>`;}
     const c=COLORS[h.color]||COLORS.blue,bits=[new Date(h.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),mmss(h.dur),`${h.rounds} round${h.rounds!==1?'s':''}`];
-    if(h.reps)bits.push(`${h.reps} reps`);if(h.calls)bits.push(`${h.calls} combos`);
+    if(h.reps)bits.push(`${h.reps} reps`);if(h.calls)bits.push(`${h.calls} combos`);if(h.streak===false)bits.push(nsTag('log only','Logged, not counted for streak',12));
     html+=`<div class="hitem"><div class="dot" style="background:${c}26;color:${c}">${svgi(h.icon||'activity',18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:6px;color:var(--tx2)">${svgi('trash',16)}</button></div>`;});
   histBody.innerHTML=html;}
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='workout-pacer-routines.json';a.click();}
