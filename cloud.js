@@ -1,7 +1,15 @@
 /* Workout Pacer v2: account (Google / GitHub sign-in via Firebase Auth) and sync (Firebase Realtime Database).
    Paste the web-app config from the Firebase console (Project settings → Your apps) below. These values are public
    identifiers, not secrets: access is limited by database.rules.json (each account can only read/write users/<its uid>). */
-export const FIREBASE_CONFIG = null;
+export const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyBcskek0bCUDnG8xDArFPbUxzpFQsMjdUs',
+  authDomain: 'workout-pacer.firebaseapp.com',
+  databaseURL: 'https://workout-pacer-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'workout-pacer',
+  storageBucket: 'workout-pacer.firebasestorage.app',
+  messagingSenderId: '149446370348',
+  appId: '1:149446370348:web:8d306c4ae95d3572e35d89'
+};
 // For local testing only, e.g. {auth: 'http://127.0.0.1:9099', db: ['127.0.0.1', 9000]} (Firebase Emulator Suite)
 const EMULATOR = null;
 
