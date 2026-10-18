@@ -1,18 +1,33 @@
 name: Deploy to GitHub Pages
+# main -> https://agepoor.github.io/repflow/   v2 -> https://agepoor.github.io/repflow/v2/ (preview)
+# Pages only deploys from main, so a push to v2 re-runs this workflow on main, which builds both branches.
 on:
   push:
-    branches: [main]
+    branches: [main, v2]
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
 jobs:
-  deploy:
+  trigger:
+    if: github.ref == 'refs/heads/v2'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Re-run deploy on main
+        run: gh workflow run deploy.yml --ref main --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -24,6 +39,22 @@ jobs:
           cp index.html manifest.webmanifest sw.js icon.svg _site/
           for f in icons/*.b64; do base64 -d "$f" > "_site/$(basename "$f" .b64)"; done
           ls -la _site
+      # v2 preview is optional and never blocks the main site
+      - name: Check out v2
+        id: v2
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: v2
+          path: _v2
+      - name: Build v2 preview (/v2/)
+        if: steps.v2.outcome == 'success'
+        continue-on-error: true
+        working-directory: _v2
+        run: |
+          bash build.sh "$RUNNER_TEMP/v2"
+          mv "$RUNNER_TEMP/v2" "$GITHUB_WORKSPACE/_site/v2"
+          ls -la "$GITHUB_WORKSPACE/_site/v2"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
