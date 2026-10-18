@@ -21,7 +21,7 @@ button:hover{background:var(--raise)}
 button.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
 button.ghost{background:none;border-color:transparent;color:var(--tx2)}
 button.danger{color:var(--red)}
-input,select,textarea{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;width:100%}
+input,select,textarea{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;width:100%}textarea{resize:vertical}
 input[type=checkbox]{width:auto}
 label{display:block;font-size:14px;color:var(--tx2)}
 .view{display:none;max-width:760px;margin:0 auto;padding:24px 16px 64px}
@@ -207,7 +207,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
-    <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="eLog">Logging</label><select id="eLog"><option value="streak">Log and count for streak</option><option value="log">Log only</option><option value="off">No logging</option></select></div></div>
+    <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="eLog">Logging</label><select id="eLog" style="width:auto;max-width:100%;align-self:flex-start"><option value="streak">Log and count for streak</option><option value="log">Log only</option><option value="off">No logging</option></select></div></div>
     <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
     <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
