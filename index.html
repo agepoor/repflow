@@ -143,6 +143,10 @@ header{flex-wrap:nowrap}
 .sflow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}.sround{border:1px dashed var(--bd);border-radius:10px;padding:6px 10px 10px;width:100%}.sround .sflow{margin-top:4px}.sround .sl{font-size:12px;color:var(--tx2);font-weight:600}
 .sc{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:4px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--bd);white-space:nowrap;color:var(--tx)}.sc svg{color:var(--c,var(--tx2))}
 .sc.rest,.sc.rrest{background:rgba(114,188,143,.12);border-color:rgba(114,188,143,.35);color:#9fd4b3}.sc.rrest{border-style:dashed}.sc.prep{color:var(--tx2)}.sc.done{color:#72BC8F}.sa{color:var(--tx2);font-size:13px}
+#run .lw{display:flex;justify-content:center}
+#live{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--tx2);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);border-radius:999px;padding:6px 12px}
+#live[hidden]{display:none}#live b{color:var(--tx)}
+.livebar{border-color:var(--blue)}.amsg{margin:0 0 12px;font-size:14px;color:var(--yellow)}
 </style>
 </head>
 <body>
@@ -150,13 +154,14 @@ header{flex-wrap:nowrap}
 <!-- LIBRARY -->
 <section id="lib" class="view on">
   <header>
-    <div><h1>Workout Pacer</h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
+    <div><h1 id="appName">Workout Pacer</h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
     <div class="row">
       <button class="ghost ib" id="histBtn" onclick="openHist()" title="History" aria-label="History"></button>
       <button class="ghost" onclick="openSettings()" title="Settings" aria-label="Settings"><span id="gearIc"></span></button>
       <button class="primary" onclick="newRoutine()">+ Routine</button>
     </div>
   </header>
+  <div id="liveBar"></div>
   <div id="list"></div>
   <div id="arch" style="margin-top:16px"></div>
 </section>
@@ -236,6 +241,7 @@ header{flex-wrap:nowrap}
   <div class="top">
     <div class="meta"><span id="rName"></span><span id="rRound"></span></div>
     <div class="bar"><i id="rBar"></i></div>
+    <div class="lw"><button id="live" hidden onclick="liveTap()"></button></div>
   </div>
   <div id="call"></div>
   <div id="phase"></div>
@@ -262,6 +268,10 @@ header{flex-wrap:nowrap}
 </div>
 
 <script>
+/* ---------- storage: own keys (rf2_*) since v2; v1 data (rf_*) is never written. First open copies v1 routines, settings and history (not the gist token) ---------- */
+try{if(localStorage.getItem('rf2_routines')===null)['routines','set','meta','hist','hdel'].forEach(k=>{const v=localStorage.getItem('rf_'+k);if(v!==null)localStorage.setItem('rf2_'+k,v);});}catch(e){}
+// once: workouts logged in v1 after the first copy (while v2 was a preview) are added to the history too
+try{if(!localStorage.getItem('rf2_v1h')){const a=JSON.parse(localStorage.getItem('rf2_hist')||'[]')||[],d=JSON.parse(localStorage.getItem('rf2_hdel')||'{}')||{},ids=new Set(a.map(h=>h&&h.id)),b=(JSON.parse(localStorage.getItem('rf_hist')||'[]')||[]).filter(h=>h&&h.id&&!ids.has(h.id)&&!d[h.id]);if(b.length)localStorage.setItem('rf2_hist',JSON.stringify(a.concat(b).sort((x,y)=>(x.ts||0)-(y.ts||0))));localStorage.setItem('rf2_v1h','1');}}catch(e){}
 /* ---------- flat icons (stroke, 24px grid) ---------- */
 const IC={
  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -327,10 +337,10 @@ const PRESETS0=()=>[
   blocks:[{id:uid(),type:'reps',name:'Push-ups',reps:15,counts:1,tempo:2,mode:'tap',repPause:0,cues:'',lastOnly:false,restAfter:0}]}
 ];
 const DEF_SET={voice:true,beeps:true,lang:'en-US',voiceURI:'',pitch:1,speakCounts:'every',countdown:3,vibrate:true,volume:0.8,rate:1.1,wake:true};
-let S=JSON.parse(localStorage.getItem('rf_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
-let H=JSON.parse(localStorage.getItem('rf_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf_hdel')||'{}');
-let R=JSON.parse(localStorage.getItem('rf_routines')||'null');
-let SY=JSON.parse(localStorage.getItem('rf_sync')||'null')||{token:'',gistId:'',last:0};
+let S=JSON.parse(localStorage.getItem('rf2_set')||'null')||{...DEF_SET};S={...DEF_SET,...S};
+let H=JSON.parse(localStorage.getItem('rf2_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf2_hdel')||'{}');
+let R=JSON.parse(localStorage.getItem('rf2_routines')||'null');
+let SY={last:(JSON.parse(localStorage.getItem('rf2_sync')||'null')||{}).last||0};
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null,syncFails=0,retryIn=0;
 const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
 /* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
@@ -350,15 +360,15 @@ function norm(r){if(!r||typeof r!=='object')return r;const seen=new Set();let fi
   if(!out.name){out.name='Routine';fixed=true;}return fixed||!Array.isArray(r.blocks)?out:r;}
 function canon(list){list=list.filter(r=>r&&typeof r==='object').map(r=>norm(mig(r)));const P=PRESET_IDS(),have=new Set(list.map(r=>r.id));
   return list.map(r=>{const pid=P[r.name];if(pid&&r.id!==pid&&!have.has(pid)){have.add(pid);return {...r,id:pid};}return r;});}
-let META=JSON.parse(localStorage.getItem('rf_meta')||'null')||{deleted:{},orderTs:0};
+let META=JSON.parse(localStorage.getItem('rf2_meta')||'null')||{deleted:{},orderTs:0};
 const sig=r=>{const {upd,...x}=r;return JSON.stringify(x);};
 let SNAP=null;const snapOf=()=>{const m={};R.forEach(r=>m[r.id]=sig(r));return {m,order:R.map(r=>r.id).join(',')};};
 if(!R){R=PRESETS().map(r=>({...r,upd:0}));SNAP=snapOf();saveRaw();}else{R=canon(R);SNAP=snapOf();saveRaw();} // fresh defaults never override synced data
 /* every write goes through store(): a failed save (storage full/blocked) is shown instead of silently lost */
 var storeWarned=false;
 function store(area,k,v){try{area.setItem(k,v);storeWarned=false;return true;}catch(e){if(!storeWarned){storeWarned=true;toast('Could not save on this device (storage full or blocked). Export a JSON backup in Settings.');}return false;}}
-function toast(msg){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','alert');t.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:max-content;max-width:90%;background:#3a2020;color:#fff;border:1px solid #E06C6C;padding:12px 16px;border-radius:12px;z-index:9999;font-size:15px;cursor:pointer';t.onclick=()=>t.remove();document.body.appendChild(t);}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),8000);}
-function saveRaw(){store(localStorage,'rf_routines',JSON.stringify(R));store(localStorage,'rf_set',JSON.stringify(S));store(localStorage,'rf_meta',JSON.stringify(META));}
+function toast(msg,info){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','alert');t.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:max-content;max-width:90%;background:#3a2020;color:#fff;border:1px solid #E06C6C;padding:12px 16px;border-radius:12px;z-index:9999;font-size:15px;cursor:pointer';t.onclick=()=>t.remove();document.body.appendChild(t);}t.style.background=info?'#2a2a2a':'#3a2020';t.style.borderColor=info?'#555':'#E06C6C';t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),8000);}
+function saveRaw(){store(localStorage,'rf2_routines',JSON.stringify(R));store(localStorage,'rf2_set',JSON.stringify(S));store(localStorage,'rf2_meta',JSON.stringify(META));}
 function persist(){const now=Date.now();let changed=false;const seen=new Set();
   R.forEach(r=>{seen.add(r.id);if(SNAP.m[r.id]!==sig(r)){r.upd=now;changed=true;}});
   Object.keys(SNAP.m).forEach(id=>{if(!seen.has(id)){META.deleted[id]=now;changed=true;}});
@@ -371,18 +381,18 @@ function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.na
 let ROUTING=false;
 function routeOf(v){return v==='hist'?'#/history':v==='set'?'#/settings':v==='edit'&&cur?(cur._new?'#/new':'#/edit/'+cur.id):'#/';}
 function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);
-  if(v!=='edit')sessionStorage.removeItem('rf_draft');
+  if(v!=='edit')sessionStorage.removeItem('rf2_draft');
   if(ROUTING)return;const h=routeOf(v),st=history.state&&history.state.rf;
   if(v==='lib'){if(st){ROUTING=true;history.back();}else if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
   else if(location.hash!==h){st?history.replaceState({rf:1},'',h):history.pushState({rf:1},'',h);}}
-function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){if(autoT)autosave();try{readHead();store(sessionStorage,'rf_draft',JSON.stringify(cur));}catch(e){}}}
+function saveDraft(){if(cur&&document.getElementById('edit').classList.contains('on')){if(autoT)autosave();try{readHead();store(sessionStorage,'rf2_draft',JSON.stringify(cur));}catch(e){}}}
 /* editor autosave: every change is written to the library shortly after you stop typing (and right away when the app is hidden) */
 let autoT=null;const editOn=()=>document.getElementById('edit').classList.contains('on');
 function queueAutosave(){if(!cur||!editOn())return;clearTimeout(autoT);autoT=setTimeout(autosave,600);}
 function autosave(){clearTimeout(autoT);autoT=null;if(!cur||!editOn())return;readHead();const c=JSON.parse(JSON.stringify(cur));delete c._new;
   const i=R.findIndex(r=>r.id===c.id);if(i>=0)R[i]=c;else R.push(c);persist();}
 addEventListener('pagehide',saveDraft);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveDraft();});
-function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf_draft')||'null');}catch(e){}
+function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf2_draft')||'null');}catch(e){}
   ROUTING=true;try{let m;
     if(h==='#/history')openHist();
     else if(h==='#/settings')openSettings();
@@ -524,7 +534,7 @@ function openSettings(){
   <div><label>Volume</label><input type="range" min="0" max="1" step="0.05" value="${S.volume}" oninput="S.volume=+this.value;persist()"></div>
   <div><label>Voice speed</label><input type="range" min="0.7" max="1.8" step="0.05" value="${S.rate}" oninput="S.rate=+this.value;persist()" onchange="testVoice()"></div>
   <div><label>Voice pitch</label><input type="range" min="0.5" max="1.5" step="0.05" value="${S.pitch}" oninput="S.pitch=+this.value;persist()" onchange="testVoice()"></div>`;
-  document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
+  cloud();document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
   show('set');
 }
 speechSynthesis.onvoiceschanged=()=>{if(document.getElementById('set').classList.contains('on'))openSettings();};
@@ -532,15 +542,16 @@ speechSynthesis.onvoiceschanged=()=>{if(document.getElementById('set').classList
 /* ---------- audio ---------- */
 let AC=null,muted=false;
 function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
-function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted)return;const c=ac(),o=c.createOscillator(),g=c.createGain();
+const silentHere=()=>!!(X&&X.steps&&X.by!==DEV.id); // another device plays this workout's sound
+function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted||silentHere())return;const c=ac(),o=c.createOscillator(),g=c.createGain();
   o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(S.volume*vol,c.currentTime+.01);
   g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
-function bell(){[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
-function say(t,interrupt=true){if(!S.voice||muted||!t)return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;speechSynthesis.speak(u);}
+function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
+function say(t,interrupt=true){if(!S.voice||muted||!t||silentHere())return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;speechSynthesis.speak(u);}
 function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-')===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
 function pickVoice(){return S.voiceURI?speechSynthesis.getVoices().find(v=>v.voiceURI===S.voiceURI)||null:null;}
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
-function buzz(p){if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}
+function buzz(p){if(S.vibrate&&navigator.vibrate&&!silentHere())navigator.vibrate(p);}
 function resetAudio(){if(!confirm('Reset all sound & voice settings to their defaults?'))return;
   ['beeps','voice','lang','voiceURI','pitch','rate','volume','speakCounts','countdown'].forEach(k=>S[k]=DEF_SET[k]);
   persist();openSettings();testAudio();}
@@ -567,48 +578,100 @@ function build(r){const st=[];const P=(s)=>st.push(s);
   return st;}
 
 /* ---------- runner ---------- */
+/* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
+   reloads, locked screens and closed apps, and every signed-in device shows the same moment. One device plays the
+   sound (the one you last controlled it from); the others follow silently. */
 let X=null; // run state
 const PH={prep:'#5E9FE8',work:null,rest:'#46A171'};
-async function startRun(id){const r=R.find(r=>r.id===id);ac();
-  pp.innerHTML=svgi('pause',30);X={r,steps:build(r),i:0,t:0,paused:false,last:performance.now(),lastCount:-1,lastSec:null,tapCount:0,nextCall:0,callText:'',box:{}};
-  if(!X.steps.length){alert('Add a block first.');return;}
-  rName.innerHTML=svgi(iconKey(r),16)+'<span>'+esc(r.name)+'</span>';run.classList.remove('fin');run.classList.add('on');
-  if(S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}
-  enter(0);requestAnimationFrame(loop);}
-function stopRun(){if(X&&X.wl)X.wl.release();X=null;speechSynthesis.cancel();run.classList.remove('on','fin');show('lib');}
-function togglePause(){if(!X)return;X.paused=!X.paused;pp.innerHTML=svgi(X.paused?'play':'pause',30);if(X.paused)speechSynthesis.cancel();X.last=performance.now();}
-function jump(d){if(!X)return;const j=X.i+d;if(j<0)return;if(j>=X.steps.length)return finish();enter(j);}
+const DEV=(()=>{let d=null;try{d=JSON.parse(localStorage.getItem('rf2_dev')||'null');}catch(e){}
+  if(!d||!d.id){const u=navigator.userAgent;d={id:uid()+uid(),off:0,name:/iPhone/.test(u)?'iPhone':/iPad/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?'iPad':/Android/.test(u)?(/Mobile/.test(u)?'Android phone':'Android tablet'):/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows PC':/CrOS/.test(u)?'Chromebook':/Linux/.test(u)?'Linux PC':'another device'};
+    store(localStorage,'rf2_dev',JSON.stringify(d));}return d;})();
+let OFF=+DEV.off||0;const NOW=()=>Date.now()+OFF; // server-aligned clock
+const mine=()=>!!(X&&X.steps&&X.by===DEV.id);
+const stepLen=s=>s.type==='time'?Math.max(0,+s.dur||0):s.mode==='tap'?Infinity:s.reps*(s.counts*s.tempo+s.repPause);
+const boxStr=b=>JSON.stringify(b||{},(k,v)=>v instanceof Set?[...v]:v);
+function unbox(s){let b={};try{b=JSON.parse(s||'{}')||{};}catch(e){}Object.values(b).forEach(B=>{if(B&&typeof B==='object')B.seen=new Set(B.seen||[]);});return b;}
+function runDoc(end){return {sid:X.sid,r:JSON.stringify(X.r),i:X.i,s0:X.s0,t0:X.t0,p:X.p,tap:X.tap,nc:X.nc,ct:X.ct||'',calls:X.calls||0,box:boxStr(X.box),by:X.by,dn:X.dn||'',u:X.u,end:end||null,fin:X.fin||null};}
+let LASTDOC=null,UNLOCKED=false,LOOP=false,LAST=null;
+/* save the run on this device and, when signed in, publish it to the other devices */
+function pushRun(end){if(!X||!X.steps)return;X.u=Math.max(NOW(),(X.u||0)+1);const d=runDoc(end);LASTDOC=d;
+  if(end||!mine())localStorage.removeItem('rf2_run');else store(localStorage,'rf2_run',JSON.stringify(d));
+  if(CU&&CLOUD&&CR1)CLOUD.setRun(d).catch(()=>{});}
+function kick(){if(!LOOP){LOOP=true;requestAnimationFrame(loop);}}
+function wake(){if(S.wake&&navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(w=>{if(X&&X.steps)X.wl=w;else w.release();}).catch(()=>{});}
+function openRun(){rName.innerHTML=svgi(iconKey(X.r),16)+'<span>'+esc(X.r.name)+'</span>';run.classList.remove('fin');run.classList.add('on');wake();kick();}
+function startRun(id){const r=R.find(r=>r.id===id);if(!r)return;ac();UNLOCKED=true;
+  const steps=build(r);if(!steps.length){alert('Add a block first.');return;}
+  if(X&&X.wl)X.wl.release().catch(()=>{});
+  const t=NOW();X={sid:uid()+uid(),r:JSON.parse(JSON.stringify(r)),steps,i:0,s0:t,t0:t,p:null,tap:0,nc:1.5,ct:'',calls:0,box:{},by:DEV.id,dn:DEV.name,u:0,lastCount:-1,lastSec:null};
+  openRun();ppIcon();liveUI();enter(0,t);}
+/* open a workout from its saved state: after a reload, or one that is running on another device */
+function adopt(d){let r;try{r=norm(mig(typeof d.r==='string'?JSON.parse(d.r):d.r));}catch(e){return false;}
+  const steps=r&&r.blocks?build(r):[];if(!steps.length)return false;if(X&&X.wl)X.wl.release().catch(()=>{});
+  const t=NOW();X={sid:d.sid,r,steps,i:Math.max(0,Math.min(steps.length-1,d.i|0)),s0:+d.s0||t,t0:+d.t0||t,p:d.p==null?null:+d.p,tap:d.tap|0,nc:+d.nc||1.5,ct:d.ct||'',calls:d.calls|0,box:unbox(d.box),by:d.by||DEV.id,dn:d.dn||'',u:+d.u||0,lastCount:-1,lastSec:null};
+  openRun();stepUI();ppIcon();liveUI();render();return true;}
+function restoreRun(){let d=null;try{d=JSON.parse(localStorage.getItem('rf2_run')||'null');}catch(e){}
+  if(!d||!d.sid||d.end||d.by!==DEV.id||NOW()-(+d.u||0)>12*3600e3){localStorage.removeItem('rf2_run');return;}
+  adopt(d);}
+function closeRun(){if(X&&X.wl)X.wl.release().catch(()=>{});X=null;speechSynthesis.cancel();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');}
+/* on the device that plays the sound, Stop ends the workout everywhere; on a following device it only closes the view */
+function stopRun(){if(X&&X.steps&&mine())pushRun('stop');closeRun();show('lib');banner();}
+function claim(){if(!X||!X.steps||mine())return;X.by=DEV.id;X.dn=DEV.name;liveUI();}
+function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30);pp.setAttribute('aria-label',p?'Resume':'Pause');}
+function togglePause(){if(!X||!X.steps)return;claim();const t=NOW();
+  if(X.p!=null){const d=t-X.p;X.s0+=d;X.t0+=d;X.p=null;}else{X.p=t;speechSynthesis.cancel();}
+  ppIcon();pushRun();}
+function jump(d){if(!X||!X.steps)return;claim();const j=X.i+d;if(j<0)return;const t=X.p??NOW();if(j>=X.steps.length)return finish(t);enter(j,t);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
-function enter(i){X.i=i;X.t=0;X.lastCount=-1;X.lastSec=null;X.tapCount=0;X.callText='';X.nextCall=1.5;
-  const s=X.steps[i];const c=color(s);
+function setStep(i,at){X.i=i;X.s0=at;X.lastCount=-1;X.lastSec=null;X.tap=0;X.ct='';X.nc=1.5;}
+function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   run.style.background=`radial-gradient(circle at 50% 45%, ${c}55, #191919 75%), #191919`;ring.style.stroke=c;
-  phase.textContent=s.label;phase.style.color=c;call.textContent='';
+  phase.textContent=s.label;phase.style.color=c;showCall(X.ct,false);
   rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
   const n=X.steps[i+1];next.textContent=n?`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
   tapHint.textContent=s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
-  pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';
-  // announcements
-  if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
-    say(s.type==='reps'?`${s.label}. ${s.reps} reps`:(s.boxing?`${s.label}. Fight!`:(s.cue||s.label)));}
-  else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${s.label}. ${fmt(s.dur)} seconds`.replace(/(\d+):(\d+) seconds/,'$1 minutes $2'));}
-  else say(`${X.r.name}. Get ready`);
-  render();}
-function finish(){const r=X.r;speechSynthesis.cancel();bell();buzz([200,100,200,100,400]);say('Done. Great work!');
-  if(X.wl)X.wl.release();
-  const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),el=X.el||0,calls=X.calls||0;
-  X=null;run.style.background='#191919';
-  const e=Math.round(el),L=r.nolog?null:logWorkout({id:uid(),rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:Date.now(),dur:e,rounds:r.rounds,reps:tot,calls});updHistBtn();
-  const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(tot)st.push([tot,'Reps']);if(calls)st.push([calls,'Combos']);
-  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Not logged</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
+  pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';}
+function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i];
+  if(!quiet){ // announcements
+    if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
+      say(s.type==='reps'?`${s.label}. ${s.reps} reps`:(s.boxing?`${s.label}. Fight!`:(s.cue||s.label)));}
+    else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${s.label}. ${fmt(s.dur)} seconds`.replace(/(\d+):(\d+) seconds/,'$1 minutes $2'));}
+    else say(`${X.r.name}. Get ready`);}
+  if(mine())pushRun();render();}
+/* steps that ended while the app was in the background or closed: move on quietly to where the workout is now */
+function catchUp(now){let moved=false,late=0;
+  for(let n=0;n<1e4;n++){const end=X.s0+stepLen(X.steps[X.i])*1000;if(!(now>=end))break;late=now-end;
+    if(X.i+1>=X.steps.length){if(!mine()&&late<3000)break; // a following device gives the playing one a moment to finish first
+      return finish(end,late);}
+    setStep(X.i+1,end);moved=true;}
+  if(moved)enter(X.i,X.s0,late>2000);}
+function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
+  if(mine()&&!remote){X.fin=end;pushRun('done');}
+  speechSynthesis.cancel();if(late<2000){bell();buzz([200,100,200,100,400]);say('Done. Great work!');}
+  if(X.wl)X.wl.release().catch(()=>{});
+  const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),calls=X.calls||0;
+  const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};
+  X={done:true};run.style.background='#191919';localStorage.removeItem('rf2_run');
+  const ask=!r.nolog&&late>15*60e3&&!H.some(h=>h.id===entry.id)&&!HDEL[entry.id]; // ended long before the app was opened again: ask instead of logging
+  LAST={r,entry,ask,L:r.nolog||ask?null:logWorkout(entry)};updHistBtn();showDone();
+  run.classList.add('on','fin');banner();}
+function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur;
+  const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
+  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--blue);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Not logged</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
-    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}')">${svgi('play',18)}Again</button></div>`;
-  run.classList.add('fin');
-  X={done:true};}
-function loop(now){if(!X)return;if(X.done){X=null;return;}
-  const dt=(now-X.last)/1000;X.last=now;
-  if(!X.paused){X.t+=dt;X.el=(X.el||0)+dt;tick();}
-  if(X&&!X.done)render();
+    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}')">${svgi('play',18)}Again</button></div>`;}
+function logLate(){if(!LAST||!LAST.ask)return;LAST.ask=false;LAST.L=logWorkout(LAST.entry);updHistBtn();showDone();}
+function loop(){if(!X||!X.steps){LOOP=false;return;}
+  if(X.p==null)catchUp(NOW());
+  if(X&&X.steps){if(X.p==null)tick();if(X&&X.steps)render();}
   requestAnimationFrame(loop);}
+/* sound plays on one device: the one the workout was started or last controlled from */
+function liveUI(){const el=document.getElementById('live');if(!el)return;let h='';
+  if(X&&X.steps){if(!mine())h=`${svgi('mute',15)}<span>Sound on ${esc(X.dn||'another device')} · <b>Play here</b></span>`;else if(!UNLOCKED)h=`${svgi('vol',15)}<span><b>Tap for sound</b></span>`;}
+  el.innerHTML=h;el.hidden=!h;const b=document.querySelector('.ctrl .sm');if(b){b.title=X&&X.steps&&!mine()?'Close':'Stop';b.setAttribute('aria-label',b.title);}}
+function liveTap(){if(!X||!X.steps)return;if(!mine()){claim();pushRun();}UNLOCKED=true;ac();say(X.steps[X.i].label);liveUI();}
+// browsers only allow sound after a tap: the first one after a reload turns it back on
+['click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(UNLOCKED)return;UNLOCKED=true;try{ac();}catch(e){}if(mine())say(X.steps[X.i].label);setTimeout(liveUI);},true));
 function movesOf(c){return c.split(/[\s\-–—,·]+/).filter(Boolean);}
 function moves(c){return Math.max(1,movesOf(c).length);}
 const spoken=c=>c.replace(/_/g,' ');
@@ -628,19 +691,18 @@ function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   else{k=Math.random()*n|0;if(n>1&&k===B.last)k=(k+1+(Math.random()*(n-1)|0))%n;}
   B.last=k;B.left=s.repeat-1;B.num=k+1;B.seen.add(k);poolChk(B,n);return L[k];}
 function poolChk(B,n){if(B.left===0&&B.seen.size>=n){B.poolDone=true;B.seen=new Set();}}
-function tick(){const s=X.steps[X.i];
+function showCall(c,flash=true){call.textContent=c?spoken(c):'';if(!c)return;const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;if(flash){call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');}}
+function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))return;
   if(s.type==='time'){
-    const left=s.dur-X.t;const sec=Math.ceil(left);
+    const left=s.dur-t;const sec=Math.ceil(left);
     if(sec!==X.lastSec){X.lastSec=sec;
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
-    if(s.boxing&&X.t>=X.nextCall&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&X.t-X.nextCall<4)){const c=nextCombo(s);X.callText=c;call.textContent=spoken(c);X.calls=(X.calls||0)+1;{const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;}call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');
-      beep(1500,.05,'square',.4);say(spoken(c).replace(/-/g,' '),false);X.nextCall=X.t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);}
-    if(left<=0)return jump(1);
+    if(s.boxing&&mine()&&t>=X.nc&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&t-X.nc<4)){const c=nextCombo(s);X.ct=c;X.calls=(X.calls||0)+1;showCall(c);
+      beep(1500,.05,'square',.4);say(spoken(c).replace(/-/g,' '),false);X.nc=t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);pushRun();}
   } else if(s.mode==='guided'){
-    const per=s.counts*s.tempo+s.repPause;const rep=Math.floor(X.t/per);const inRep=X.t-rep*per;
-    if(rep>=s.reps)return jump(1);
+    const per=s.counts*s.tempo+s.repPause;const rep=Math.floor(t/per);const inRep=t-rep*per;
     const c=inRep<s.counts*s.tempo?Math.floor(inRep/s.tempo):-2; // -2 = breather
     const key=rep*1000+c;
     if(key!==X.lastCount&&c>=0){X.lastCount=key;countFx(rep,c,s);}
@@ -651,9 +713,11 @@ function countFx(rep,c,s){ // rep 0-based, c 0-based
   if(S.speakCounts==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)));
   else if(S.speakCounts==='reps'&&first)say(String(rep+1));
   big.classList.remove('flash');void big.offsetWidth;big.classList.add('flash');}
-function tap(){if(!X||X.done||X.paused)return;const s=X.steps[X.i];if(s.type!=='reps'||s.mode!=='tap')return;ac();
-  const total=s.reps*s.counts;const c=X.tapCount%s.counts,rep=Math.floor(X.tapCount/s.counts);countFx(rep,c,s);X.tapCount++;
-  if(X.tapCount>=total){setTimeout(()=>X&&X.steps&&jump(1),350);}render();}
+function tap(){if(!X||!X.steps||X.p!=null)return;const s=X.steps[X.i];if(s.type!=='reps'||s.mode!=='tap')return;
+  const total=s.reps*s.counts;if(X.tap>=total)return;ac();claim();
+  const c=X.tap%s.counts,rep=Math.floor(X.tap/s.counts);countFx(rep,c,s);X.tap++;
+  if(X.tap>=total){const sid=X.sid,i=X.i;setTimeout(()=>{if(X&&X.sid===sid&&X.i===i&&mine())jump(1);},350);}
+  pushRun();render();}
 document.addEventListener('keydown',e=>{if(!run.classList.contains('on'))return;if(e.code==='Space'){e.preventDefault();const s=X&&X.steps&&X.steps[X.i];if(s&&s.mode==='tap')tap();else togglePause();}
   if(e.code==='ArrowRight')jump(1);if(e.code==='ArrowLeft')jump(-1);if(e.code==='Escape')stopRun();});
 let FB='';function fitBig(){const t=String(big.textContent),L=t.length,W=big.parentElement.clientWidth,key=t+'|'+W;if(key===FB)return;FB=key;
@@ -661,12 +725,12 @@ let FB='';function fitBig(){const t=String(big.textContent),L=t.length,W=big.par
   if(L<=4||one){big.style.fontSize='';}else{const w=Math.max(...t.split(/\s+/).map(x=>x.length),Math.ceil(L/2));big.style.fontSize=`min(${Math.round(380/w)}px, ${(40/w).toFixed(1)}vh, ${Math.round(118/w)}vw)`;}
   const sw=big.scrollWidth;if(W&&sw>W){const fs=parseFloat(getComputedStyle(big).fontSize);big.style.fontSize=Math.floor(fs*W/sw*0.96)+'px';}}
 function fitCue(){const L=cueLine.textContent.length;cueLine.style.fontSize=L<=10?'':`min(${Math.round(420/L)+10}px, ${(4.6*10/L+1.2).toFixed(1)}vh)`;}
-function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
-  if(s.type==='time'){const left=Math.max(0,s.dur-X.t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=X.t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
+function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let t=X.t=Math.max(0,((X.p??NOW())-X.s0)/1000),frac=0;
+  if(s.type==='time'){const left=Math.max(0,s.dur-t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
   else{let rep,c,breather=false;
-    if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;rep=Math.floor(X.t/per);const inRep=X.t-rep*per;c=Math.floor(inRep/s.tempo);
-      if(inRep>=s.counts*s.tempo){breather=true;c=s.counts-1;}frac=X.t/s.dur;}
-    else{rep=Math.floor(X.tapCount/s.counts);c=X.tapCount%s.counts;frac=X.tapCount/(s.reps*s.counts);if(X.tapCount>=s.reps*s.counts){rep=s.reps-1;c=s.counts;}}
+    if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;t=Math.min(t,s.reps*per-1e-6);rep=Math.floor(t/per);const inRep=t-rep*per;c=Math.floor(inRep/s.tempo);
+      if(inRep>=s.counts*s.tempo){breather=true;c=s.counts-1;}frac=t/s.dur;}
+    else{rep=Math.floor(X.tap/s.counts);c=X.tap%s.counts;frac=X.tap/(s.reps*s.counts);if(X.tap>=s.reps*s.counts){rep=s.reps-1;c=s.counts;}}
     rep=Math.min(rep,s.reps-1);
     let bigTxt,cueTxt='',subTxt;
     if(s.counts>1){const cue=s.cues[Math.min(c,s.counts-1)]||'';const n=s.mode==='tap'?c:c+1;
@@ -676,9 +740,9 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
         if(d==='cue'){bigTxt=cue;subTxt=`count ${n} · `+subTxt;}
         else if(d==='number'){bigTxt=n;if(cue)subTxt+=' · '+cue;}
         else{bigTxt=n;cueTxt=cue;}}}
-    else{bigTxt=s.mode==='tap'?X.tapCount:rep+1;subTxt=`of ${s.reps}`;}
+    else{bigTxt=s.mode==='tap'?X.tap:rep+1;subTxt=`of ${s.reps}`;}
     big.textContent=bigTxt;cueLine.textContent=cueTxt;sub.textContent=subTxt;fitBig();fitCue();
-    [...pips.children].forEach((p,k)=>{p.className=k<rep||(k===rep&&s.mode==='tap'&&X.tapCount>=s.reps*s.counts)?'done':k===rep?'now':'';});
+    [...pips.children].forEach((p,k)=>{p.className=k<rep||(k===rep&&s.mode==='tap'&&X.tap>=s.reps*s.counts)?'done':k===rep?'now':'';});
   }
   ring.style.strokeDashoffset=289.03*(1-Math.min(1,frac));
   // overall progress
@@ -686,7 +750,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let frac=0;
 
 /* ---------- import/export ---------- */
 /* ---------- history & streaks ---------- */
-function saveH(){store(localStorage,'rf_hist',JSON.stringify(H));store(localStorage,'rf_hdel',JSON.stringify(HDEL));}
+function saveH(){store(localStorage,'rf2_hist',JSON.stringify(H));store(localStorage,'rf2_hdel',JSON.stringify(HDEL));}
 const dk=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
 const dayAdd=(k,n)=>{const d=kd(k);d.setDate(d.getDate()+n);return dk(d.getTime());};
@@ -696,7 +760,7 @@ function streaks(list=H){const days=new Set(list.map(h=>dk(h.ts))),today=dk(Date
   let cur=0,k=days.has(today)?today:dayAdd(today,-1);while(days.has(k)){cur++;k=dayAdd(k,-1);}
   let best=0,run=0,prev=null;[...days].sort().forEach(d=>{run=prev&&dayAdd(prev,1)===d?run+1:1;best=Math.max(best,run);prev=d;});
   return {cur,best,today:days.has(today)};}
-function logWorkout(e){const before=streaks().best;H.push(e);saveH();scheduleSync();const st=streaks();return {...st,newBest:st.cur>1&&st.cur>before};}
+function logWorkout(e){const before=streaks().best;if(!H.some(h=>h.id===e.id)&&!HDEL[e.id]){H.push(e);saveH();scheduleSync();}const st=streaks();return {...st,newBest:st.cur>1&&st.cur>before};}
 function updHistBtn(){const b=document.getElementById('histBtn');if(!b)return;const st=streaks();b.classList.toggle('on',st.today);b.innerHTML=svgi('flame',20)+(st.cur?`<b>${st.cur}</b>`:'');b.title=st.cur?`${st.cur}-day streak · History`:'History';}
 function openHist(){renderHist();show('hist');}
 function delHist(id){if(!confirm('Remove this workout from your history?'))return;HDEL[id]=Date.now();H=H.filter(h=>h.id!==id);saveH();scheduleSync();renderHist();updHistBtn();}
@@ -725,15 +789,27 @@ function renderHist(){const st=streaks(),today=dk(Date.now()),ws=weekStart(today
 function exportAll(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({routines:R,settings:S,history:H},null,2)],{type:'application/json'}));a.download='workout-pacer-routines.json';a.click();}
 function importAll(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);const list=d.routines||d;(Array.isArray(list)?list:[list]).forEach(r=>{if(!r||typeof r!=='object')return;r=mig(r);r.id=uid();r=norm({...r,blocks:(r.blocks||[]).map(b=>({...b,id:uid()}))});delete r.upd;R.push(r)});if(d.settings)S={...S,...d.settings};if(Array.isArray(d.history)){const ids=new Set(H.map(h=>h.id));d.history.forEach(h=>{if(h&&h.id&&!ids.has(h.id)&&!HDEL[h.id])H.push(h);});H.sort((a,b)=>a.ts-b.ts);saveH();}persist();renderList();}catch(e){alert('Invalid file');}});inp.value='';}
 
-/* ---------- sync via secret GitHub Gist ---------- */
-const GH='https://api.github.com',GFILE='repflow.json',GDESC='RepFlow sync';
-function saveSY(){store(localStorage,'rf_sync',JSON.stringify(SY));}
-function setSync(st){syncState=st;const el=document.getElementById('syncLine');if(el){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
-  const lbl=!SY.token?'Think once. Move without thinking.':({busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',auth:'Sync: token invalid or expired — check Settings',err:'Sync failed — will retry'}[st]||'Sync on');
-  el.innerHTML=!SY.token?lbl:`<span class="syncl">${svgi(st==='auth'||st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;}
-  const sl=document.getElementById('syncStatus');if(sl)sl.textContent=el?el.textContent:'';}
-async function gh(path,opt={}){const r=await fetch(GH+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+SY.token,Accept:'application/vnd.github+json','Content-Type':'application/json'}});
-  if(r.status===401||r.status===403){const e=new Error('auth');e.auth=true;throw e;}if(!r.ok){const e=new Error('http '+r.status);e.status=r.status;throw e;}return r.status===204?null:r.json();}
+/* ---------- account & sync: Google / GitHub sign-in (Firebase) for routines, history and the running workout ---------- */
+let CLOUD=null,CS='',CU=null,cloudP=null,authMsg='',online=false,offT=null,syncErr='';
+let NEWACCT=false,DOC1=false; // signed in to an account that had no data yet (maybe a second account by mistake)
+let CR=null,CR1=false; // the workout stored online; whether its first value has arrived since signing in
+function saveSY(){store(localStorage,'rf2_sync',JSON.stringify(SY));}
+const pname=p=>({google:'Google',github:'GitHub','google.com':'Google','github.com':'GitHub'}[p]||p);
+/* the sign-in code (and Firebase) only loads once you open Settings or have signed in on this device */
+function cloud(){if(cloudP)return cloudP;CS='loading';
+  return cloudP=import('./cloud.js').then(async m=>{if(!(await m.start({user:onUser,doc:onDoc,run:onRemoteRun,conn:onConn,offset:onOffset,error:onCloudErr}))){CS='off';return null;}CLOUD=m;CS='ready';return m;})
+    .catch(e=>{CS='fail';syncErr=(e&&(e.code||e.message))||'';cloudP=null;return null;}).finally(refreshAcct);}
+function onOffset(o){OFF=o;if(Math.abs((+DEV.off||0)-o)>50){DEV.off=o;store(localStorage,'rf2_dev',JSON.stringify(DEV));}}
+function onUser(u){const was=CU&&CU.uid;CU=u;if(u)store(localStorage,'rf2_acct','1');else localStorage.removeItem('rf2_acct');
+  if(!u||u.uid!==was){CR=null;CR1=false;NEWACCT=false;DOC1=false;clearTimeout(syncTimer);if(!u&&X&&X.steps&&!mine()){closeRun();show('lib');}}
+  setSync(u?(u.uid===was?syncState:online?'busy':'offline'):'');banner();refreshAcct();}
+function onConn(c){online=c;clearTimeout(offT);if(c){if(CU)scheduleSync(300);}else offT=setTimeout(()=>{if(!online&&CU)setSync('offline');},3000);}
+function onCloudErr(e){syncErr=(e&&(e.code||e.message))||'';if(CU)setSync('err');refreshAcct();}
+function setSync(st){syncState=st;const el=document.getElementById('syncLine');let lbl='Think once. Move without thinking.';
+  if(CU){const t=SY.last?new Date(SY.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
+    lbl={busy:'Syncing…',ok:'Synced '+t,offline:'Offline — syncs when back online',err:'Sync failed — will retry'}[st]||'Signed in';}
+  if(el)el.innerHTML=!CU?lbl:`<span class="syncl">${svgi(st==='err'?'alert':st==='busy'?'refresh':'cloud',14)}${esc(lbl)}</span>`;
+  const sl=document.getElementById('syncStatus');if(sl)sl.textContent=lbl+(st==='err'&&syncErr?` (${syncErr})`:'');}
 function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs},history:H,hdel:HDEL};}
 function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{}).forEach(([k,v])=>{if(!(del[k]>=v))del[k]=v;});
   const by={};[...canon(Rm.routines||[]),...canon(L.routines||[])].forEach(r=>{const o=by[r.id];if(!o||(r.upd||0)>(o.upd||0))by[r.id]=r;});
@@ -744,39 +820,73 @@ function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{
   list=list.filter(r=>!(del[r.id]>=(r.upd||0)));
   const lo=L.order||{ids:[],ts:0},ro=Rm.order||{ids:[],ts:0};const [w,o]=(lo.ts||0)>(ro.ts||0)?[lo,ro]:[ro,lo];
   const pos=id=>{let i=w.ids.indexOf(id);if(i>=0)return i;i=o.ids.indexOf(id);return i>=0?1e4+i:2e4;};
-  list.sort((a,b)=>pos(a.id)-pos(b.id));
+  list.sort((a,b)=>pos(a.id)-pos(b.id)||(a.id<b.id?-1:1));
   const hd={...(Rm.hdel||{})};Object.entries(L.hdel||{}).forEach(([k,v])=>{if(!(hd[k]>=v))hd[k]=v;});
-  const hm={};[...(Rm.history||[]),...(L.history||[])].forEach(h=>{if(h&&h.id)hm[h.id]=h;});
-  const history=Object.values(hm).filter(h=>!hd[h.id]).sort((a,b)=>a.ts-b.ts);
+  // a workout followed on two devices is logged on both under the same id: the stored copy wins, so devices agree
+  const hm={};[...(L.history||[]),...(Rm.history||[])].forEach(h=>{if(h&&h.id)hm[h.id]=h;});
+  const history=Object.values(hm).filter(h=>!hd[h.id]).sort((a,b)=>(a.ts-b.ts)||(a.id<b.id?-1:a.id>b.id?1:0));
   return {app:'repflow',v:1,routines:list,deleted:del,order:{ids:list.map(r=>r.id),ts:Math.max(lo.ts||0,ro.ts||0)},history,hdel:hd};}
-async function findGist(){if(SY.gistId){try{return await gh('/gists/'+SY.gistId);}catch(e){if(e.status!==404)throw e;SY.gistId='';}}
-  for(let pg=1;pg<=5;pg++){const l=await gh(`/gists?per_page=100&page=${pg}`);const g=l.find(g=>g.description===GDESC&&g.files&&g.files[GFILE]);
-    if(g){SY.gistId=g.id;saveSY();return await gh('/gists/'+g.id);}if(l.length<100)break;}
-  const g=await gh('/gists',{method:'POST',body:JSON.stringify({description:GDESC,public:false,files:{[GFILE]:{content:JSON.stringify(localDoc())}}})});
-  SY.gistId=g.id;saveSY();return g;}
-async function syncNow(){if(!SY.token)return;if(syncBusy){syncAgain=true;return;}syncBusy=true;setSync('busy');
-  try{const g=await findGist();const f=g.files[GFILE];let txt=f.content;if(f.truncated)txt=await (await fetch(f.raw_url,{cache:'no-store'})).text();
-    let remote={};try{remote=JSON.parse(txt||'{}');}catch(e){}
-    const m=merge(localDoc(),remote);
-    R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;H=m.history;HDEL=m.hdel;saveH();SNAP=snapOf();saveRaw();renderList();if(document.getElementById('hist').classList.contains('on'))renderHist();
-    const out=JSON.stringify(m);if(out!==txt)await gh('/gists/'+SY.gistId,{method:'PATCH',body:JSON.stringify({files:{[GFILE]:{content:out}}})});
-    SY.last=Date.now();saveSY();syncFails=0;setSync('ok');}
-  catch(e){setSync(e.auth?'auth':(navigator.onLine===false||e instanceof TypeError)?'offline':'err');
-    if(!e.auth){syncAgain=false;retryIn=Math.min(300000,5000*2**Math.min(6,syncFails++));}}
+function applyRemote(txt){let remote={};try{remote=JSON.parse(txt||'{}')||{};}catch(e){}const m=merge(localDoc(),remote);
+  R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;H=m.history;HDEL=m.hdel;saveH();SNAP=snapOf();saveRaw();renderList();if(document.getElementById('hist').classList.contains('on'))renderHist();
+  if(LAST&&LAST.ask&&H.some(h=>h.id===LAST.entry.id)){LAST.ask=false;LAST.L={...streaks(),newBest:false};updHistBtn();if(run.classList.contains('fin'))showDone();} // already logged on another device
+  return JSON.stringify(m);}
+function onDoc(txt){if(!CU)return;if(!DOC1){DOC1=true;if(txt==null){NEWACCT=true;refreshAcct();}}const out=applyRemote(txt);if(out!==txt)scheduleSync(300);else{SY.last=Date.now();saveSY();syncFails=0;setSync('ok');}}
+async function syncNow(){if(!CU||!CLOUD)return;if(syncBusy){syncAgain=true;return;}syncBusy=true;if(online)setSync('busy');
+  try{await CLOUD.update(txt=>{const out=applyRemote(txt);return out===txt?undefined:out;});SY.last=Date.now();saveSY();syncFails=0;syncErr='';setSync(online?'ok':'offline');}
+  catch(e){syncErr=(e&&(e.code||e.message))||'';setSync(online?'err':'offline');if(CU)retryIn=Math.min(300000,5000*2**Math.min(6,syncFails++));}
   finally{syncBusy=false;if(syncAgain){syncAgain=false;scheduleSync(300);}else if(retryIn){scheduleSync(retryIn);}retryIn=0;}}
-function scheduleSync(ms=1500){if(!SY.token)return;clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,ms);}
-async function connectSync(){const t=document.getElementById('tokIn').value.trim();if(!t)return;SY={token:t,gistId:'',last:0};saveSY();
-  await syncNow();if(syncState==='auth'){alert('GitHub did not accept this token. Make sure it has the "gist" scope and has not expired.');SY={token:'',gistId:'',last:0};saveSY();}openSettings();}
-function disconnectSync(){if(!confirm('Stop syncing on this device? Your routines stay on this device and in your GitHub gist.'))return;SY={token:'',gistId:'',last:0};saveSY();setSync('');openSettings();}
-function syncCard(){return SY.token?`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" id="syncStatus" style="margin:0 0 12px"></p>
-  <div class="row"><button class="ib" onclick="syncNow()">${svgi('refresh',16)}Sync now</button><button class="ghost danger" onclick="disconnectSync()">Disconnect</button></div>
-  <p class="muted" style="margin:12px 0 0">Routines and history are stored in a secret gist “RepFlow sync” on your GitHub account and sync automatically. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Audio settings stay per device.</p>
-  <p class="muted" style="margin:8px 0 0">If sync says the token is invalid, it has probably expired: create a new one and connect again.</p>`
- :`<h2 style="margin-bottom:8px">Sync across devices</h2><p class="muted" style="margin:0 0 12px">Store your routines and history in a secret gist on your own GitHub account. Secret gists aren’t listed or searchable, but anyone with the exact link can open them. Do this once on every device.</p>
-  <ol class="muted" style="margin:0 0 12px;padding-left:20px"><li><a style="color:var(--blue)" href="https://github.com/settings/tokens/new?scopes=gist&description=RepFlow%20sync" target="_blank" rel="noopener">Create a token</a> — only “gist” ticked. GitHub’s default expiry is 30 days, after which sync stops until you add a new token; pick a longer expiry (or none) to avoid that.</li><li>Paste it below and press Connect.</li></ol>
-  <div class="row" style="flex-wrap:nowrap"><input id="tokIn" type="password" placeholder="ghp_…" autocomplete="off"><button class="primary" onclick="connectSync()">Connect</button></div>`;}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300);});
-addEventListener('online',()=>scheduleSync(300));
+function scheduleSync(ms=1500){if(!CU)return;clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,ms);}
+function signIn(p){if(!CLOUD)return;authMsg='';CLOUD.signIn(p).then(()=>{authMsg='';refreshAcct();},e=>{authMsg=authErr(e,p);refreshAcct();});}
+function linkProv(p){if(!CLOUD)return;authMsg='';CLOUD.link(p).then(()=>{authMsg='';NEWACCT=false;refreshAcct();},e=>{authMsg=authErr(e,p);refreshAcct();});}
+function signOutNow(){if(!CLOUD||!confirm('Sign out on this device? Your routines and history stay on this device.'))return;authMsg='';CLOUD.signOut().finally(refreshAcct);}
+function authErr(e,p){const c=e&&e.code||'';
+  if(c==='exists')return `${e.email||'This email'} already has an account with ${pname(e.other)}. Continue with ${pname(e.other)}; ${pname(p)} is then added to it.`;
+  if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'||c==='auth/user-cancelled')return '';
+  if(c==='auth/popup-blocked')return 'The sign-in window was blocked. Allow pop-ups for this site and try again.';
+  if(c==='auth/unauthorized-domain')return 'This site isn’t allowed to sign in yet (Firebase → Authentication → Settings → Authorized domains).';
+  if(c==='auth/operation-not-allowed')return `${pname(p)} sign-in isn’t switched on yet (Firebase → Authentication → Sign-in method).`;
+  if(c==='auth/network-request-failed')return 'No connection. Try again when you’re online.';
+  if(c==='auth/credential-already-in-use')return `That ${pname(p)} account already has its own Workout Pacer account, so it can’t be added here.`;
+  return 'Sign-in failed'+(c?` (${c})`:'')+'.';}
+function refreshAcct(){if(!document.getElementById('set').classList.contains('on'))return;document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);}
+function syncCard(){const h=`<h2 style="margin-bottom:8px">Account & sync</h2>`,msg=authMsg?`<p class="amsg">${esc(authMsg)}</p>`:'';
+  if(CS==='off')return h+`<p class="muted" style="margin:0">Sign-in isn’t set up yet.</p>`;
+  if(CS==='fail')return h+`<p class="muted" style="margin:0 0 12px">Couldn’t load sign-in${syncErr?` (${esc(syncErr)})`:''}. Check your connection.</p><button class="ib" onclick="cloud()">${svgi('refresh',16)}Try again</button>`;
+  if(!CLOUD)return h+`<p class="muted" style="margin:0">Loading…</p>`;
+  if(!CU)return h+`<p class="muted" style="margin:0 0 12px">Sign in to sync your routines, history and a running workout across your devices. Use the same sign-in on every device. Audio settings stay per device.</p>${msg}
+    <div class="row"><button class="ib" onclick="signIn('google')">Continue with Google</button><button class="ib" onclick="signIn('github')">Continue with GitHub</button></div>`;
+  const has=CU.providers.map(pname),miss=['Google','GitHub'].filter(p=>!has.includes(p));
+  return h+`<p style="margin:0 0 2px;overflow-wrap:anywhere">${esc(CU.email||CU.name||'Signed in')}</p><p class="muted" style="margin:0 0 12px">${has.length?'With '+has.join(' + ')+' · ':''}<span id="syncStatus"></span></p>${msg}${NEWACCT?`<p class="amsg">This is a new account. Already use Workout Pacer with ${has.length===1&&miss.length?pname(miss[0].toLowerCase()):'another sign-in'}? Sign out and continue with that, so everything stays in one account. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="NEWACCT=false;refreshAcct()">I’m new, keep this</button></p>`:''}
+    <div class="row"><button class="ib" onclick="syncNow()">${svgi('refresh',16)}Sync now</button><button class="ghost danger" onclick="signOutNow()">Sign out</button></div>${miss.length?`<p class="muted" style="margin:12px 0 0">Optional backup: <button class="ghost" style="padding:0;text-decoration:underline" onclick="linkProv('${miss[0].toLowerCase()}')">also allow ${miss[0]} sign-in</button> for this same account.</p>`:''}
+    <p class="muted" style="margin:12px 0 0">Routines, history and a running workout sync automatically. Audio settings stay per device.</p>`;}
+/* the running workout, shared live: the device you last controlled it from plays the sound and saves progress */
+const runName=v=>{try{return JSON.parse(v.r).name||'Workout';}catch(e){return 'Workout';}};
+function onRemoteRun(v){const first=!CR1;CR1=true;CR=v&&v.sid?v:null;const L=X&&X.steps?X:null;
+  if(L){if(mine()&&(!CR||(first&&(L.u||0)>(CR.u||0))))pushRun(); // first contact: what this device did offline is newer
+    else if(CR&&CR.sid===L.sid){if(CR.u!==L.u||CR.by!==L.by){if(CR.end)remoteEnd(CR);else applySame(CR);}}
+    else if(CR&&!CR.end){adopt(CR);toast(`${runName(CR)} started on ${CR.dn||'another device'}`,true);}
+    else if(CR){closeRun();show('lib');}}
+  else if(first&&LASTDOC&&LASTDOC.end&&CR&&CR.sid===LASTDOC.sid&&!CR.end&&LASTDOC.u>(CR.u||0))CLOUD.setRun(LASTDOC).catch(()=>{});
+  banner();}
+function applySame(v){const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
+  X.u=+v.u||0;X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0;X.p=v.p==null?null:+v.p;
+  if(st){setStep(Math.max(0,Math.min(X.steps.length-1,v.i|0)),+v.s0);stepUI();}
+  X.tap=v.tap|0;X.nc=+v.nc||0;X.calls=v.calls|0;X.box=unbox(v.box);if((v.ct||'')!==X.ct){X.ct=v.ct||'';showCall(X.ct);}
+  if(was&&!mine()){speechSynthesis.cancel();localStorage.removeItem('rf2_run');}else if(mine())store(localStorage,'rf2_run',JSON.stringify(v));
+  ppIcon();liveUI();render();}
+function remoteEnd(v){if(v.end==='done'){X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0||X.t0;X.calls=v.calls|0;const f=+v.fin||NOW();finish(f,Math.max(0,NOW()-f),true);}
+  else{closeRun();show('lib');toast(`Workout stopped on ${v.dn||'another device'}`,true);}}
+function runActive(v){if(!v||v.end||NOW()-(+v.u||0)>12*3600e3)return false;let st;try{st=build(norm(mig(JSON.parse(v.r))));}catch(e){return false;}
+  if(v.p!=null)return true;let t=+v.s0;for(let i=v.i|0;i<st.length;i++){const l=stepLen(st[i]);if(!isFinite(l))return true;t+=l*1000;}return NOW()<t+3000;}
+let BAN='';
+function banner(){const el=document.getElementById('liveBar');if(!el)return;const v=CR;let h='';
+  if(v&&!(X&&X.steps&&X.sid===v.sid)&&runActive(v)){let r={};try{r=JSON.parse(v.r)||{};}catch(e){}const c=COLORS[r.color]||COLORS.blue;
+    h=`<div class="card rcard livebar"><div class="dot" style="background:${c}22;color:${c}">${svgi(iconKey(r),22)}</div><div class="info"><b>${esc(r.name||'Workout')}</b><div class="muted">${v.p!=null?'Paused':'Live'} on ${v.by===DEV.id?'this device':esc(v.dn||'another device')}</div></div><button class="primary" onclick="openLive()">Open</button></div>`;}
+  if(h!==BAN){BAN=h;el.innerHTML=h;}}
+function openLive(){if(CR&&runActive(CR)&&adopt(CR))banner();}
+setInterval(()=>{if(CR)banner();},5000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(300);banner();}});
+addEventListener('online',()=>{if(!cloudP&&localStorage.getItem('rf2_acct'))cloud();});
 
 /* drag to reorder routines */
 document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h)return;e.preventDefault();
@@ -793,7 +903,9 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
 document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);
-renderList();route();setSync('');scheduleSync(200);
+// preview build (branch v2 at /v2/): labelled so it can't be mistaken for the live app
+if(location.pathname.includes('/v2/')){document.title=document.title.replace('Workout Pacer','Workout Pacer v2');document.getElementById('appName').insertAdjacentHTML('beforeend',' <span class="muted">v2</span>');}
+renderList();route();setSync('');restoreRun();banner();if(localStorage.getItem('rf2_acct'))cloud();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 // re-acquire wake lock after switching apps mid-workout
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&X&&X.steps&&S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}});
