@@ -799,7 +799,7 @@ function cloud(){if(cloudP)return cloudP;CS='loading';
 function onOffset(o){OFF=o;if(Math.abs((+DEV.off||0)-o)>50){DEV.off=o;store(localStorage,'rf2_dev',JSON.stringify(DEV));}}
 function onUser(u){const was=CU&&CU.uid;CU=u;if(u)store(localStorage,'rf2_acct','1');else localStorage.removeItem('rf2_acct');
   if(!u||u.uid!==was){CR=null;CR1=false;clearTimeout(syncTimer);if(!u&&X&&X.steps&&!mine()){closeRun();show('lib');}}
-  setSync(u?(online?'busy':'offline'):'');banner();refreshAcct();}
+  setSync(u?(u.uid===was?syncState:online?'busy':'offline'):'');banner();refreshAcct();}
 function onConn(c){online=c;clearTimeout(offT);if(c){if(CU)scheduleSync(300);}else offT=setTimeout(()=>{if(!online&&CU)setSync('offline');},3000);}
 function onCloudErr(e){syncErr=(e&&(e.code||e.message))||'';if(CU)setSync('err');refreshAcct();}
 function setSync(st){syncState=st;const el=document.getElementById('syncLine');let lbl='Think once. Move without thinking.';
