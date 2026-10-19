@@ -228,6 +228,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   <header><button class="ghost" onclick="show('lib')">← Back</button><h2>Settings</h2><span></span></header>
   <div class="card settings" id="setForm"></div>
   <div class="card"><div class="row" style="flex-wrap:wrap;gap:8px"><button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button><button class="ib ghost" onclick="resetAudio()"><i data-ic="refresh"></i>Reset to defaults</button></div>
+  <div id="vdiag" class="muted" style="font-size:12px;line-height:1.5;margin-top:8px;word-break:break-word"></div>
     <p class="muted" style="margin:10px 0 0;font-size:13px">Reset restores beeps, voice coach, language, voice, speed, pitch, volume, spoken counts and countdown beeps. Vibrate and Keep screen on stay as they are.</p></div>
   <div class="card" id="syncCard"></div>
   <div class="card">
@@ -532,7 +533,7 @@ function closeEditor(){saveRoutine(false);}
 function deleteRoutine(){if(!confirm('Delete this routine?'))return;clearTimeout(autoT);autoT=null;R=R.filter(r=>r.id!==cur.id);persist();renderList();show('lib');}
 
 /* ---------- settings ---------- */
-function openSettings(){
+function openSettings(){setTimeout(vdShow);
   const voices=speechSynthesis.getVoices().map(v=>v.lang).filter((v,i,a)=>a.indexOf(v)===i).sort();
   const langs=voices.length?voices:['en-US','en-GB','nl-NL','es-ES'];
   setForm.innerHTML=`
@@ -551,7 +552,7 @@ function openSettings(){
   cloud();document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
   show('set');
 }
-speechSynthesis.onvoiceschanged=()=>{if(document.getElementById('set').classList.contains('on'))openSettings();};
+speechSynthesis.onvoiceschanged=()=>{vdShow();if(document.getElementById('set').classList.contains('on'))openSettings();};
 
 /* ---------- audio ---------- */
 let AC=null,muted=false;
@@ -562,13 +563,19 @@ function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted||silentHere())re
   g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
 function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
 let UTT=null,SAYT=0; // keep the current utterance referenced (Chrome can drop it mid-sentence otherwise)
-function say(t,interrupt=true){if(!S.voice||muted||!t||silentHere()||!window.speechSynthesis)return;const ss=speechSynthesis,busy=ss.speaking||ss.pending;
+function say(t,interrupt=true){if(!t)return;
+  const why=!window.speechSynthesis?'no speechSynthesis in this browser':!S.voice?'voice coach off':muted?'muted':silentHere()?'sound on another device':'';if(why){vd('skipped: '+why);return;}
+  try{const ss=speechSynthesis,busy=ss.speaking||ss.pending;
   if(interrupt&&busy)ss.cancel();
   const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;
-  u.onend=u.onerror=()=>{if(UTT===u)UTT=null;};
-  const go=()=>{UTT=u;if(ss.paused)ss.resume();ss.speak(u);};
+  u.onstart=()=>vd('started');u.onend=()=>{if(UTT===u)UTT=null;vd('ended');};u.onerror=e=>{if(UTT===u)UTT=null;vd('error: '+(e.error||'unknown'));};
+  const go=()=>{try{UTT=u;if(ss.paused)ss.resume();ss.speak(u);vd('queued "'+t.slice(0,24)+'"');}catch(e){vd('exception on speak: '+e.message);}};
   // Chrome on Android silently drops speech started right after cancel(): wait a moment (newest phrase wins)
-  if(interrupt&&busy){clearTimeout(SAYT);SAYT=setTimeout(go,60);}else go();}
+  if(interrupt&&busy){clearTimeout(SAYT);SAYT=setTimeout(go,60);}else go();}catch(e){vd('exception: '+e.message);}}
+/* voice diagnostics, shown under Settings → Test sound & voice */
+const VDL=[];function vd(m){const d=new Date();VDL.unshift(d.toTimeString().slice(0,8)+' '+m);VDL.length=Math.min(VDL.length,5);vdShow();}
+function vdShow(){const el=document.getElementById('vdiag');if(!el)return;let h='';try{const ss=window.speechSynthesis,all=ss?ss.getVoices():[],v=ss?pickVoice():null,cv=(navigator.userAgent.match(/Chrome\/(\d+)/)||[])[1];
+  h=`Voices: ${all.length} · for ${esc(S.lang)}: ${ss?langVoices().length:0} · using: ${v?esc(v.name)+' ('+esc(v.lang)+(v.localService?'':', online')+')':'browser default'}<br>rate ${esc(String(S.rate))} · pitch ${esc(String(S.pitch))} · volume ${esc(String(S.volume))} · voice coach ${S.voice?'on':'off'}${muted?' · muted':''}<br>state: ${ss?(ss.speaking?'speaking ':'')+(ss.pending?'pending ':'')+(ss.paused?'paused ':'')||'idle':'n/a'} · Chrome ${cv||'?'}${matchMedia('(display-mode: standalone)').matches?' · installed app':' · browser tab'}<br>${VDL.map(esc).join('<br>')||'Tap Test sound & voice'}`;}catch(e){h='diagnostics error: '+esc(e.message);}el.innerHTML=h;}
 function hush(){clearTimeout(SAYT);speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
 function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-')===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
 function pickVoice(){const all=speechSynthesis.getVoices();return (S.voiceURI&&all.find(v=>v.voiceURI===S.voiceURI))||langVoices()[0]||null;} // saved voice, else best voice for the language
