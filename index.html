@@ -561,16 +561,24 @@ function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted||silentHere())re
   o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(S.volume*vol,c.currentTime+.01);
   g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
 function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
-function say(t,interrupt=true){if(!S.voice||muted||!t||silentHere())return;if(interrupt)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;speechSynthesis.speak(u);}
+let UTT=null,SAYT=0; // keep the current utterance referenced (Chrome can drop it mid-sentence otherwise)
+function say(t,interrupt=true){if(!S.voice||muted||!t||silentHere()||!window.speechSynthesis)return;const ss=speechSynthesis,busy=ss.speaking||ss.pending;
+  if(interrupt&&busy)ss.cancel();
+  const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;
+  u.onend=u.onerror=()=>{if(UTT===u)UTT=null;};
+  const go=()=>{UTT=u;if(ss.paused)ss.resume();ss.speak(u);};
+  // Chrome on Android silently drops speech started right after cancel(): wait a moment (newest phrase wins)
+  if(interrupt&&busy){clearTimeout(SAYT);SAYT=setTimeout(go,60);}else go();}
+function hush(){clearTimeout(SAYT);speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
 function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-')===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
-function pickVoice(){return S.voiceURI?speechSynthesis.getVoices().find(v=>v.voiceURI===S.voiceURI)||null:null;}
+function pickVoice(){const all=speechSynthesis.getVoices();return (S.voiceURI&&all.find(v=>v.voiceURI===S.voiceURI))||langVoices()[0]||null;} // saved voice, else best voice for the language
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
 function buzz(p){if(S.vibrate&&navigator.vibrate&&!silentHere())navigator.vibrate(p);}
 function resetAudio(){if(!confirm('Reset all sound & voice settings to their defaults?'))return;
   ['beeps','voice','lang','voiceURI','pitch','rate','volume','speakCounts','countdown'].forEach(k=>S[k]=DEF_SET[k]);
   persist();openSettings();testAudio();}
 function testAudio(){ac();beep(660);setTimeout(()=>beep(990),200);setTimeout(()=>say(S.lang.startsWith('nl')?'Klaar? Gaan!':'Ready? Go!'),400);}
-function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22);if(muted)speechSynthesis.cancel();}
+function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22);if(muted)hush();}
 
 /* ---------- build step list ---------- */
 function build(r){const st=[];const P=(s)=>st.push(s);
@@ -627,13 +635,13 @@ function adopt(d){let r;try{r=norm(mig(typeof d.r==='string'?JSON.parse(d.r):d.r
 function restoreRun(){let d=null;try{d=JSON.parse(localStorage.getItem('rf2_run')||'null');}catch(e){}
   if(!d||!d.sid||d.end||d.by!==DEV.id||NOW()-(+d.u||0)>12*3600e3){localStorage.removeItem('rf2_run');return;}
   adopt(d);}
-function closeRun(){if(X&&X.wl)X.wl.release().catch(()=>{});X=null;speechSynthesis.cancel();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');}
+function closeRun(){if(X&&X.wl)X.wl.release().catch(()=>{});X=null;hush();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');}
 /* on the device that plays the sound, Stop ends the workout everywhere; on a following device it only closes the view */
 function stopRun(){if(X&&X.steps&&mine())pushRun('stop');closeRun();show('lib');banner();}
 function claim(){if(!X||!X.steps||mine())return;X.by=DEV.id;X.dn=DEV.name;liveUI();}
 function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30);pp.setAttribute('aria-label',p?'Resume':'Pause');}
 function togglePause(){if(!X||!X.steps)return;claim();const t=NOW();
-  if(X.p!=null){const d=t-X.p;X.s0+=d;X.t0+=d;X.p=null;}else{X.p=t;speechSynthesis.cancel();}
+  if(X.p!=null){const d=t-X.p;X.s0+=d;X.t0+=d;X.p=null;}else{X.p=t;hush();}
   ppIcon();pushRun();}
 function jump(d){if(!X||!X.steps)return;claim();const j=X.i+d;if(j<0)return;const t=X.p??NOW();if(j>=X.steps.length)return finish(t);enter(j,t);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
@@ -661,7 +669,7 @@ function catchUp(now){let moved=false,late=0;
   if(moved)enter(X.i,X.s0,late>2000);}
 function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   if(mine()&&!remote){X.fin=end;pushRun('done');}
-  speechSynthesis.cancel();if(late<2000){bell();buzz([200,100,200,100,400]);say('Done. Great work!');}
+  hush();if(late<2000){bell();buzz([200,100,200,100,400]);say('Done. Great work!');}
   if(X.wl)X.wl.release().catch(()=>{});
   const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),calls=X.calls||0;
   const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};if(r.streak===false)entry.streak=false; // Log only: in history, not in the streak
@@ -685,6 +693,8 @@ function liveUI(){const el=document.getElementById('live');if(!el)return;let h='
   el.innerHTML=h;el.hidden=!h;const b=document.querySelector('.ctrl .sm');if(b){b.title=X&&X.steps&&!mine()?'Close':'Stop';b.setAttribute('aria-label',b.title);}}
 function liveTap(){if(!X||!X.steps)return;if(!mine()){claim();pushRun();}UNLOCKED=true;ac();say(X.steps[X.i].label);liveUI();}
 // browsers only allow sound after a tap: the first one after a reload turns it back on
+let PRIMED=false; // first tap: unlock speech on Android with a silent utterance
+['click','touchend','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(PRIMED||!window.speechSynthesis)return;PRIMED=true;try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){}},true));
 ['click','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(UNLOCKED)return;UNLOCKED=true;try{ac();}catch(e){}if(mine())say(X.steps[X.i].label);setTimeout(liveUI);},true));
 function movesOf(c){return c.split(/[\s\-–—,·]+/).filter(Boolean);}
 function moves(c){return Math.max(1,movesOf(c).length);}
@@ -936,7 +946,7 @@ function applySame(v){const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
   X.u=+v.u||0;X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0;X.p=v.p==null?null:+v.p;
   if(st){setStep(Math.max(0,Math.min(X.steps.length-1,v.i|0)),+v.s0);stepUI();}
   X.tap=v.tap|0;X.nc=+v.nc||0;X.calls=v.calls|0;X.box=unbox(v.box);if((v.ct||'')!==X.ct){X.ct=v.ct||'';showCall(X.ct);}
-  if(was&&!mine()){speechSynthesis.cancel();localStorage.removeItem('rf2_run');}else if(mine())store(localStorage,'rf2_run',JSON.stringify(v));
+  if(was&&!mine()){hush();localStorage.removeItem('rf2_run');}else if(mine())store(localStorage,'rf2_run',JSON.stringify(v));
   ppIcon();liveUI();render();}
 function remoteEnd(v){if(v.end==='done'){X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0||X.t0;X.calls=v.calls|0;const f=+v.fin||NOW();finish(f,Math.max(0,NOW()-f),true);}
   else{closeRun();show('lib');toast(`Workout stopped on ${v.dn||'another device'}`,true);}}
