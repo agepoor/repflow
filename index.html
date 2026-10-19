@@ -477,12 +477,12 @@ function renderBlocks(){
   blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
    if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
-     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
+     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" data-rsec placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${dur(b.id,'work',b.work,'Work',1)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
-   if(b.type==='boxing')f=`<div class="grid">${dur(b.id,'work',b.work,'Duration',1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
+   if(b.type==='boxing')f=`<div class="grid">${dur(b.id,'work',b.work,'Duration',1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" data-rsec placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea>
      ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
      ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. The voice always finishes the line before the next call.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
@@ -510,6 +510,8 @@ function rm(i){cur.blocks.splice(i,1);renderBlocks();}
 function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;cur.cv=2;}
 ['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
+// blocks with an empty count length follow the routine's: keep their hint and combo preview in step
+eSec.addEventListener('input',()=>{document.querySelectorAll('#edit [data-rsec]').forEach(e=>e.placeholder=`Routine (${cur.sec} s)`);cur.blocks.forEach(b=>pvUpd(b.id));});
 function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
 function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur)return;const r=cur,bl=r.blocks||[];
   if(!bl.length){el.innerHTML=`<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;return;}
@@ -564,18 +566,31 @@ function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted||silentHere())re
   o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(S.volume*vol,c.currentTime+.01);
   g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
 function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
-let UTT=null,SAYT=0; // keep the current utterance referenced (Chrome can drop it mid-sentence otherwise)
-function say(t,interrupt=true){if(!t)return;
+let UTT=null,SAYT=0,SAYN=0,SAYI=0,SAYC=-1e9,SAW=false; // UTT: current utterance, kept referenced (Chrome can drop it mid-sentence otherwise) · SAYN: newest phrase · SAYI: newest phrase that interrupts · SAYC: last cancel() · SAW: this device reports speech starts
+function say(t,interrupt=true,cue=false){if(!t)return;
   const why=!window.speechSynthesis?'no speechSynthesis in this browser':!S.voice?'voice coach off':muted?'muted':silentHere()?'sound on another device':'';if(why){vd('skipped: '+why);if(!window.speechSynthesis&&S.voice)vdFail();return;}
-  try{const ss=speechSynthesis,busy=ss.speaking||ss.pending;
-  if(interrupt&&busy)ss.cancel();
-  const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;
-  u.onstart=()=>{clearTimeout(VDWD);VDBAD=false;vd('started');};u.onend=()=>{if(UTT===u)UTT=null;vd('ended');};u.onerror=e=>{if(UTT===u)UTT=null;clearTimeout(VDWD);const c=e.error||'unknown';if(c!=='interrupted'&&c!=='canceled')vdFail();vd('error: '+c);};
-  const go=()=>{try{const idle=!ss.speaking&&!ss.pending;UTT=u;if(ss.paused)ss.resume();ss.speak(u);
+  const n=++SAYN;if(interrupt)SAYI=n;
+  // phrases said in the same moment (an exercise name, then its first count): only the newest reaches the engine
+  queueMicrotask(()=>{if(SAYI>n)return;try{const ss=speechSynthesis,t0=performance.now(),busy=ss.speaking||ss.pending,p=UTT;
+  // Chrome sometimes drops a phrase spoken shortly after cancel(). A cue that is already playing is nearly done,
+  // so the next cue waits behind it (up to 0.2 s) instead of cutting it off
+  const soft=cue&&p&&p.cue&&p.on&&!ss.pending&&t0-p.on<1500,cut=interrupt&&busy&&!soft;
+  const stop=()=>{clearTimeout(SAYT);SAYC=performance.now();ss.cancel();};
+  if(cut)stop();
+  const go=re=>{if(SAYI>n)return;try{const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;u.cue=cue;
+    // ended without ever starting while still the newest phrase: the engine dropped it, so say it once more while still on time
+    const lost=c=>{if(re||u.on||u.dead||n!==SAYN||performance.now()-t0>700||!(c==='interrupted'||c==='canceled'||(c==='end'&&SAW)))return false;
+      vd('dropped ('+c+'), retrying');clearTimeout(SAYT);SAYT=setTimeout(()=>{if(n===SAYN)go(true);},100);return true;};
+    u.onstart=()=>{u.on=performance.now();SAW=true;clearTimeout(VDWD);VDBAD=false;vd('started');};
+    u.onend=()=>{u.done=true;if(UTT===u)UTT=null;if(!lost('end'))vd('ended');};
+    u.onerror=e=>{u.done=true;if(UTT===u)UTT=null;clearTimeout(VDWD);const c=e.error||'unknown';if(lost(c))return;if(c!=='interrupted'&&c!=='canceled')vdFail();vd('error: '+c);};
+    const idle=!ss.speaking&&!ss.pending;UTT=u;if(ss.paused)ss.resume();ss.speak(u);
     if(idle){clearTimeout(VDWD);VDWD=setTimeout(()=>{if(UTT===u&&!ss.speaking){vdFail();vd('did not start within 4 s');}},4000);}
+    // the cue it waits for is still busy after 0.2 s: cut it after all
+    if(soft&&!re)setTimeout(()=>{if(n===SAYN&&!u.on&&!p.done){u.dead=true;vd('previous cue still busy, cutting');stop();SAYT=setTimeout(()=>{if(n===SAYN)go(true);},60);}},200);
     vd('queued "'+t.slice(0,24)+'"');}catch(e){vdFail();vd('exception on speak: '+e.message);}};
-  // Chrome on Android silently drops speech started right after cancel(): wait a moment (newest phrase wins)
-  if(interrupt&&busy){clearTimeout(SAYT);SAYT=setTimeout(go,60);}else go();}catch(e){vdFail();vd('exception: '+e.message);}}
+  // after cancel(), wait a moment before speaking
+  const wait=SAYC+60-performance.now();if(wait>0)SAYT=setTimeout(()=>go(false),wait);else go(false);}catch(e){vdFail();vd('exception: '+e.message);}});}
 /* voice diagnostics, shown under Settings → Test sound & voice */
 const VDL=[];let VDBAD=false,VDTOAST=false,VDWD=0;
 // shown only when speech fails: a real error, an exception, no speech support, or a phrase that never starts
@@ -583,7 +598,7 @@ function vdFail(){VDBAD=true;if(!VDTOAST){VDTOAST=true;toast('Voice coach is not
 function vd(m){const d=new Date();VDL.unshift(d.toTimeString().slice(0,8)+' '+m);VDL.length=Math.min(VDL.length,5);vdShow();}
 function vdShow(){const el=document.getElementById('vdiag');if(!el)return;el.hidden=!VDBAD;if(!VDBAD)return;let h='<b>Voice problem</b> · <a href="#" onclick="VDBAD=false;vdShow();return false">Hide</a><br>';try{const ss=window.speechSynthesis,all=ss?ss.getVoices():[],v=ss?pickVoice():null,cv=(navigator.userAgent.match(/Chrome\/(\d+)/)||[])[1];
   h+=`Voices: ${all.length} · for ${esc(S.lang)}: ${ss?langVoices().length:0} · using: ${v?esc(v.name)+' ('+esc(v.lang)+(v.localService?'':', online')+')':'browser default'}<br>rate ${esc(String(S.rate))} · pitch ${esc(String(S.pitch))} · volume ${esc(String(S.volume))} · voice coach ${S.voice?'on':'off'}${muted?' · muted':''}<br>state: ${ss?(ss.speaking?'speaking ':'')+(ss.pending?'pending ':'')+(ss.paused?'paused ':'')||'idle':'n/a'} · Chrome ${cv||'?'}${matchMedia('(display-mode: standalone)').matches?' · installed app':' · browser tab'}<br>${VDL.map(esc).join('<br>')||'Tap Test sound & voice'}`;}catch(e){h='diagnostics error: '+esc(e.message);}el.innerHTML=h;}
-function hush(){clearTimeout(SAYT);speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
+function hush(){SAYI=++SAYN;clearTimeout(SAYT);SAYC=performance.now();speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
 function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-')===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
 function pickVoice(){const all=speechSynthesis.getVoices();return (S.voiceURI&&all.find(v=>v.voiceURI===S.voiceURI))||langVoices()[0]||null;} // saved voice, else best voice for the language
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
@@ -736,7 +751,7 @@ function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))re
   if(s.type==='time'){
     const left=s.dur-t;const sec=Math.ceil(left);
     if(sec!==X.lastSec){X.lastSec=sec;
-      if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true);}
+      if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true,true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
     if(s.boxing&&mine()&&t>=X.nc&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&t-X.nc<4)){const c=nextCombo(s);X.ct=c;X.calls=(X.calls||0)+1;showCall(c);
@@ -750,8 +765,8 @@ function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))re
 function countFx(rep,c,s){ // rep 0-based, c 0-based
   const first=c===0;beep(first?1175:740,first?.12:.06,first?'square':'sine',first?.7:.5);if(first)buzz(40);
   const lbl=s.cues[c];
-  if(S.speakCounts==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)));
-  else if(S.speakCounts==='reps'&&first)say(String(rep+1));
+  if(S.speakCounts==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)),true,true);
+  else if(S.speakCounts==='reps'&&first)say(String(rep+1),true,true);
   big.classList.remove('flash');void big.offsetWidth;big.classList.add('flash');}
 function tap(){if(!X||!X.steps||X.p!=null)return;const s=X.steps[X.i];if(s.type!=='reps'||s.mode!=='tap')return;
   const total=s.reps*s.counts;if(X.tap>=total)return;ac();claim();
