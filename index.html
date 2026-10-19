@@ -491,7 +491,7 @@ function renderBlocks(){
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
     <button class="icon ghost" onclick="mv(${i},-1)" title="Move up">${svgi('up',18)}</button><button class="icon ghost" onclick="mv(${i},1)" title="Move down">${svgi('down',18)}</button>
     <button class="icon ghost" onclick="dup(${i})" title="Duplicate">${svgi('copy',17)}</button><button class="icon ghost danger" onclick="rm(${i})" title="Remove">${svgi('x',18)}</button></div>
-    ${f}<label class="chk" style="margin-top:12px"><input type="checkbox" ${b.lastOnly?'checked':''} onchange="setB('${b.id}','lastOnly',this.checked)"> Last round only (finisher)</label></div>`}).join('');
+    ${f}<div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label>Runs in</label><select style="width:auto;max-width:100%;align-self:flex-start" onchange="setRun('${b.id}',this.value)">${[['all','Every round'],['first','First round only (warm-up)'],['last','Last round only (finisher)']].map(([v,l])=>`<option value="${v}" ${(b.firstOnly?'first':b.lastOnly?'last':'all')===v?'selected':''}>${l}</option>`).join('')}</select></div></div></div>`}).join('');
   summary();
 }
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
@@ -499,6 +499,7 @@ function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Bool
   const msg=ok?'matches counts per rep':n<c?`${c-n} short — counts ${n+1}–${c} show numbers`:`${n-c} extra — cue${n-c>1?'s':''} after count ${c} ignored`;
   return `<span style="color:${col}">${svgi(ok?'check':'alert',14,2.5)} ${n} cue${n>1?'s':''} / ${c} counts per rep · ${msg}</span>`;}
 function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();summary();}
+function setRun(id,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}if(v==='first')b.firstOnly=true;else delete b.firstOnly;b.lastOnly=v==='last';summary();}
 function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
   const d={reps:{name:'Burpees',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
   boxing:{name:'Shadow boxing',work:120,combos:'1-2\n1-2-3\n1-1-2\n2-3-2',minGap:1,maxGap:2},rest:{name:'Rest',work:30}}[t];
@@ -513,15 +514,16 @@ function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.t
 function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur)return;const r=cur,bl=r.blocks||[];
   if(!bl.length){el.innerHTML=`<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;return;}
   const chip=(txt,kind,ic,c)=>`<span class="sc ${kind||''}"${c?` style="--c:${c}"`:''}>${ic?svgi(ic,14):''}${txt}</span>`,ar='<span class="sa">→</span>';
-  const normal=bl.filter(b=>!b.lastOnly),fin=bl.filter(b=>b.lastOnly);
+  const warm=bl.filter(b=>b.firstOnly),fin=bl.filter(b=>b.lastOnly&&!b.firstOnly);
   const one=(list,isLast)=>list.map((b,i)=>{const d=bDur(b,r),bt=BT[b.type]||[];let h=b.type==='rest'?chip(`${esc(b.name||'Rest')} ${mmss(d)}`,'rest',null):chip(`${esc(b.name)} ${d==null?'· tap':mmss(d)}`,'',b.type==='reps'?'hash':b.type==='timed'?'timer':'glove',COLORS[bt[2]]);
     const lastInRound=i===list.length-1;if(b.restAfter>0&&b.type!=='rest'&&!(isLast&&lastInRound))h+=ar+chip(`Rest ${mmss(b.restAfter)}`,'rest');return h;}).join(ar);
   const n=Math.max(1,r.rounds|0);let html=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>Structure</b><span class="muted" style="font-size:13px">one round = all blocks, top to bottom</span></div><div class="sflow">`;
   if(r.prep>0)html+=chip(`Get ready ${mmss(r.prep)}`,'prep');
-  if(n>1){html+=`<div class="sround"><div class="sl">${n>2?`Rounds 1–${n-1}`:'Round 1'}</div><div class="sflow">${one(normal,false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}</div></div>`;}
-  const lastList=bl;
-  html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(lastList,true)}${chip('Done','done','check')}</div></div></div>`;
-  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}</p>`;
+  const at=k=>bl.filter(b=>inRound(b,k===1,k===n)),box=(lbl,k)=>`<div class="sround"><div class="sl">${lbl}</div><div class="sflow">${one(at(k),false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}</div></div>`;
+  if(n>1&&warm.length){html+=box('Round 1 (first)',1);if(n>2)html+=box(n>3?`Rounds 2–${n-1}`:'Round 2',2);}
+  else if(n>1)html+=box(n>2?`Rounds 1–${n-1}`:'Round 1',1);
+  html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(at(n),true)}${chip('Done','done','check')}</div></div></div>`;
+  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${warm.length?` · ${warm.map(b=>esc(b.name)).join(', ')} only in the first round`:''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}</p>`;
   html+=`<p id="eSummary" style="margin:10px 0 0;font-size:14px;font-weight:600;color:var(--tx)"></p>`;
   el.innerHTML=html;}
 function summary(){readHead();renderStruct();queueAutosave();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
@@ -593,10 +595,12 @@ function testAudio(){ac();beep(660);setTimeout(()=>beep(990),200);setTimeout(()=
 function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22);if(muted)hush();}
 
 /* ---------- build step list ---------- */
+// A block runs in every round, or only in the first round (warm-up) or only in the last round (finisher)
+function inRound(b,first,last){return b.firstOnly?first:b.lastOnly?last:true;}
 function build(r){const st=[];const P=(s)=>st.push(s);
   if(r.prep>0)P({type:'time',kind:'prep',label:'Get ready',dur:r.prep,round:1});
   for(let k=1;k<=r.rounds;k++){const last=k===r.rounds;
-    const bl=r.blocks.filter(b=>!b.lastOnly||last);
+    const bl=r.blocks.filter(b=>inRound(b,k===1,last));
     bl.forEach((b,bi)=>{
       if(b.type==='reps'){const counts=Math.max(1,b.counts|0),reps=Math.max(1,b.reps|0);
         const tempo=b.tempo>0?b.tempo:(r.sec||1),per=counts*tempo+(b.repPause||0);
