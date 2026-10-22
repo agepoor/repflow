@@ -153,7 +153,7 @@ header{flex-wrap:nowrap}
 #doneView .stat span{font-size:13px;color:var(--tx2)}
 #doneView .acts{display:flex;gap:10px;width:100%;margin-top:10px}
 #doneView .acts button{flex:1;height:48px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-@media (max-width:480px){header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}header .eb{padding:0 10px}}
+@media (max-width:480px){#lib header h1{font-size:clamp(19px,5.7vw,22px);white-space:nowrap}#lib header{gap:8px}#lib header>div:first-child{min-width:0}#syncLine{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#lib header .row button.ghost{padding:8px 6px}header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}header .eb{padding:0 10px}}
 @media (max-width:660px){header .hb:has(+.row .eb) .lbl,header .eb.hb .lbl{display:none}header .eb.hb{width:38px;padding:0;justify-content:center}} /* editor actions: Back, Archive and Delete icon-only before the row gets too wide */
 /* editor actions: one style (outlined, icon + label, same height); Start only differs in colour */
 header .eb{height:38px;padding:0 14px;gap:6px;font-weight:600}header .eb.go1{color:var(--blue);border-color:var(--blue)}header .eb.danger{color:var(--red)}
