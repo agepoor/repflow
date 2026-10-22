@@ -34,7 +34,7 @@ h2{font-size:20px;margin:0}
 .rcard{display:flex;align-items:center;gap:16px}
 .rcard{transition:transform .15s;gap:12px}
 .rcard.arch{opacity:.6}
-.rcard.drag{transition:none;position:relative;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.5);background:var(--raise)}
+.rcard.drag{transition:none!important;position:relative;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.5);background:var(--raise)}
 .handle{color:var(--tx2);touch-action:none;cursor:grab;padding:12px 4px;margin:-12px 0 -12px -6px;display:flex;opacity:.6}
 .rcard .dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
 .rcard .info{flex:1;min-width:0}
@@ -42,6 +42,10 @@ h2{font-size:20px;margin:0}
 /* home: today's routines as full cards, the rest as compact rows */
 .sech{font-size:13px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin:4px 0 8px}
 .grp+.sech{margin-top:20px}
+.rcard .skip{width:32px;height:32px;padding:0;display:grid;place-items:center;flex:none;opacity:.55;margin-right:-4px}.rcard .skip:hover{opacity:1}
+.rcard.mini.tod{border-color:var(--c);box-shadow:inset 3px 0 0 var(--c)} /* drag state: today's routines keep a colour mark */
+#list.sorting{touch-action:none;user-select:none}
+.rcard .undo{padding:4px 8px;font-size:12px;flex:none;white-space:nowrap}.rcard.skipped .dot,.rcard.skipped b{opacity:.6}
 .rcard.today{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
 .rcard.done{opacity:.6}
 .rcard .ok{display:inline-flex;vertical-align:-3px;margin-left:6px;color:var(--green)}
@@ -52,8 +56,12 @@ h2{font-size:20px;margin:0}
 .rcard.mini .info b{font-weight:600}
 .rcard.mini .info .muted{font-size:13px;margin-left:8px}
 .rcard.mini .go{width:40px;height:40px}
-.days{display:flex;gap:6px;flex-wrap:wrap}
-.days button{width:38px;height:38px;padding:0;border-radius:50%;font-size:14px;font-weight:600;color:var(--tx2)}
+.days{display:flex;gap:6px}
+.days button{flex:1 1 0;min-width:0;max-width:40px;height:40px;padding:0;border-radius:50%;font-size:14px;font-weight:600;color:var(--tx2)}
+/* editor head: Days takes two columns next to Logging and Voice language; the explainers share one line */
+.grid>.wide{grid-column:span 2}
+@media (max-width:340px){.grid>.wide{grid-column:1/-1}}
+.tips{display:flex;flex-wrap:wrap;column-gap:20px}.tips>details[open]{flex-basis:100%}
 .days button.on{background:var(--c);border-color:var(--c);color:#191919}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;align-items:end}
@@ -223,10 +231,15 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
-    <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="eLog">Logging</label><select id="eLog" style="width:auto;max-width:100%;align-self:flex-start"><option value="streak">Log and count for streak</option><option value="log">Log only</option><option value="off">No logging</option></select></div><div style="grid-column:1/-1"><label for="eLang">Voice language</label><select id="eLang" style="width:auto;max-width:100%;align-self:flex-start"></select></div></div>
-    <div style="margin-top:12px"><label>Days <span class="dh" id="eDaysHint"></span></label><div class="days" id="eDays" role="group" aria-label="Days"></div></div>
-    <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
-    <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
+    <div class="grid" style="margin-top:12px">
+      <div class="wide"><label>Days <span class="dh" id="eDaysHint"></span></label><div class="days" id="eDays" role="group" aria-label="Days"></div></div>
+      <div><label for="eLog">Logging</label><select id="eLog" title="Log and count for streak · Log only (in history, not in streaks) · Off (not logged)"><option value="streak">Log + streak</option><option value="log">Log only</option><option value="off">Off</option></select></div>
+      <div><label for="eLang">Voice language</label><select id="eLang"></select></div>
+    </div>
+    <div class="tips">
+      <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
+      <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
+    </div>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
   </div>
   <div class="card" id="eStruct"></div>
@@ -460,24 +473,27 @@ function durStep(btn){const el=btn.parentNode.querySelector('input');const min=+
     const rep=(ms)=>{tm=setTimeout(()=>{durStep(b);rep(Math.max(60,ms*.85));},ms);};rep(450);});
   ['pointerup','pointercancel','pointerleave','blur'].forEach(ev=>(ev==='blur'?window:document).addEventListener(ev,stop,true));})();
 function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`}
-function renderList(){updHistBtn();
+function renderList(flat){updHistBtn(); // flat = drag state: all routines in one list, in their real order
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived),now=new Date(),wd=now.getDay(),tk=dk(now.getTime());
-  const tod=act.filter(r=>rDays(r).includes(wd)),oth=act.filter(r=>!rDays(r).includes(wd));
+  // r.skip = date key of a day it was skipped ("Skip today"): not highlighted for the rest of that day, still planned for that weekday
+  const skip=r=>r.skip===tk,tod=act.filter(r=>rDays(r).includes(wd)&&!skip(r)),oth=act.filter(r=>!tod.includes(r));
   const done=r=>H.some(h=>h.rid===r.id&&dk(h.ts)===tk);
   const handle=`<span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span>`;
+  const hd=()=>act.length>1?handle:''; // a drag handle whenever there is something to reorder; dragging always reorders the whole list
   const dot=(r,sz)=>`<div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),sz)}</div>`;
   const go=(r,sz)=>`<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',sz)}</button>`;
   const tot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
-  // today: full card, highlighted until a workout for it is logged today
+  // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
   const full=r=>{const st=build(r),t=tot(r),ok=done(r);
-   return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${handle}${dot(r,22)}
+   return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
-   ${go(r,22)}</div>`;};
-  // other routines: one compact row
-  const mini=r=>{const dt=daysTxt(r);return `<div class="card rcard mini" data-id="${r.id}">${handle}${dot(r,18)}
+   ${ok?'':`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
+  // other routines: one compact row; a skipped one says so and can be brought back
+  const mini=r=>{const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
-   ${go(r,18)}</div>`;};
+   ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:''}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
+  if(flat){document.getElementById('list').innerHTML=`<div class="sech">All routines · drop where it belongs</div>${grp(act,mini)}`;return;}
   document.getElementById('list').innerHTML=!act.length?`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`:
    tod.length?`<div class="sech">Today · ${DN[wd]}</div>${grp(tod,full)}${oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:''}`:grp(oth,mini);
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
@@ -486,6 +502,7 @@ function renderList(){updHistBtn();
    <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`).join(''):'');
 }
 let archOpen=false;
+function skipToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;if(on)r.skip=dk(Date.now());else delete r.skip;persist();renderList();}
 function setArchived(id,v){const r=R.find(r=>r.id===id);if(!r)return;if(v)r.archived=true;else delete r.archived;persist();renderList();}
 function toggleArchiveCur(){readHead();if(cur.archived)delete cur.archived;else cur.archived=true;saveRoutine(false);}
 
@@ -1049,18 +1066,32 @@ setInterval(()=>{if(CR)banner();},5000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(300);banner();if(document.getElementById('lib').classList.contains('on'))renderList();}});
 addEventListener('online',()=>{if(!cloudP&&localStorage.getItem('rf2_acct'))cloud();});
 
-/* drag to reorder routines */
+/* drag to reorder: the order that matters is the whole list (Today just shows today's routines in that order).
+   Picking up any routine, also a highlighted one, switches to a drag state that shows every routine in its real order;
+   drop it anywhere, then the home screen returns with Today on top. Scrolls near the screen edges. */
 document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h)return;e.preventDefault();
-  const card=h.closest('.rcard'),cards=[...card.parentNode.querySelectorAll('.rcard')],from=cards.indexOf(card),n=cards.length; // drag within its own section
-  if(n<2)return;const y0=e.clientY,step=cards[1].getBoundingClientRect().top-cards[0].getBoundingClientRect().top;let to=from;
-  h.setPointerCapture(e.pointerId);card.classList.add('drag');buzz(15);
-  const move=ev=>{const dy=ev.clientY-y0;card.style.transform=`translateY(${dy}px)`;
-    to=Math.max(0,Math.min(n-1,from+Math.round(dy/step)));
-    cards.forEach((c,k)=>{if(c===card)return;const sh=(from<to&&k>from&&k<=to)?-step:(from>to&&k>=to&&k<from)?step:0;c.style.transform=sh?`translateY(${sh}px)`:'';});};
-  const up=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);
-    if(to!==from){const ids=cards.map(c=>c.dataset.id);const [m]=ids.splice(from,1);ids.splice(to,0,m);
-      const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>ids.includes(r.id)?i:-1).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}renderList();};
-  h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
+  const list=e.currentTarget,id=h.closest('.rcard').dataset.id,pid=e.pointerId,sy0=e.clientY;let st=null,cy=e.clientY,raf=0;
+  try{list.setPointerCapture(pid);}catch(_){}
+  const start=()=>{renderList(true);list.classList.add('sorting');buzz(15);
+    const cards=[...list.querySelectorAll('.rcard')],card=cards.find(c=>c.dataset.id===id),from=cards.indexOf(card);
+    const box=cards.map(c=>{const b=c.getBoundingClientRect();return {top:b.top+scrollY,h:b.height};});
+    // keep the picked-up row under the finger even though the list changed under it
+    if(box[from].top-scrollY>innerHeight-80||box[from].top-scrollY<0)scrollTo(0,box[from].top-cy+box[from].h/2);
+    const sz=box[1]?box[1].top-box[0].top:box[0].h;card.classList.add('drag');
+    st={cards,card,from,to:from,box,sz,off:cy+scrollY-(box[from].top+box[from].h/2)};};
+  const place=()=>{const {cards,card,from,box,sz}=st,n=cards.length,c=cy+scrollY-st.off; // centre of the dragged row, page coordinates
+    card.style.transform=`translateY(${c-(box[from].top+box[from].h/2)+st.off}px)`;
+    let to=from;for(let k=from+1;k<n;k++)if(c+st.off>box[k].top+box[k].h/2)to=k;for(let k=from-1;k>=0;k--)if(c+st.off<box[k].top+box[k].h/2)to=k;st.to=to;
+    cards.forEach((x,k)=>{if(x===card)return;const sh=(from<to&&k>from&&k<=to)?-sz:(from>to&&k>=to&&k<from)?sz:0;x.style.transform=sh?`translateY(${sh}px)`:'';});};
+  const edge=()=>{raf=0;if(!st)return;const v=cy<70?-Math.ceil((70-cy)/6):cy>innerHeight-70?Math.ceil((cy-innerHeight+70)/6):0;
+    if(v){const y=scrollY;scrollBy(0,v);if(scrollY!==y)place();raf=requestAnimationFrame(edge);}};
+  const move=ev=>{if(ev.pointerId!==pid)return;cy=ev.clientY;if(!st){if(Math.abs(cy-sy0)<6)return;start();}place();if(!raf)raf=requestAnimationFrame(edge);};
+  const up=ev=>{if(ev.pointerId!==pid)return;list.removeEventListener('pointermove',move);list.removeEventListener('pointerup',up);list.removeEventListener('pointercancel',up);
+    cancelAnimationFrame(raf);raf=0;list.classList.remove('sorting');
+    if(st&&st.to!==st.from){const ids=st.cards.map(c=>c.dataset.id);const [m]=ids.splice(st.from,1);ids.splice(st.to,0,m);
+      const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>ids.includes(r.id)?i:-1).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}
+    st=null;renderList();};
+  list.addEventListener('pointermove',move);list.addEventListener('pointerup',up);list.addEventListener('pointercancel',up);});
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
 document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);

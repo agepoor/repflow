@@ -6,7 +6,7 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 
 - Blocks: reps/counts (guided tempo or tap), timed, boxing combo call-outs, rest
 - Rounds, rest between rounds, first-round-only warm-ups, last-round-only finishers
-- Days per routine: today's routines on top (highlighted until done), the rest as compact rows
+- Days per routine: today's routines on top (highlighted until done, skip for today only), the rest as compact rows; dragging any routine shows the whole list so it can go anywhere
 - Per-block display: cue + number / cue only / number only
 - Beeps, voice coach (any browser language, per routine if you like; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on
 - Installable PWA, works offline; JSON import/export
