@@ -45,6 +45,10 @@ h2{font-size:20px;margin:0}
 .rcard .skip{width:32px;height:32px;padding:0;display:grid;place-items:center;flex:none;opacity:.55;margin-right:-4px}.rcard .skip:hover{opacity:1}
 .rcard.mini.tod{border-color:var(--c);box-shadow:inset 3px 0 0 var(--c)} /* drag state: today's routines keep a colour mark */
 #list.sorting{touch-action:none;user-select:none}
+#list{position:relative}.dslot{position:absolute;left:0;right:0;border:2px dashed var(--tx2);border-radius:14px;opacity:.5;pointer-events:none;transition:top .15s} /* where the dragged row will land */
+.rcard.drag.cancel{opacity:.55}.dslot.same{border-style:solid;opacity:.3}
+.rcard.drag.lift{transition:transform .15s ease-out!important}.rcard.landed{box-shadow:0 0 0 2px var(--c)}
+.rcard.flash{animation:flash 1.3s ease-out}@keyframes flash{0%,35%{outline:2px solid var(--c);outline-offset:2px}100%{outline:2px solid transparent;outline-offset:6px}}
 .rcard .undo{padding:4px 8px;font-size:12px;flex:none;white-space:nowrap}.rcard.skipped .dot,.rcard.skipped b{opacity:.6}
 .rcard.today{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
 .rcard.done{opacity:.6}
@@ -1067,30 +1071,43 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 addEventListener('online',()=>{if(!cloudP&&localStorage.getItem('rf2_acct'))cloud();});
 
 /* drag to reorder: the order that matters is the whole list (Today just shows today's routines in that order).
-   Picking up any routine, also a highlighted one, switches to a drag state that shows every routine in its real order;
-   drop it anywhere, then the home screen returns with Today on top. Scrolls near the screen edges. */
-document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h)return;e.preventDefault();
+   Picking up any routine, also a highlighted one, switches to a drag state that shows every routine in its real order,
+   scrolled so the picked-up row stays under the finger at its real place; a dashed slot shows where it will land.
+   On drop the row settles into the slot, then the home screen returns with Today on top and the moved routine flashes. */
+let dragBusy=false;
+document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h||dragBusy)return;e.preventDefault();
   const list=e.currentTarget,id=h.closest('.rcard').dataset.id,pid=e.pointerId,sy0=e.clientY;let st=null,cy=e.clientY,raf=0;
   try{list.setPointerCapture(pid);}catch(_){}
   const start=()=>{renderList(true);list.classList.add('sorting');buzz(15);
     const cards=[...list.querySelectorAll('.rcard')],card=cards.find(c=>c.dataset.id===id),from=cards.indexOf(card);
     const box=cards.map(c=>{const b=c.getBoundingClientRect();return {top:b.top+scrollY,h:b.height};});
-    // keep the picked-up row under the finger even though the list changed under it
-    if(box[from].top-scrollY>innerHeight-80||box[from].top-scrollY<0)scrollTo(0,box[from].top-cy+box[from].h/2);
-    const sz=box[1]?box[1].top-box[0].top:box[0].h;card.classList.add('drag');
-    st={cards,card,from,to:from,box,sz,off:cy+scrollY-(box[from].top+box[from].h/2)};};
+    scrollTo(0,box[from].top+box[from].h/2-cy); // its real place in the full list, under the finger (as far as the page can scroll)
+    const sz=box[1]?box[1].top-box[0].top:box[0].h,lt=list.getBoundingClientRect().top+scrollY;
+    const slot=document.createElement('div');slot.className='dslot';slot.style.cssText=`top:${box[from].top-lt}px;height:${box[from].h}px`;list.prepend(slot);
+    card.classList.add('drag','lift');setTimeout(()=>card.classList.remove('lift'),160);
+    st={cards,card,from,to:from,box,sz,slot,lt,head:list.querySelector('.sech'),off:cy+scrollY-(box[from].top+box[from].h/2)};};
   const place=()=>{const {cards,card,from,box,sz}=st,n=cards.length,c=cy+scrollY-st.off; // centre of the dragged row, page coordinates
-    card.style.transform=`translateY(${c-(box[from].top+box[from].h/2)+st.off}px)`;
-    let to=from;for(let k=from+1;k<n;k++)if(c+st.off>box[k].top+box[k].h/2)to=k;for(let k=from-1;k>=0;k--)if(c+st.off<box[k].top+box[k].h/2)to=k;st.to=to;
+    card.style.transform=`translateY(${c-(box[from].top+box[from].h/2)}px)`;
+    // finger above or below the list = cancel: nothing moves, release keeps the order
+    const fy=cy+scrollY,out=fy<box[0].top-24||fy>box[n-1].top+box[n-1].h+24;
+    let to=from;if(!out){for(let k=from+1;k<n;k++)if(c>box[k].top+box[k].h/2)to=k;for(let k=from-1;k>=0;k--)if(c<box[k].top+box[k].h/2)to=k;}st.to=to;
+    card.classList.toggle('cancel',out);st.slot.classList.toggle('same',to===from);
+    st.head.textContent=to===from?'Order unchanged · release to keep it':'All routines · drop where it belongs';
+    st.slot.style.top=(box[to].top-st.lt)+'px';
     cards.forEach((x,k)=>{if(x===card)return;const sh=(from<to&&k>from&&k<=to)?-sz:(from>to&&k>=to&&k<from)?sz:0;x.style.transform=sh?`translateY(${sh}px)`:'';});};
   const edge=()=>{raf=0;if(!st)return;const v=cy<70?-Math.ceil((70-cy)/6):cy>innerHeight-70?Math.ceil((cy-innerHeight+70)/6):0;
     if(v){const y=scrollY;scrollBy(0,v);if(scrollY!==y)place();raf=requestAnimationFrame(edge);}};
   const move=ev=>{if(ev.pointerId!==pid)return;cy=ev.clientY;if(!st){if(Math.abs(cy-sy0)<6)return;start();}place();if(!raf)raf=requestAnimationFrame(edge);};
   const up=ev=>{if(ev.pointerId!==pid)return;list.removeEventListener('pointermove',move);list.removeEventListener('pointerup',up);list.removeEventListener('pointercancel',up);
-    cancelAnimationFrame(raf);raf=0;list.classList.remove('sorting');
-    if(st&&st.to!==st.from){const ids=st.cards.map(c=>c.dataset.id);const [m]=ids.splice(st.from,1);ids.splice(st.to,0,m);
+    cancelAnimationFrame(raf);raf=0;if(!st){list.classList.remove('sorting');return;}
+    const {cards,card,from,to,box}=st;st=null;
+    if(to!==from){const ids=cards.map(c=>c.dataset.id);const [m]=ids.splice(from,1);ids.splice(to,0,m);
       const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>ids.includes(r.id)?i:-1).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}
-    st=null;renderList();};
+    // settle into the slot so it is clear where it went, then back to the home screen
+    // unchanged: it just slides back, no highlight
+    dragBusy=true;card.classList.remove('cancel');card.classList.add('lift');if(to!==from){card.classList.add('landed');buzz(10);}card.style.transform=`translateY(${box[to].top-box[from].top}px)`;
+    setTimeout(()=>{dragBusy=false;list.classList.remove('sorting');renderList();
+      const c=to!==from&&list.querySelector(`.rcard[data-id="${id}"]`);if(c){c.classList.add('flash');c.scrollIntoView({block:'nearest',behavior:'smooth'});setTimeout(()=>c.classList.remove('flash'),1300);}},550);};
   list.addEventListener('pointermove',move);list.addEventListener('pointerup',up);list.addEventListener('pointercancel',up);});
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
