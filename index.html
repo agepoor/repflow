@@ -153,7 +153,9 @@ header{flex-wrap:nowrap}
 #doneView .stat span{font-size:13px;color:var(--tx2)}
 #doneView .acts{display:flex;gap:10px;width:100%;margin-top:10px}
 #doneView .acts button{flex:1;height:48px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-@media (max-width:480px){header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}}
+@media (max-width:480px){header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}header .eb{padding:0 10px}header .eb.hb{width:38px;padding:0;justify-content:center}}
+/* editor actions: one style (outlined, icon + label, same height); Start only differs in colour */
+header .eb{height:38px;padding:0 14px;gap:6px;font-weight:600}header .eb.go1{color:var(--blue);border-color:var(--blue)}header .eb.danger{color:var(--red)}
 #histBtn{gap:6px;color:var(--tx2)}#histBtn.on{color:#DE9255}#histBtn b{font-variant-numeric:tabular-nums}
 .hstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 .hstat{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:14px 8px;text-align:center}
@@ -219,7 +221,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 <section id="edit" class="view">
   <header>
     <button class="ghost ib hb" onclick="closeEditor()" title="Back"><i data-ic="back"></i><span class="lbl">Back</span></button>
-    <div class="row"><button class="ghost ib hb" id="archBtn" onclick="toggleArchiveCur()"></button><button class="danger ghost ib hb" onclick="deleteRoutine()" title="Delete"><i data-ic="trash"></i><span class="lbl">Delete</span></button><button class="primary ib" onclick="saveRoutine(true)"><i data-ic="play"></i>Save & start</button></div>
+    <div class="row"><button class="ib hb eb" id="archBtn" onclick="toggleArchiveCur()"></button><button class="danger ib hb eb" onclick="deleteRoutine()" title="Delete"><i data-ic="trash"></i><span class="lbl">Delete</span></button><button class="ib eb" onclick="saveRoutine('test')" title="Test run: not logged, no streak"><i data-ic="flask"></i>Test</button><button class="ib eb go1" onclick="saveRoutine(true)"><i data-ic="play"></i>Start</button></div>
   </header>
   <div class="card">
     <div class="row" style="flex-wrap:nowrap;align-items:stretch">
@@ -348,7 +350,7 @@ const IC={
  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
  up:'<path d="m18 15-6-6-6 6"/>',down:'<path d="m6 9 6 6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',
  copy:'<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
- check:'<path d="M20 6 9 17l-5-5"/>',back:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',unarchive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/><path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>',trash:'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',flask:'<path d="M10 2v7.5a2 2 0 0 1-.2.9L4.7 20.6a1 1 0 0 0 .9 1.4h12.8a1 1 0 0 0 .9-1.4l-5.1-10.2a2 2 0 0 1-.2-.9V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',back:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',unarchive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/><path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>',trash:'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
  cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
@@ -592,7 +594,7 @@ function summary(){readHead();renderStruct();queueAutosave();const st=build(cur)
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
   const sm=document.getElementById('eSummary');if(sm)sm.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
 function saveRoutine(start){clearTimeout(autoT);autoT=null;readHead();delete cur._new;putR(cur);persist();renderList();
-  if(start)startRun(cur.id);else show('lib');}
+  if(start)startRun(cur.id,start==='test');else show('lib');}
 function closeEditor(){saveRoutine(false);}
 function deleteRoutine(){if(!confirm('Delete this routine?'))return;clearTimeout(autoT);autoT=null;R=R.filter(r=>r.id!==cur.id);persist();renderList();show('lib');}
 
@@ -729,11 +731,13 @@ function pushRun(end){if(!X||!X.steps)return;X.u=Math.max(NOW(),(X.u||0)+1);cons
   if(CU&&CLOUD&&CR1&&!SWITCH)CLOUD.setRun(d).catch(()=>{});}
 function kick(){if(!LOOP){LOOP=true;requestAnimationFrame(loop);}}
 function wake(){if(S.wake&&navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(w=>{if(X&&X.steps)X.wl=w;else w.release();}).catch(()=>{});}
-function openRun(){rName.innerHTML=svgi(iconKey(X.r),16)+'<span>'+esc(X.r.name)+'</span>';run.classList.remove('fin');run.classList.add('on');wake();kick();}
-function startRun(id){const r=R.find(r=>r.id===id);if(!r)return;ac();UNLOCKED=true;
+function openRun(){rName.innerHTML=svgi(iconKey(X.r),16)+'<span>'+esc(X.r.name)+'</span>'+(X.r.test?'<span class="muted" title="Not logged">· Test</span>':'');run.classList.remove('fin');run.classList.add('on');wake();kick();}
+function startRun(id,test){ // test = test run from the editor: plays normally, never logged
+  const r=R.find(r=>r.id===id);if(!r)return;ac();UNLOCKED=true;
   const steps=build(r);if(!steps.length){alert('Add a block first.');return;}
   if(X&&X.wl)X.wl.release().catch(()=>{});
   const t=NOW();X={sid:uid()+uid(),r:JSON.parse(JSON.stringify(r)),steps,i:0,s0:t,t0:t,p:null,tap:0,nc:1.5,ct:'',calls:0,box:{},by:DEV.id,dn:DEV.name,u:0,lastCount:-1,lastSec:null};
+  if(test){X.r.nolog=true;X.r.test=true;}
   openRun();ppIcon();liveUI();enter(0,t);}
 /* open a workout from its saved state: after a reload, or one that is running on another device */
 function adopt(d){let r;try{r=norm(mig(typeof d.r==='string'?JSON.parse(d.r):d.r));}catch(e){return false;}
@@ -787,9 +791,9 @@ function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   run.classList.add('on','fin');banner();}
 function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur;
   const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
-  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--blue);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Not logged</div>`:(H.find(h=>h.id===entry.id)||entry).streak===false?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Logged · not counted for streak</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
+  doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--blue);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}${r.test?'Test run · not logged':'Not logged'}</div>`:(H.find(h=>h.id===entry.id)||entry).streak===false?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Logged · not counted for streak</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
-    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}')">${svgi('play',18)}Again</button></div>`;}
+    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}',${!!r.test})">${svgi('play',18)}Again</button></div>`;}
 function logLate(){if(!LAST||!LAST.ask)return;LAST.ask=false;LAST.L=logWorkout(LAST.entry);updHistBtn();showDone();}
 function loop(){if(!X||!X.steps){LOOP=false;return;}
   if(X.p==null)catchUp(NOW());
