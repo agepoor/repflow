@@ -39,6 +39,22 @@ h2{font-size:20px;margin:0}
 .rcard .dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;flex:none}
 .rcard .info{flex:1;min-width:0}
 .rcard .go{width:52px;height:52px;border-radius:50%;padding:0;font-size:20px}
+/* home: today's routines as full cards, the rest as compact rows */
+.sech{font-size:13px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin:4px 0 8px}
+.grp+.sech{margin-top:20px}
+.rcard.today{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.rcard.done{opacity:.6}
+.rcard .ok{display:inline-flex;vertical-align:-3px;margin-left:6px;color:var(--green)}
+.rcard.mini{padding:8px 12px;margin-bottom:6px;gap:10px}
+.rcard.mini .handle{padding:8px 4px;margin:-8px 0 -8px -6px}
+.rcard.mini .dot{width:32px;height:32px}
+.rcard.mini .info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* one line: details are cut before the name */
+.rcard.mini .info b{font-weight:600}
+.rcard.mini .info .muted{font-size:13px;margin-left:8px}
+.rcard.mini .go{width:40px;height:40px}
+.days{display:flex;gap:6px;flex-wrap:wrap}
+.days button{width:38px;height:38px;padding:0;border-radius:50%;font-size:14px;font-weight:600;color:var(--tx2)}
+.days button.on{background:var(--c);border-color:var(--c);color:#191919}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;align-items:end}
 .grid>div{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
@@ -207,7 +223,8 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
-    <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="eLog">Logging</label><select id="eLog" style="width:auto;max-width:100%;align-self:flex-start"><option value="streak">Log and count for streak</option><option value="log">Log only</option><option value="off">No logging</option></select></div></div>
+    <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="eLog">Logging</label><select id="eLog" style="width:auto;max-width:100%;align-self:flex-start"><option value="streak">Log and count for streak</option><option value="log">Log only</option><option value="off">No logging</option></select></div><div style="grid-column:1/-1"><label for="eLang">Voice language</label><select id="eLang" style="width:auto;max-width:100%;align-self:flex-start"></select></div></div>
+    <div style="margin-top:12px"><label>Days <span class="dh" id="eDaysHint"></span></label><div class="days" id="eDays" role="group" aria-label="Days"></div></div>
     <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
     <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
@@ -393,7 +410,7 @@ function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.na
 /* ---------- views ---------- */
 let ROUTING=false;
 function routeOf(v){return v==='hist'?'#/history':v==='set'?'#/settings':v==='edit'&&cur?(cur._new?'#/new':'#/edit/'+cur.id):'#/';}
-function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);
+function show(v){if(v==='lib'&&document.getElementById('list'))renderList();document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);
   if(v!=='edit')sessionStorage.removeItem('rf2_draft');
   if(ROUTING)return;const h=routeOf(v),st=history.state&&history.state.rf;
   if(v==='lib'){if(st){ROUTING=true;history.back();}else if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
@@ -444,11 +461,25 @@ function durStep(btn){const el=btn.parentNode.querySelector('input');const min=+
   ['pointerup','pointercancel','pointerleave','blur'].forEach(ev=>(ev==='blur'?window:document).addEventListener(ev,stop,true));})();
 function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`}
 function renderList(){updHistBtn();
-  const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived);
-  document.getElementById('list').innerHTML=act.map(r=>{const st=build(r);const t=st.reduce((a,s)=>a+(s.dur||0),0);
-   return `<div class="card rcard" data-id="${r.id}"><span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
-   <button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',22)}</button></div>`}).join('')||`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`;
+  const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived),now=new Date(),wd=now.getDay(),tk=dk(now.getTime());
+  const tod=act.filter(r=>rDays(r).includes(wd)),oth=act.filter(r=>!rDays(r).includes(wd));
+  const done=r=>H.some(h=>h.rid===r.id&&dk(h.ts)===tk);
+  const handle=`<span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span>`;
+  const dot=(r,sz)=>`<div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),sz)}</div>`;
+  const go=(r,sz)=>`<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',sz)}</button>`;
+  const tot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
+  // today: full card, highlighted until a workout for it is logged today
+  const full=r=>{const st=build(r),t=tot(r),ok=done(r);
+   return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${handle}${dot(r,22)}
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
+   ${go(r,22)}</div>`;};
+  // other routines: one compact row
+  const mini=r=>{const dt=daysTxt(r);return `<div class="card rcard mini" data-id="${r.id}">${handle}${dot(r,18)}
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
+   ${go(r,18)}</div>`;};
+  const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
+  document.getElementById('list').innerHTML=!act.length?`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`:
+   tod.length?`<div class="sech">Today · ${DN[wd]}</div>${grp(tod,full)}${oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:''}`:grp(oth,mini);
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''}</div></div>
@@ -464,12 +495,20 @@ const BT={reps:[svgi('hash',18),'Reps / counts','orange'],timed:[svgi('timer',18
 function newRoutine(){cur={id:uid(),name:'New routine',icon:'activity',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
 function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
 function renderSwatches(){eColorPick.innerHTML=Object.entries(COLORS).map(([n,c])=>`<button role="radio" aria-checked="${n===eColor.value}" aria-label="${n}" title="${n}" class="${n===eColor.value?'on':''}" style="--c:${c}" onclick="pickColor('${n}')">${n===eColor.value?svgi('check',16,3):''}</button>`).join('');}
-function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick();}
+function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick();renderDays();}
+/* days of the week: r.days = weekday numbers (0 = Sun … 6 = Sat), Monday first in the UI; none = anytime */
+const DOW=[1,2,3,4,5,6,0],DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function rDays(r){return Array.isArray(r.days)?DOW.filter(d=>r.days.includes(d)):[];}
+function daysTxt(r){const d=rDays(r);return d.length===7?'Every day':d.map(x=>DN[x]).join(' · ');}
+function renderDays(){const d=rDays(cur);eDays.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
+  eDays.innerHTML=DOW.map(x=>`<button type="button" class="${d.includes(x)?'on':''}" aria-pressed="${d.includes(x)}" title="${DN[x]}" onclick="toggleDay(${x})">${DN[x][0]}</button>`).join('');
+  eDaysHint.textContent=d.length?'· highlighted on '+(d.length===7?'every day':d.length===1?DN[d[0]]:d.length+' days'):'· none = anytime';}
+function toggleDay(x){const d=rDays(cur);const n=d.includes(x)?d.filter(y=>y!==x):[...d,x];if(n.length)cur.days=DOW.filter(y=>n.includes(y));else delete cur.days;renderDays();queueAutosave();}
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){cur=norm(mig(cur));
   renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.value=logMode(cur);
-  eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();
+  eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();renderDays();renderLangPick();
   renderBlocks();
 }
 function num(id,k,v,lbl,step=1,min=0){return `<div><label>${lbl}</label><input type="number" step="${step}" min="${min}" value="${v}" oninput="setB('${id}','${k}',+this.value)"></div>`}
@@ -507,7 +546,7 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;cur.cv=2;}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;const ln=eLang.value;if(ln)cur.lang=ln;else delete cur.lang;cur.cv=2;}
 ['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
 ['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 // blocks with an empty count length follow the routine's: keep their hint and combo preview in step
@@ -556,7 +595,7 @@ function openSettings(){setTimeout(vdShow);
   cloud();document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
   show('set');
 }
-speechSynthesis.onvoiceschanged=()=>{vdShow();if(document.getElementById('set').classList.contains('on'))openSettings();};
+speechSynthesis.onvoiceschanged=()=>{vdShow();if(editOn()){readHead();renderLangPick();}if(document.getElementById('set').classList.contains('on'))openSettings();};
 
 /* ---------- audio ---------- */
 let AC=null,muted=false;
@@ -577,7 +616,7 @@ function say(t,interrupt=true,cue=false){if(!t)return;
   const soft=cue&&p&&p.cue&&p.on&&!ss.pending&&t0-p.on<1500,cut=interrupt&&busy&&!soft;
   const stop=()=>{clearTimeout(SAYT);SAYC=performance.now();ss.cancel();};
   if(cut)stop();
-  const go=re=>{if(SAYI>n)return;try{const u=new SpeechSynthesisUtterance(t);u.lang=S.lang;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;u.cue=cue;
+  const go=re=>{if(SAYI>n)return;try{const u=new SpeechSynthesisUtterance(t);u.lang=voiceLang();const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;u.cue=cue;
     // ended without ever starting while still the newest phrase: the engine dropped it, so say it once more while still on time
     const lost=c=>{if(re||u.on||u.dead||n!==SAYN||performance.now()-t0>700||!(c==='interrupted'||c==='canceled'||(c==='end'&&SAW)))return false;
       vd('dropped ('+c+'), retrying');clearTimeout(SAYT);SAYT=setTimeout(()=>{if(n===SAYN)go(true);},100);return true;};
@@ -599,8 +638,25 @@ function vd(m){const d=new Date();VDL.unshift(d.toTimeString().slice(0,8)+' '+m)
 function vdShow(){const el=document.getElementById('vdiag');if(!el)return;el.hidden=!VDBAD;if(!VDBAD)return;let h='<b>Voice problem</b> · <a href="#" onclick="VDBAD=false;vdShow();return false">Hide</a><br>';try{const ss=window.speechSynthesis,all=ss?ss.getVoices():[],v=ss?pickVoice():null,cv=(navigator.userAgent.match(/Chrome\/(\d+)/)||[])[1];
   h+=`Voices: ${all.length} · for ${esc(S.lang)}: ${ss?langVoices().length:0} · using: ${v?esc(v.name)+' ('+esc(v.lang)+(v.localService?'':', online')+')':'browser default'}<br>rate ${esc(String(S.rate))} · pitch ${esc(String(S.pitch))} · volume ${esc(String(S.volume))} · voice coach ${S.voice?'on':'off'}${muted?' · muted':''}<br>state: ${ss?(ss.speaking?'speaking ':'')+(ss.pending?'pending ':'')+(ss.paused?'paused ':'')||'idle':'n/a'} · Chrome ${cv||'?'}${matchMedia('(display-mode: standalone)').matches?' · installed app':' · browser tab'}<br>${VDL.map(esc).join('<br>')||'Tap Test sound & voice'}`;}catch(e){h='diagnostics error: '+esc(e.message);}el.innerHTML=h;}
 function hush(){SAYI=++SAYN;clearTimeout(SAYT);SAYC=performance.now();speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
-function langVoices(){const L=(S.lang||'').toLowerCase().replace('_','-');return speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-')===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
-function pickVoice(){const all=speechSynthesis.getVoices();return (S.voiceURI&&all.find(v=>v.voiceURI===S.voiceURI))||langVoices()[0]||null;} // saved voice, else best voice for the language
+const lnorm=l=>(l||'').toLowerCase().replace('_','-');
+function langVoices(lang=S.lang){const L=lnorm(lang);return speechSynthesis.getVoices().filter(v=>lnorm(v.lang)===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
+/* voice language per routine: r.lang (e.g. nl-NL) overrides Settings during that routine; none = the Settings language */
+function voiceLang(){return (X&&X.r&&X.r.lang)||S.lang;}
+function pickVoice(){const all=speechSynthesis.getVoices(),L=voiceLang(),own=lnorm(L)===lnorm(S.lang);
+  return (own&&S.voiceURI&&all.find(v=>v.voiceURI===S.voiceURI))||langVoices(L)[0]||  // saved voice (Settings language only), else best voice for the language
+    all.filter(v=>lnorm(v.lang).split('-')[0]===lnorm(L).split('-')[0]).sort((a,b)=>b.localService-a.localService)[0]||null;} // else any voice for that language (nl-BE for nl-NL)
+function voiceLangs(){const v=speechSynthesis.getVoices().map(v=>v.lang).filter((v,i,a)=>a.indexOf(v)===i).sort();return v.length?v:['en-US','en-GB','nl-NL','es-ES','de-DE','fr-FR'];}
+function renderLangPick(){if(!cur)return;const ls=voiceLangs();if(cur.lang&&!ls.includes(cur.lang))ls.unshift(cur.lang);
+  eLang.innerHTML=`<option value="">Default (${esc(S.lang)})</option>`+ls.map(l=>`<option ${l===cur.lang?'selected':''}>${esc(l)}</option>`).join('');}
+/* built-in spoken words in the voice language (exercise names, cues and combos are spoken as you typed them) */
+const VPH={
+  en:{'Get ready':'Get ready','Rest':'Rest','Round rest':'Round rest',reps:'reps',fight:'Fight!',halfway:'Halfway',ten:'Ten seconds',done:'Done. Great work!',sec:'seconds',min1:'minute',min:'minutes'},
+  nl:{'Get ready':'Maak je klaar','Rest':'Rust','Round rest':'Rust tussen rondes',reps:'herhalingen',fight:'Vecht!',halfway:'Halverwege',ten:'Nog tien seconden',done:'Klaar. Goed gedaan!',sec:'seconden',min1:'minuut',min:'minuten'},
+  es:{'Get ready':'Prepárate','Rest':'Descanso','Round rest':'Descanso entre rondas',reps:'repeticiones',fight:'¡A pelear!',halfway:'Mitad',ten:'Diez segundos',done:'Terminado. ¡Buen trabajo!',sec:'segundos',min1:'minuto',min:'minutos'},
+  de:{'Get ready':'Mach dich bereit','Rest':'Pause','Round rest':'Rundenpause',reps:'Wiederholungen',fight:'Kämpfen!',halfway:'Halbzeit',ten:'Zehn Sekunden',done:'Fertig. Gut gemacht!',sec:'Sekunden',min1:'Minute',min:'Minuten'},
+  fr:{'Get ready':'Prépare-toi','Rest':'Repos','Round rest':'Repos entre les rounds',reps:'répétitions',fight:'Combat !',halfway:'Mi-parcours',ten:'Dix secondes',done:'Terminé. Bon travail !',sec:'secondes',min1:'minute',min:'minutes'}};
+function ph(k){const t=VPH[lnorm(voiceLang()).split("-")[0]]||VPH.en;return t[k]??VPH.en[k]??k;}
+function sayDur(d){d=Math.max(0,Math.round(d));const m=Math.floor(d/60),x=d%60;return m?`${m} ${ph(m===1?'min1':'min')}${x?' '+x:''}`:`${x} ${ph('sec')}`;}
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
 function buzz(p){if(S.vibrate&&navigator.vibrate&&!silentHere())navigator.vibrate(p);}
 function resetAudio(){if(!confirm('Reset all sound & voice settings to their defaults?'))return;
@@ -687,9 +743,9 @@ function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
 function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i];
   if(!quiet){ // announcements
     if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
-      say(s.type==='reps'?`${s.label}. ${s.reps} reps`:(s.boxing?`${s.label}. Fight!`:(s.cue||s.label)));}
-    else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${s.label}. ${fmt(s.dur)} seconds`.replace(/(\d+):(\d+) seconds/,'$1 minutes $2'));}
-    else say(`${X.r.name}. Get ready`);}
+      say(s.type==='reps'?`${s.label}. ${s.reps} ${ph('reps')}`:(s.boxing?`${s.label}. ${ph('fight')}`:(s.cue||s.label)));}
+    else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${ph(s.label)}. ${sayDur(s.dur)}`);}
+    else say(`${X.r.name}. ${ph('Get ready')}`);}
   if(mine())pushRun();render();}
 /* steps that ended while the app was in the background or closed: move on quietly to where the workout is now */
 function catchUp(now){let moved=false,late=0;
@@ -700,7 +756,7 @@ function catchUp(now){let moved=false,late=0;
   if(moved)enter(X.i,X.s0,late>2000);}
 function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   if(mine()&&!remote){X.fin=end;pushRun('done');}
-  hush();if(late<2000){bell();buzz([200,100,200,100,400]);say('Done. Great work!');}
+  hush();if(late<2000){bell();buzz([200,100,200,100,400]);say(ph('done'));}
   if(X.wl)X.wl.release().catch(()=>{});
   const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),calls=X.calls||0;
   const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};if(r.streak===false)entry.streak=false; // Log only: in history, not in the streak
@@ -752,8 +808,8 @@ function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))re
     const left=s.dur-t;const sec=Math.ceil(left);
     if(sec!==X.lastSec){X.lastSec=sec;
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true,true);}
-      if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say('Halfway',false);
-      if(s.kind==='work'&&sec===10&&s.dur>=30){say('Ten seconds',false);}}
+      if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say(ph('halfway'),false);
+      if(s.kind==='work'&&sec===10&&s.dur>=30){say(ph('ten'),false);}}
     if(s.boxing&&mine()&&t>=X.nc&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&t-X.nc<4)){const c=nextCombo(s);X.ct=c;X.calls=(X.calls||0)+1;showCall(c);
       beep(1500,.05,'square',.4);say(spoken(c).replace(/-/g,' '),false);X.nc=t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);pushRun();}
   } else if(s.mode==='guided'){
@@ -990,12 +1046,12 @@ function banner(){const el=document.getElementById('liveBar');if(!el)return;cons
   if(h!==BAN){BAN=h;el.innerHTML=h;}}
 function openLive(){if(CR&&runActive(CR)&&adopt(CR))banner();}
 setInterval(()=>{if(CR)banner();},5000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(300);banner();}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(300);banner();if(document.getElementById('lib').classList.contains('on'))renderList();}});
 addEventListener('online',()=>{if(!cloudP&&localStorage.getItem('rf2_acct'))cloud();});
 
 /* drag to reorder routines */
 document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h)return;e.preventDefault();
-  const list=e.currentTarget,card=h.closest('.rcard'),cards=[...list.querySelectorAll('.rcard')],from=cards.indexOf(card),n=cards.length;
+  const card=h.closest('.rcard'),cards=[...card.parentNode.querySelectorAll('.rcard')],from=cards.indexOf(card),n=cards.length; // drag within its own section
   if(n<2)return;const y0=e.clientY,step=cards[1].getBoundingClientRect().top-cards[0].getBoundingClientRect().top;let to=from;
   h.setPointerCapture(e.pointerId);card.classList.add('drag');buzz(15);
   const move=ev=>{const dy=ev.clientY-y0;card.style.transform=`translateY(${dy}px)`;
@@ -1003,7 +1059,7 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
     cards.forEach((c,k)=>{if(c===card)return;const sh=(from<to&&k>from&&k<=to)?-step:(from>to&&k>=to&&k<from)?step:0;c.style.transform=sh?`translateY(${sh}px)`:'';});};
   const up=()=>{h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);
     if(to!==from){const ids=cards.map(c=>c.dataset.id);const [m]=ids.splice(from,1);ids.splice(to,0,m);
-      const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>r.archived?-1:i).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}renderList();};
+      const by={};R.forEach(r=>by[r.id]=r);const slots=R.map((r,i)=>ids.includes(r.id)?i:-1).filter(i=>i>=0);const nr=R.slice();slots.forEach((sl,k)=>nr[sl]=by[ids[k]]);R=nr;persist();}renderList();};
   h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
