@@ -1085,15 +1085,20 @@ addEventListener('online',()=>{if(!cloudP&&localStorage.getItem('rf2_acct'))clou
 /* drag to reorder: the order that matters is the whole list (Today just shows today's routines in that order).
    Picking up any routine, also a highlighted one, switches to a drag state that shows every routine in its real order,
    scrolled so the picked-up row stays under the finger at its real place; a dashed slot shows where it will land.
+   The full list is shorter than the home screen (compact rows instead of Today's cards), so when the page cannot scroll
+   far enough, empty room is added above or below the list for the drag; the row never drifts away from the finger.
    On drop the row settles into the slot, then the home screen returns with Today on top and the moved routine flashes. */
 let dragBusy=false;
 document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.target.closest('.handle');if(!h||dragBusy)return;e.preventDefault();
-  const list=e.currentTarget,id=h.closest('.rcard').dataset.id,pid=e.pointerId,sy0=e.clientY;let st=null,cy=e.clientY,raf=0;
+  const list=e.currentTarget,id=h.closest('.rcard').dataset.id,pid=e.pointerId,sy0=e.clientY,y0=scrollY;let st=null,cy=e.clientY,raf=0;
   try{list.setPointerCapture(pid);}catch(_){}
   const start=()=>{renderList(true);list.classList.add('sorting');buzz(15);
     const cards=[...list.querySelectorAll('.rcard')],card=cards.find(c=>c.dataset.id===id),from=cards.indexOf(card);
+    const mid=()=>{const b=card.getBoundingClientRect();return b.top+scrollY+b.height/2;},pad=(h,end)=>{const d=document.createElement('div');d.style.height=Math.ceil(h)+'px';end?list.append(d):list.prepend(d);};
+    if(mid()<cy)pad(cy-mid()); // room above: the page cannot scroll above the top
+    const want=mid()-cy,room=document.documentElement.scrollHeight-innerHeight;if(want>room)pad(want-room,true); // room below
+    scrollTo(0,want); // its real place in the full list, under the finger
     const box=cards.map(c=>{const b=c.getBoundingClientRect();return {top:b.top+scrollY,h:b.height};});
-    scrollTo(0,box[from].top+box[from].h/2-cy); // its real place in the full list, under the finger (as far as the page can scroll)
     const sz=box[1]?box[1].top-box[0].top:box[0].h,lt=list.getBoundingClientRect().top+scrollY;
     const slot=document.createElement('div');slot.className='dslot';slot.style.cssText=`top:${box[from].top-lt}px;height:${box[from].h}px`;list.prepend(slot);
     card.classList.add('drag','lift');setTimeout(()=>card.classList.remove('lift'),160);
@@ -1118,7 +1123,7 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
     // settle into the slot so it is clear where it went, then back to the home screen
     // unchanged: it just slides back, no highlight
     dragBusy=true;card.classList.remove('cancel');card.classList.add('lift');if(to!==from){card.classList.add('landed');buzz(10);}card.style.transform=`translateY(${box[to].top-box[from].top}px)`;
-    setTimeout(()=>{dragBusy=false;list.classList.remove('sorting');renderList();
+    setTimeout(()=>{dragBusy=false;list.classList.remove('sorting');renderList();scrollTo(0,y0); // back where you were
       const c=to!==from&&list.querySelector(`.rcard[data-id="${id}"]`);if(c){c.classList.add('flash');c.scrollIntoView({block:'nearest',behavior:'smooth'});setTimeout(()=>c.classList.remove('flash'),1300);}},550);};
   list.addEventListener('pointermove',move);list.addEventListener('pointerup',up);list.addEventListener('pointercancel',up);});
 
