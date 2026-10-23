@@ -188,7 +188,8 @@ header .eb{height:38px;padding:0 14px;gap:6px;font-weight:600}header .eb.go1{col
 .sc.rest,.sc.rrest{background:rgba(114,188,143,.12);border-color:rgba(114,188,143,.35);color:#9fd4b3}.sc.rrest{border-style:dashed}.sc.prep{color:var(--tx2)}.sc.wait{color:var(--tx2);border-style:dashed}.sc.done{color:#72BC8F}.sa{color:var(--tx2);font-size:13px}
 #run .lw{display:flex;justify-content:center}
 #live{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--tx2);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);border-radius:999px;padding:6px 12px}
-#live[hidden]{display:none}#live b{color:var(--tx)}
+#live[hidden]{display:none}#run .ml{display:flex;align-items:center;gap:2px;min-width:0}#minBtn{flex:none;padding:4px;margin:-6px 0 -6px -8px;background:none;border-color:transparent;color:var(--tx2)}#minBtn:hover{color:var(--tx)}
+#mbar{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:728px;margin:0;cursor:pointer;border-color:var(--c);box-shadow:0 6px 24px rgba(0,0,0,.5)}#mbar[hidden]{display:none}#mbar .go{width:44px;height:44px}#mbTx{font-variant-numeric:tabular-nums}body.mbar .view{padding-bottom:120px}body.mbar #toast{bottom:104px!important}#live b{color:var(--tx)}
 .livebar{border-color:var(--blue)}.amsg{margin:0 0 12px;font-size:14px;color:var(--yellow)}
 .amsg a,.anote a{color:inherit}.anote{margin:0 0 12px;font-size:14px;color:var(--tx2)}
 .acct-k{font-size:13px;color:var(--tx2);margin:16px 0 4px}
@@ -299,7 +300,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 <!-- RUNNER -->
 <div id="run">
   <div class="top">
-    <div class="meta"><span id="rName"></span><span id="rRound"></span></div>
+    <div class="meta"><span class="ml"><button id="minBtn" onclick="minRun()" title="Minimize" aria-label="Minimize"></button><span id="rName"></span></span><span id="rRound"></span></div>
     <div class="bar"><i id="rBar"></i></div>
     <div class="lw"><button id="live" hidden onclick="liveTap()"></button></div>
   </div>
@@ -326,6 +327,8 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <button class="sm" id="muteBtn" onclick="toggleMute()" title="Sound" aria-label="Sound"></button>
   </div>
 </div>
+<!-- minimized workout: tap to open -->
+<div id="mbar" class="card rcard" hidden onclick="maxRun()" role="button" aria-label="Open workout"><div class="dot" id="mbDot"></div><div class="info"><b id="mbName"></b><div class="muted" id="mbTx"></div></div><button class="go primary" id="mbPP" onclick="event.stopPropagation();togglePause()" aria-label="Pause"></button></div>
 
 <script>
 /* ---------- storage: own keys (rf2_*) since v2; v1 data (rf_*) is never written. First open copies v1 routines, settings and history (not the gist token) ---------- */
@@ -463,7 +466,7 @@ function route(){const h=location.hash||'#/',view=(document.querySelector('.view
     else if(h==='#/new'&&d&&d._new){cur=d;fillEditor();show('edit');}
     else{if(view==='edit'&&cur)saveRoutine(false);else show('lib');if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
   }finally{ROUTING=false;}}
-addEventListener('popstate',()=>{if(ROUTING){ROUTING=false;return;}if(run.classList.contains('on')){ROUTING=true;stopRun();ROUTING=false;}route();});
+addEventListener('popstate',()=>{if(ROUTING){ROUTING=false;return;}if(run.classList.contains('on')){if(X&&X.steps)minRun();else{ROUTING=true;stopRun();ROUTING=false;}}route();}); // Back minimizes a running workout
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
 /* Durations: stored as whole seconds; typed as 90, 1:30, 1.30, 20m, 1m30, 1m 30s, 1h; shown as m:ss */
@@ -644,10 +647,28 @@ speechSynthesis.onvoiceschanged=()=>{vdShow();if(editOn()){readHead();renderLang
 let AC=null,muted=false;
 function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
 const silentHere=()=>!!(X&&X.steps&&X.by!==DEV.id); // another device plays this workout's sound
-function beep(f=880,d=.08,type='sine',vol=1){if(!S.beeps||muted||silentHere())return;const c=ac(),o=c.createOscillator(),g=c.createGain();
-  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(S.volume*vol,c.currentTime+.01);
-  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+d+.02);}
+function beep(f=880,d=.08,type='sine',vol=1,at){if(!S.beeps||muted||silentHere())return;const c=ac(),t=at??c.currentTime,o=c.createOscillator(),g=c.createGain();
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(S.volume*vol,t+.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02);return o;}
 function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
+/* In the background (another app, screen off) the browser stops the timer loop. So the beeps of what comes next are queued
+   on the audio clock, which keeps playing on Android and computers (an iPhone pauses web apps). Speech can't be queued.
+   A near-silent tone (until the last queued beep) keeps the page counted as playing sound, so it isn't put to sleep.
+   Back in view, the queue is dropped and the loop takes over. BGT: when it was dropped (beeps before it already played). */
+let BG=[],BGT=0;
+function bgOff(){if(!BG.length)return;BG.forEach(o=>{try{o.stop();}catch(e){}});BG=[];BGT=NOW();}
+function bgOn(){bgOff();if(!document.hidden||!X||!X.steps||X.p!=null||!mine()||!AC||AC.state!=='running'||!S.beeps||muted)return;
+  const c=AC,now=NOW(),base=c.currentTime;let end=0,s0=X.s0;
+  const add=(ms,f,d,type='sine',vol=1)=>{if(ms<now||BG.length>=3000)return;const o=beep(f,d,type,vol,base+(ms-now)/1000);if(o){BG.push(o);end=Math.max(end,ms);}};
+  const bellAt=ms=>[0,180,360].forEach(d=>add(ms+d,1320,.35,'triangle'));
+  const keep=()=>{if(!BG.length)return;const o=c.createOscillator(),g=c.createGain();o.frequency.value=50;g.gain.value=.001;o.connect(g).connect(c.destination);o.start();o.stop(base+(end-now)/1000+1);BG.push(o);};
+  for(let i=X.i;i<X.steps.length;i++){const s=X.steps[i],L=stepLen(s);if(s0-now>3600e3)return keep(); // up to an hour ahead
+    if(i>X.i){if(s.type==='wait')add(s0,784,.2);else if(s.kind==='work')add(s0,1046,.25,'square',.6);else if(s.kind==='rest')bellAt(s0);} // same as enter()
+    if(!isFinite(L))return keep(); // waits for a tap
+    if(s.type==='time')for(let k=Math.min(S.countdown|0,Math.ceil(s.dur));k>0;k--)add(s0+Math.max(0,s.dur-k)*1000,k===1?880:660,.12); // same as tick()
+    else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;for(let r=0;r<s.reps;r++)for(let k=0;k<s.counts;k++){const t=s0+(r*per+k*s.tempo)*1000;if(k)add(t,740,.06,'sine',.5);else add(t,1175,.12,'square',.7);}} // same as countFx()
+    s0+=L*1000;}
+  bellAt(s0);keep();} // done
 let UTT=null,SAYT=0,SAYN=0,SAYI=0,SAYC=-1e9,SAW=false; // UTT: current utterance, kept referenced (Chrome can drop it mid-sentence otherwise) · SAYN: newest phrase · SAYI: newest phrase that interrupts · SAYC: last cancel() · SAW: this device reports speech starts
 function say(t,interrupt=true,cue=false){if(!t)return;
   const why=!window.speechSynthesis?'no speechSynthesis in this browser':!S.voice?'voice coach off':muted?'muted':silentHere()?'sound on another device':'';if(why){vd('skipped: '+why);if(!window.speechSynthesis&&S.voice)vdFail();return;}
@@ -756,9 +777,20 @@ function pushRun(end){if(!X||!X.steps)return;X.u=Math.max(NOW(),(X.u||0)+1);cons
   if(CU&&CLOUD&&CR1&&!SWITCH)CLOUD.setRun(d).catch(()=>{});}
 function kick(){if(!LOOP){LOOP=true;requestAnimationFrame(loop);}}
 function wake(){if(S.wake&&navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(w=>{if(X&&X.steps)X.wl=w;else w.release();}).catch(()=>{});}
-function openRun(){rName.innerHTML=svgi(iconKey(X.r),16)+'<span>'+esc(X.r.name)+'</span>'+(X.r.test?'<span class="muted" title="Not logged">· Test</span>':'');run.classList.remove('fin');run.classList.add('on');wake();kick();}
+/* minimize: the workout keeps running in a bar at the bottom, so the rest of the app stays usable (one workout at a time) */
+let MINI=false,MBT='';
+function minRun(){if(!X||!X.steps)return;MINI=true;run.classList.remove('on');miniUI();}
+function maxRun(){if(!X||!X.steps)return;MINI=false;run.classList.add('on');miniUI();render();}
+function miniUI(){const on=MINI&&!!(X&&X.steps);mbar.hidden=!on;document.body.classList.toggle('mbar',on);if(!on)return;const c=COLORS[X.r.color]||COLORS.blue;
+  mbar.style.setProperty('--c',c);mbDot.style.cssText=`background:${c}22;color:${c}`;mbDot.innerHTML=svgi(iconKey(X.r),22);mbName.textContent=X.r.name;mbPP.style.cssText=`background:${c};border-color:${c}`;MBT='';ppIcon();miniTx();}
+function miniTx(){const s=X.steps[X.i],t=Math.max(0,((X.p??NOW())-X.s0)/1000);
+  const v=s.type==='wait'?'tap to start':s.type==='time'?fmt(s.dur-t):`rep ${Math.min(s.reps,(s.mode==='tap'?Math.floor(X.tap/s.counts):Math.floor(t/(s.counts*s.tempo+s.repPause)))+1)} / ${s.reps}`;
+  const h=`${s.label} · ${v} · Round ${s.round}/${X.r.rounds}${X.p!=null?' · Paused':''}`;if(h!==MBT){MBT=h;mbTx.textContent=h;}}
+function openRun(){MINI=false;miniUI();rName.innerHTML=svgi(iconKey(X.r),16)+'<span>'+esc(X.r.name)+'</span>'+(X.r.test?'<span class="muted" title="Not logged">· Test</span>':'');run.classList.remove('fin');run.classList.add('on');wake();kick();}
 function startRun(id,test){ // test = test run from the editor: plays normally, never logged
-  const r=R.find(r=>r.id===id);if(!r)return;ac();UNLOCKED=true;
+  const r=R.find(r=>r.id===id);if(!r)return;
+  if(X&&X.steps&&!confirm(X.r.id===r.id?`Restart “${X.r.name}”?`:`Stop “${X.r.name}” and start “${r.name}”?`))return; // one workout at a time
+  ac();UNLOCKED=true;
   const steps=build(r);if(!steps.length){alert('Add a block first.');return;}
   if(X&&X.wl)X.wl.release().catch(()=>{});
   const t=NOW();X={sid:uid()+uid(),r:JSON.parse(JSON.stringify(r)),steps,i:0,s0:t,t0:t,p:null,tap:0,nc:1.5,ct:'',calls:0,box:{},by:DEV.id,dn:DEV.name,u:0,lastCount:-1,lastSec:null};
@@ -772,11 +804,12 @@ function adopt(d){let r;try{r=norm(mig(typeof d.r==='string'?JSON.parse(d.r):d.r
 function restoreRun(){let d=null;try{d=JSON.parse(localStorage.getItem('rf2_run')||'null');}catch(e){}
   if(!d||!d.sid||d.end||d.by!==DEV.id||NOW()-(+d.u||0)>12*3600e3){localStorage.removeItem('rf2_run');return;}
   adopt(d);}
-function closeRun(){if(X&&X.wl)X.wl.release().catch(()=>{});X=null;hush();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');}
+function closeRun(){const m=MINI;if(X&&X.wl)X.wl.release().catch(()=>{});X=null;MINI=false;miniUI();bgOff();hush();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');return m;} // m: was minimized (stay where you are)
 /* on the device that plays the sound, Stop ends the workout everywhere; on a following device it only closes the view */
-function stopRun(){if(X&&X.steps&&mine())pushRun('stop');closeRun();show('lib');banner();}
+function stopRun(){const stay=run.classList.contains('fin')&&LAST&&LAST.min; // finished while minimized: Close returns to where you were
+  if(X&&X.steps&&mine())pushRun('stop');closeRun();if(!stay)show('lib');else if(document.getElementById('lib').classList.contains('on'))renderList();banner();}
 function claim(){if(!X||!X.steps||mine())return;X.by=DEV.id;X.dn=DEV.name;liveUI();}
-function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30);pp.setAttribute('aria-label',p?'Resume':'Pause');}
+function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30);pp.setAttribute('aria-label',p?'Resume':'Pause');if(MINI){mbPP.innerHTML=svgi(p?'play':'pause',20);mbPP.setAttribute('aria-label',p?'Resume':'Pause');}}
 function togglePause(){if(!X||!X.steps)return;claim();const t=NOW();
   if(X.p!=null){const d=t-X.p;X.s0+=d;X.t0+=d;X.p=null;}else{X.p=t;hush();}
   ppIcon();pushRun();}
@@ -790,30 +823,32 @@ function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: ${n.label==='Next round'?`Round ${n.round} · `:''}${X.steps[i+2]?X.steps[i+2].label+' · ':''}tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
   tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
   pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';}
-function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i];
+function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i],bg=at<BGT; // bg: its beep already played in the background
   if(!quiet){ // announcements
-    if(s.type==='wait'){beep(784,.2);buzz([80,60,80]);say(`${ph(s.label)}. ${ph('tapgo')}`);}
-    else if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
+    if(s.type==='wait'){if(!bg)beep(784,.2);buzz([80,60,80]);say(`${ph(s.label)}. ${ph('tapgo')}`);}
+    else if(s.kind==='work'){if(!bg)beep(1046,.25,'square',.6);buzz([120]);
       say(s.type==='reps'?`${s.label}. ${s.reps} ${ph('reps')}`:(s.boxing?`${s.label}. ${ph('fight')}`:(s.cue||s.label)));}
-    else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${ph(s.label)}. ${sayDur(s.dur)}`);}
+    else if(s.kind==='rest'){if(!bg)bell();buzz([80,60,80]);say(`${ph(s.label)}. ${sayDur(s.dur)}`);}
     else say(`${X.r.name}. ${ph('Get ready')}`);}
   if(mine())pushRun();render();}
-/* steps that ended while the app was in the background or closed: move on quietly to where the workout is now */
+/* steps that ended while the app was in the background or closed: move on to where the workout is now. Back more than
+   2 s late: no step announcements, only a beep and the name of the current step, so you know where you are */
 function catchUp(now){let moved=false,late=0;
   for(let n=0;n<1e4;n++){const end=X.s0+stepLen(X.steps[X.i])*1000;if(!(now>=end))break;late=now-end;
     if(X.i+1>=X.steps.length){if(!mine()&&late<3000)break; // a following device gives the playing one a moment to finish first
       return finish(end,late);}
     setStep(X.i+1,end);moved=true;}
-  if(moved)enter(X.i,X.s0,late>2000);}
+  if(moved){const q=late>2000;enter(X.i,X.s0,q);if(q&&UNLOCKED&&mine())back();}}
+function back(){const s=X.steps[X.i];beep(1046,.12,'sine',.5);say(s.type==='wait'?`${ph(s.label)}. ${ph('tapgo')}`:s.kind==='work'?s.label:ph(s.label));}
 function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   if(mine()&&!remote){X.fin=end;pushRun('done');}
-  hush();if(late<2000){bell();buzz([200,100,200,100,400]);say(ph('done'));}
+  const bgd=end<BGT;bgOff();hush();if(late<2000){if(!bgd)bell();buzz([200,100,200,100,400]);say(ph('done'));}
   if(X.wl)X.wl.release().catch(()=>{});
   const tot=X.steps.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0),calls=X.calls||0;
   const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};if(r.streak===false)entry.streak=false; // Log only: in history, not in the streak
   X={done:true};run.style.background='#191919';localStorage.removeItem('rf2_run');
   const ask=!r.nolog&&late>15*60e3&&!H.some(h=>h.id===entry.id)&&!HDEL[entry.id]; // ended long before the app was opened again: ask instead of logging
-  LAST={r,entry,ask,L:r.nolog||ask?null:logWorkout(entry)};updHistBtn();showDone();
+  LAST={r,entry,ask,min:MINI,L:r.nolog||ask?null:logWorkout(entry)};MINI=false;miniUI();updHistBtn();showDone();
   run.classList.add('on','fin');banner();}
 function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur;
   const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
@@ -909,7 +944,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let t=X.t=Math.max
   }
   ring.style.strokeDashoffset=s.type==='wait'?0:289.03*(1-Math.min(1,frac));
   // overall progress
-  const tot=X.steps.length;rBar.style.width=((X.i+Math.min(1,frac))/tot*100)+'%';}
+  const tot=X.steps.length;rBar.style.width=((X.i+Math.min(1,frac))/tot*100)+'%';if(MINI)miniTx();}
 
 /* ---------- import/export ---------- */
 /* ---------- history & streaks ---------- */
@@ -1078,9 +1113,9 @@ function onRemoteRun(v){if(SWITCH){PENDRUN=v;return;}const first=!CR1;CR1=true;C
   if(L){if(mine()&&(!CR||(first&&(L.u||0)>(CR.u||0))))pushRun(); // first contact: what this device did offline is newer
     else if(CR&&CR.sid===L.sid){if(CR.u!==L.u||CR.by!==L.by){if(CR.end)remoteEnd(CR);else applySame(CR);}}
     else if(CR&&!CR.end){adopt(CR);toast(`${runName(CR)} started on ${CR.dn||'another device'}`,true);}
-    else if(CR){closeRun();show('lib');}}
+    else if(CR){if(!closeRun())show('lib');}}
   else if(first&&LASTDOC&&LASTDOC.end&&CR&&CR.sid===LASTDOC.sid&&!CR.end&&LASTDOC.u>(CR.u||0))CLOUD.setRun(LASTDOC).catch(()=>{});
-  banner();}
+  banner();if(document.hidden)bgOn();} // in the background: queue the beeps again for the new state
 function applySame(v){const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
   X.u=+v.u||0;X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0;X.p=v.p==null?null:+v.p;
   if(st){setStep(Math.max(0,Math.min(X.steps.length-1,v.i|0)),+v.s0);stepUI();}
@@ -1088,7 +1123,7 @@ function applySame(v){const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
   if(was&&!mine()){hush();localStorage.removeItem('rf2_run');}else if(mine())store(localStorage,'rf2_run',JSON.stringify(v));
   ppIcon();liveUI();render();}
 function remoteEnd(v){if(v.end==='done'){X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0||X.t0;X.calls=v.calls|0;const f=+v.fin||NOW();finish(f,Math.max(0,NOW()-f),true);}
-  else{closeRun();show('lib');toast(`Workout stopped on ${v.dn||'another device'}`,true);}}
+  else{if(!closeRun())show('lib');toast(`Workout stopped on ${v.dn||'another device'}`,true);}}
 function runActive(v){if(!v||v.end||NOW()-(+v.u||0)>12*3600e3)return false;let st;try{st=build(norm(mig(JSON.parse(v.r))));}catch(e){return false;}
   if(v.p!=null)return true;let t=+v.s0;for(let i=v.i|0;i<st.length;i++){const l=stepLen(st[i]);if(!isFinite(l))return true;t+=l*1000;}return NOW()<t+3000;}
 let BAN='';
@@ -1139,11 +1174,15 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
   list.addEventListener('pointermove',move);list.addEventListener('pointerup',up);list.addEventListener('pointercancel',up);});
 
 gearIc.outerHTML=svgi('sliders',20);document.querySelectorAll('i[data-ic]').forEach(e=>e.outerHTML=svgi(e.dataset.ic,18));
-document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);
+document.querySelector('.ctrl .sm').innerHTML=svgi('x',22,2.5);document.querySelectorAll('.ctrl .md')[0].innerHTML=svgi('prev',24);document.querySelectorAll('.ctrl .md')[1].innerHTML=svgi('next',24);muteBtn.innerHTML=svgi('vol',22);pp.innerHTML=svgi('pause',30);minBtn.innerHTML=svgi('down',22,2.5);
 renderList();route();setSync('');restoreRun();banner();if(localStorage.getItem('rf2_acct'))cloud();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
 // re-acquire wake lock after switching apps mid-workout
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&X&&X.steps&&S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}});
+// background beeps: queue them when hidden; when back, drop the queue and catch up without repeating what already played
+document.addEventListener('visibilitychange',()=>{if(document.hidden){bgOn();return;}const had=BG.length>0;bgOff();if(!had||!X||!X.steps||X.p!=null)return;
+  catchUp(NOW());if(!X||!X.steps)return;const s=X.steps[X.i],t=(NOW()-X.s0)/1000;
+  if(s.type==='time')X.lastSec=Math.ceil(s.dur-t);else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause,rep=Math.floor(t/per),k=Math.floor((t-rep*per)/s.tempo);if(k<s.counts)X.lastCount=rep*1000+k;}});
 </script>
 </body>
 </html>

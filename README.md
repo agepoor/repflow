@@ -9,6 +9,7 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 - Days per routine: today's routines on top (highlighted until done, skip for today only), the rest as compact rows; a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
 - Per-block display: cue + number / cue only / number only
 - Beeps, voice coach (any browser language, per routine if you like; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on
+- Minimize a running workout (⌄ or Back) to a bar at the bottom and keep using the app; one workout at a time
 - Installable PWA, works offline; JSON import/export
 - Sign in with Google or GitHub to sync routines, history and a running workout across devices
 
@@ -17,7 +18,7 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 ### Account, sync and a persistent timer (since v2)
 
 - **Sign in with Google or GitHub** (Firebase Authentication) instead of a gist token. Routines and history sync through Firebase Realtime Database (`users/<uid>/doc`, merged on every device); audio settings stay per device.
-- **Persistent timer:** a workout is stored as start times on the wall clock, so it keeps going through reloads, a locked screen or a closed app, and picks up at the right moment.
+- **Persistent timer:** a workout is stored as start times on the wall clock, so it keeps going through reloads, a locked screen or a closed app, and picks up at the right moment. In the background (another app, screen off) the beeps are queued on the audio clock and keep playing on Android and computers; the voice coach only speaks while the app is open, and names the current step when you come back.
 - **Account:** add or remove a sign-in method (Google / GitHub), sign out (optionally clearing the device) or delete the account with all synced data. A device that last synced with another account asks before mixing data.
 - **Live on all devices:** the running workout (`users/<uid>/run`) shows on every signed-in device. Sound plays on the device you last controlled it from; the others follow silently (*Play here* moves the sound).
 - `cloud.js` loads Firebase only after signing in (or opening Settings). Paste the web-app config into `FIREBASE_CONFIG`; those values are public identifiers, access is limited by `database.rules.json`.
