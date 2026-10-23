@@ -42,6 +42,10 @@ h2{font-size:20px;margin:0}
 /* home: today's routines as full cards, the rest as compact rows */
 .sech{font-size:13px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin:4px 0 8px}
 .grp+.sech{margin-top:20px}
+/* Order button: opens the order view (all routines in their real order, drag to reorder, Done to go back) */
+.sech.shead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px}.sech .sht{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sech .sbtn{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;margin-right:-6px;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;border-radius:6px;opacity:.8}.sech .sbtn:hover{opacity:1}
+.sech .sbtn.on{color:var(--blue);opacity:1}
 .rcard .skip{width:32px;height:32px;padding:0;display:grid;place-items:center;flex:none;opacity:.55;margin-right:-4px}.rcard .skip:hover{opacity:1}
 .rcard.mini.tod{border-color:var(--c);box-shadow:inset 3px 0 0 var(--c)} /* drag state: today's routines keep a colour mark */
 #list.sorting{touch-action:none;user-select:none}
@@ -362,6 +366,7 @@ const IC={
  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
  vol:'<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
  mute:'<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>',
+ sort:'<path d="M7 20V4M3.5 7.5 7 4l3.5 3.5M17 4v16M13.5 16.5 17 20l3.5-3.5"/>',
  play:'<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>',
  pause:'<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>',
  prev:'<path d="M18 5v14l-10-7z" fill="currentColor"/><path d="M6 5v14"/>',
@@ -485,7 +490,10 @@ function durStep(btn){const el=btn.parentNode.querySelector('input');const min=+
     const rep=(ms)=>{tm=setTimeout(()=>{durStep(b);rep(Math.max(60,ms*.85));},ms);};rep(450);});
   ['pointerup','pointercancel','pointerleave','blur'].forEach(ev=>(ev==='blur'?window:document).addEventListener(ev,stop,true));})();
 function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`}
-function renderList(flat){updHistBtn(); // flat = drag state: all routines in one list, in their real order
+let SORT=false; // order view, opened with the Order button: the flat list stays until Done
+function setSort(v){SORT=v;renderList();if(v)document.getElementById('list').scrollIntoView({block:'nearest'});}
+function renderList(flat){updHistBtn(); // flat = drag state or order view: all routines in one list, in their real order
+  flat=flat||SORT;
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived),now=new Date(),wd=now.getDay(),tk=dk(now.getTime());
   // r.skip = date key of a day it was skipped ("Skip today"): not highlighted for the rest of that day, still planned for that weekday
   const skip=r=>r.skip===tk,tod=act.filter(r=>rDays(r).includes(wd)&&!skip(r)),oth=act.filter(r=>!tod.includes(r));
@@ -505,9 +513,10 @@ function renderList(flat){updHistBtn(); // flat = drag state: all routines in on
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
    ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:''}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
-  if(flat){document.getElementById('list').innerHTML=`<div class="sech">All routines · drop where it belongs</div>${grp(act,mini)}`;return;}
-  document.getElementById('list').innerHTML=!act.length?`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`:
-   tod.length?`<div class="sech">Today · ${DN[wd]}</div>${grp(tod,full)}${oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:''}`:grp(oth,mini);
+  if(flat&&act.length){document.getElementById('list').innerHTML=`<div class="sech shead"><span class="sht">${SORT?'All routines · in order':'All routines · drop where it belongs'}</span>${SORT?`<button class="ghost sbtn on" onclick="setSort(false)">${svgi('check',14,2.5)}Done</button>`:''}</div>${grp(act,mini)}`;if(!SORT)return;}
+  // Today hides the real order: a subtle Order button shows it (without Today the list already is in order)
+  else document.getElementById('list').innerHTML=!act.length?`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`:
+   tod.length?`<div class="sech shead"><span class="sht">Today · ${DN[wd]}</span>${act.length>1?`<button class="ghost sbtn" onclick="setSort(true)" title="See all routines in their real order and reorder them">${svgi('sort',14)}Order</button>`:''}</div>${grp(tod,full)}${oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:''}`:grp(oth,mini);
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''}</div></div>
@@ -1100,22 +1109,22 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
   try{list.setPointerCapture(pid);}catch(_){}
   const start=()=>{renderList(true);list.classList.add('sorting');buzz(15);
     const cards=[...list.querySelectorAll('.rcard')],card=cards.find(c=>c.dataset.id===id),from=cards.indexOf(card);
-    const mid=()=>{const b=card.getBoundingClientRect();return b.top+scrollY+b.height/2;},pad=(h,end)=>{const d=document.createElement('div');d.style.height=Math.ceil(h)+'px';end?list.append(d):list.prepend(d);};
-    if(mid()<cy)pad(cy-mid()); // room above: the page cannot scroll above the top
-    const want=mid()-cy,room=document.documentElement.scrollHeight-innerHeight;if(want>room)pad(want-room,true); // room below
+    const mid=()=>{const b=card.getBoundingClientRect();return b.top+scrollY+b.height/2;},pad=(h,end)=>{const d=document.createElement('div');d.style.height=Math.max(0,h)+'px';end?list.append(d):list.prepend(d);return d;};
+    if(mid()<cy){const d=pad(cy-mid());d.style.height=Math.max(0,parseFloat(d.style.height)+cy-mid())+'px';} // room above: the page cannot scroll above the top (measured again: the header margin no longer collapses)
+    const want=mid()-cy,low=want+innerHeight-(list.closest('.view').getBoundingClientRect().bottom+scrollY);if(want>document.documentElement.scrollHeight-innerHeight&&low>0)pad(low+1,true); // room below (also when the page is shorter than the screen)
     scrollTo(0,want); // its real place in the full list, under the finger
     const box=cards.map(c=>{const b=c.getBoundingClientRect();return {top:b.top+scrollY,h:b.height};});
     const sz=box[1]?box[1].top-box[0].top:box[0].h,lt=list.getBoundingClientRect().top+scrollY;
     const slot=document.createElement('div');slot.className='dslot';slot.style.cssText=`top:${box[from].top-lt}px;height:${box[from].h}px`;list.prepend(slot);
     card.classList.add('drag','lift');setTimeout(()=>card.classList.remove('lift'),160);
-    st={cards,card,from,to:from,box,sz,slot,lt,head:list.querySelector('.sech'),off:cy+scrollY-(box[from].top+box[from].h/2)};};
+    st={cards,card,from,to:from,box,sz,slot,lt,head:list.querySelector('.sech .sht')||list.querySelector('.sech'),off:cy+scrollY-(box[from].top+box[from].h/2)};};
   const place=()=>{const {cards,card,from,box,sz}=st,n=cards.length,c=cy+scrollY-st.off; // centre of the dragged row, page coordinates
     card.style.transform=`translateY(${c-(box[from].top+box[from].h/2)}px)`;
     // finger above or below the list = cancel: nothing moves, release keeps the order
     const fy=cy+scrollY,out=fy<box[0].top-24||fy>box[n-1].top+box[n-1].h+24;
     let to=from;if(!out){for(let k=from+1;k<n;k++)if(c>box[k].top+box[k].h/2)to=k;for(let k=from-1;k>=0;k--)if(c<box[k].top+box[k].h/2)to=k;}st.to=to;
     card.classList.toggle('cancel',out);st.slot.classList.toggle('same',to===from);
-    st.head.textContent=to===from?'Order unchanged · release to keep it':'All routines · drop where it belongs';
+    st.head.textContent=to===from?(SORT?'Order unchanged':'Order unchanged · release to keep it'):(SORT?'Drop where it belongs':'All routines · drop where it belongs');
     st.slot.style.top=(box[to].top-st.lt)+'px';
     cards.forEach((x,k)=>{if(x===card)return;const sh=(from<to&&k>from&&k<=to)?-sz:(from>to&&k>=to&&k<from)?sz:0;x.style.transform=sh?`translateY(${sh}px)`:'';});};
   const edge=()=>{raf=0;if(!st)return;const v=cy<70?-Math.ceil((70-cy)/6):cy>innerHeight-70?Math.ceil((cy-innerHeight+70)/6):0;
@@ -1129,7 +1138,7 @@ document.getElementById('list').addEventListener('pointerdown',e=>{const h=e.tar
     // settle into the slot so it is clear where it went, then back to the home screen
     // unchanged: it just slides back, no highlight
     dragBusy=true;card.classList.remove('cancel');card.classList.add('lift');if(to!==from){card.classList.add('landed');buzz(10);}card.style.transform=`translateY(${box[to].top-box[from].top}px)`;
-    setTimeout(()=>{dragBusy=false;list.classList.remove('sorting');renderList();scrollTo(0,y0); // back where you were
+    setTimeout(()=>{dragBusy=false;list.classList.remove('sorting');renderList();if(!SORT)scrollTo(0,y0); // back where you were (the order view stays where it is)
       const c=to!==from&&list.querySelector(`.rcard[data-id="${id}"]`);if(c){c.classList.add('flash');c.scrollIntoView({block:'nearest',behavior:'smooth'});setTimeout(()=>c.classList.remove('flash'),1300);}},550);};
   list.addEventListener('pointermove',move);list.addEventListener('pointerup',up);list.addEventListener('pointercancel',up);});
 
