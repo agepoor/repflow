@@ -62,8 +62,11 @@ h2{font-size:20px;margin:0}
 .rcard.mini .go{width:40px;height:40px}
 .days{display:flex;gap:6px}
 .days button{flex:1 1 0;min-width:0;max-width:40px;height:40px;padding:0;border-radius:50%;font-size:14px;font-weight:600;color:var(--tx2)}
-/* editor head: Days takes two columns next to Logging and Voice language; the explainers share one line */
+/* editor head: Days takes two columns next to Logging; the explainers share one line */
 .grid>.wide{grid-column:span 2}
+/* routine settings: three rows of three (rounds · how it plays · days and logging); two columns on narrow screens */
+.grid.hgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:560px){.grid.hgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.hgrid>.wide,.grid.hgrid>.wm{grid-column:1/-1}}
 @media (max-width:340px){.grid>.wide{grid-column:1/-1}}
 .tips{display:flex;flex-wrap:wrap;column-gap:20px}.tips>details[open]{flex-basis:100%}
 .days button.on{background:var(--c);border-color:var(--c);color:#191919}
@@ -235,17 +238,15 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <div id="iconGrid" class="icongrid" hidden></div>
     <input type="hidden" id="eColor">
     <div class="swatches" id="eColorPick" role="radiogroup" aria-label="Color"></div>
-    <div class="grid" style="margin-top:12px">
+    <div class="grid hgrid" style="margin-top:12px"> <!-- rounds · how it plays · when and tracking -->
       <div><label>Rounds</label><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated"></div>
       <div><label>Rest between rounds <span class="dh"></span></label><div class="durw"><input id="eRest" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label for="eHold">Next round</label><select id="eHold" title="Auto-start: the next round starts by itself · Tap to start: waits (after the rest between rounds) until you tap"><option value="">Auto-start</option><option value="tap">Tap to start</option></select></div>
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
-    </div>
-    <div class="grid" style="margin-top:12px">
-      <div class="wide"><label>Days <span class="dh" id="eDaysHint"></span></label><div class="days" id="eDays" role="group" aria-label="Days"></div></div>
-      <div><label for="eLog">Logging</label><select id="eLog" title="Log and count for streak · Log only (in history, not in streaks) · Off (not logged)"><option value="streak">Log + streak</option><option value="log">Log only</option><option value="off">Off</option></select></div>
       <div><label for="eLang">Voice language</label><select id="eLang"></select></div>
+      <div class="wide"><label>Days <span class="dh" id="eDaysHint"></span></label><div class="days" id="eDays" role="group" aria-label="Days"></div></div>
+      <div class="wm"><label for="eLog">Logging</label><select id="eLog" title="Log and count for streak · Log only (in history, not in streaks) · Off (not logged)"><option value="streak">Log + streak</option><option value="log">Log only</option><option value="off">Off</option></select></div>
     </div>
     <div class="tips">
       <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one.</p><p style="margin:0"><b style="color:var(--tx)">Next round</b> = Auto-start goes straight on; Tap to start waits (after the rest between rounds) until you tap the circle. See the structure below for exactly what happens.</p></div></details>
