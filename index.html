@@ -99,6 +99,7 @@ label .dh{color:var(--tx2);opacity:.75}label .dh.bad{color:var(--red);opacity:1}
 #big{font-size:clamp(64px,16vh,150px);font-weight:800;line-height:1;max-width:100%;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
 #cueLine{font-size:clamp(20px,4.2vh,34px);font-weight:700;line-height:1.15;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #cueLine:empty{display:none}
+#big .ic{position:static;inset:auto;transform:none;width:.8em;height:.8em}
 #sub{font-size:clamp(14px,2.4vh,19px);color:var(--tx2);min-height:1.4em;max-width:100%}
 #call{font-size:clamp(26px,6vh,56px);font-weight:800;min-height:1.2em;text-align:center;letter-spacing:-.02em;max-width:92vw;line-height:1.1}
 #call:empty{min-height:0}
@@ -176,7 +177,7 @@ header .eb{height:38px;padding:0 14px;gap:6px;font-weight:600}header .eb.go1{col
 @media (max-width:480px){.hstat b{font-size:22px}.hstats{gap:6px}}
 .sflow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}.sround{border:1px dashed var(--bd);border-radius:10px;padding:6px 10px 10px;width:100%}.sround .sflow{margin-top:4px}.sround .sl{font-size:12px;color:var(--tx2);font-weight:600}
 .sc{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:4px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--bd);white-space:nowrap;color:var(--tx)}.sc svg{color:var(--c,var(--tx2))}
-.sc.rest,.sc.rrest{background:rgba(114,188,143,.12);border-color:rgba(114,188,143,.35);color:#9fd4b3}.sc.rrest{border-style:dashed}.sc.prep{color:var(--tx2)}.sc.done{color:#72BC8F}.sa{color:var(--tx2);font-size:13px}
+.sc.rest,.sc.rrest{background:rgba(114,188,143,.12);border-color:rgba(114,188,143,.35);color:#9fd4b3}.sc.rrest{border-style:dashed}.sc.prep{color:var(--tx2)}.sc.wait{color:var(--tx2);border-style:dashed}.sc.done{color:#72BC8F}.sa{color:var(--tx2);font-size:13px}
 #run .lw{display:flex;justify-content:center}
 #live{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--tx2);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);border-radius:999px;padding:6px 12px}
 #live[hidden]{display:none}#live b{color:var(--tx)}
@@ -237,6 +238,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <div class="grid" style="margin-top:12px">
       <div><label>Rounds</label><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated"></div>
       <div><label>Rest between rounds <span class="dh"></span></label><div class="durw"><input id="eRest" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
+      <div><label for="eHold">Next round</label><select id="eHold" title="Auto-start: the next round starts by itself · Tap to start: waits (after the rest between rounds) until you tap"><option value="">Auto-start</option><option value="tap">Tap to start</option></select></div>
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
     </div>
@@ -246,7 +248,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div><label for="eLang">Voice language</label><select id="eLang"></select></div>
     </div>
     <div class="tips">
-      <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p style="margin:0"><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one. See the structure below for exactly what happens.</p></div></details>
+      <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one.</p><p style="margin:0"><b style="color:var(--tx)">Next round</b> = Auto-start goes straight on; Tap to start waits (after the rest between rounds) until you tap the circle. See the structure below for exactly what happens.</p></div></details>
       <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     </div>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
@@ -495,7 +497,7 @@ function renderList(flat){updHistBtn(); // flat = drag state: all routines in on
   // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
   const full=r=>{const st=build(r),t=tot(r),ok=done(r);
    return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
    ${ok?'':`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
   // other routines: one compact row; a skipped one says so and can be brought back
   const mini=r=>{const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
@@ -533,7 +535,7 @@ function toggleDay(x){const d=rDays(cur);const n=d.includes(x)?d.filter(y=>y!==x
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){cur=norm(mig(cur));
-  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.value=logMode(cur);
+  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.value=logMode(cur);eHold.value=cur.hold?'tap':'';
   eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();renderDays();renderLangPick();
   renderBlocks();
 }
@@ -572,9 +574,9 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;const ln=eLang.value;if(ln)cur.lang=ln;else delete cur.lang;cur.cv=2;}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;const ln=eLang.value;if(ln)cur.lang=ln;else delete cur.lang;if(eHold.value==='tap')cur.hold=true;else delete cur.hold;cur.cv=2;}
 ['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
-['eRounds','eRest','ePrep','eSec'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
+['eRounds','eRest','ePrep','eSec','eHold'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 // blocks with an empty count length follow the routine's: keep their hint and combo preview in step
 eSec.addEventListener('input',()=>{document.querySelectorAll('#edit [data-rsec]').forEach(e=>e.placeholder=`Routine (${cur.sec} s)`);cur.blocks.forEach(b=>pvUpd(b.id));});
 function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
@@ -586,11 +588,11 @@ function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur
     const lastInRound=i===list.length-1;if(b.restAfter>0&&b.type!=='rest'&&!(isLast&&lastInRound))h+=ar+chip(`Rest ${mmss(b.restAfter)}`,'rest');return h;}).join(ar);
   const n=Math.max(1,r.rounds|0);let html=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>Structure</b><span class="muted" style="font-size:13px">one round = all blocks, top to bottom</span></div><div class="sflow">`;
   if(r.prep>0)html+=chip(`Get ready ${mmss(r.prep)}`,'prep');
-  const at=k=>bl.filter(b=>inRound(b,k===1,k===n)),box=(lbl,k)=>`<div class="sround"><div class="sl">${lbl}</div><div class="sflow">${one(at(k),false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}</div></div>`;
+  const at=k=>bl.filter(b=>inRound(b,k===1,k===n)),box=(lbl,k)=>`<div class="sround"><div class="sl">${lbl}</div><div class="sflow">${one(at(k),false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}${r.hold?ar+chip('Tap to start next round','wait','play'):''}</div></div>`;
   if(n>1&&warm.length){html+=box('Round 1 (first)',1);if(n>2)html+=box(n>3?`Rounds 2–${n-1}`:'Round 2',2);}
   else if(n>1)html+=box(n>2?`Rounds 1–${n-1}`:'Round 1',1);
   html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(at(n),true)}${chip('Done','done','check')}</div></div></div>`;
-  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${warm.length?` · ${warm.map(b=>esc(b.name)).join(', ')} only in the first round`:''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}</p>`;
+  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${warm.length?` · ${warm.map(b=>esc(b.name)).join(', ')} only in the first round`:''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}${r.hold&&n>1?` · each next round starts when you tap`:''}</p>`;
   html+=`<p id="eSummary" style="margin:10px 0 0;font-size:14px;font-weight:600;color:var(--tx)"></p>`;
   el.innerHTML=html;}
 function summary(){readHead();renderStruct();queueAutosave();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
@@ -676,11 +678,11 @@ function renderLangPick(){if(!cur)return;const ls=voiceLangs();if(cur.lang&&!ls.
   eLang.innerHTML=`<option value="">Default (${esc(S.lang)})</option>`+ls.map(l=>`<option ${l===cur.lang?'selected':''}>${esc(l)}</option>`).join('');}
 /* built-in spoken words in the voice language (exercise names, cues and combos are spoken as you typed them) */
 const VPH={
-  en:{'Get ready':'Get ready','Rest':'Rest','Round rest':'Round rest',reps:'reps',fight:'Fight!',halfway:'Halfway',ten:'Ten seconds',done:'Done. Great work!',sec:'seconds',min1:'minute',min:'minutes'},
-  nl:{'Get ready':'Maak je klaar','Rest':'Rust','Round rest':'Rust tussen rondes',reps:'herhalingen',fight:'Vecht!',halfway:'Halverwege',ten:'Nog tien seconden',done:'Klaar. Goed gedaan!',sec:'seconden',min1:'minuut',min:'minuten'},
-  es:{'Get ready':'Prepárate','Rest':'Descanso','Round rest':'Descanso entre rondas',reps:'repeticiones',fight:'¡A pelear!',halfway:'Mitad',ten:'Diez segundos',done:'Terminado. ¡Buen trabajo!',sec:'segundos',min1:'minuto',min:'minutos'},
-  de:{'Get ready':'Mach dich bereit','Rest':'Pause','Round rest':'Rundenpause',reps:'Wiederholungen',fight:'Kämpfen!',halfway:'Halbzeit',ten:'Zehn Sekunden',done:'Fertig. Gut gemacht!',sec:'Sekunden',min1:'Minute',min:'Minuten'},
-  fr:{'Get ready':'Prépare-toi','Rest':'Repos','Round rest':'Repos entre les rounds',reps:'répétitions',fight:'Combat !',halfway:'Mi-parcours',ten:'Dix secondes',done:'Terminé. Bon travail !',sec:'secondes',min1:'minute',min:'minutes'}};
+  en:{'Get ready':'Get ready','Next round':'Next round',tapgo:'Tap when ready','Rest':'Rest','Round rest':'Round rest',reps:'reps',fight:'Fight!',halfway:'Halfway',ten:'Ten seconds',done:'Done. Great work!',sec:'seconds',min1:'minute',min:'minutes'},
+  nl:{'Get ready':'Maak je klaar','Next round':'Volgende ronde',tapgo:'Tik als je klaar bent','Rest':'Rust','Round rest':'Rust tussen rondes',reps:'herhalingen',fight:'Vecht!',halfway:'Halverwege',ten:'Nog tien seconden',done:'Klaar. Goed gedaan!',sec:'seconden',min1:'minuut',min:'minuten'},
+  es:{'Get ready':'Prepárate','Next round':'Siguiente ronda',tapgo:'Toca cuando estés listo','Rest':'Descanso','Round rest':'Descanso entre rondas',reps:'repeticiones',fight:'¡A pelear!',halfway:'Mitad',ten:'Diez segundos',done:'Terminado. ¡Buen trabajo!',sec:'segundos',min1:'minuto',min:'minutos'},
+  de:{'Get ready':'Mach dich bereit','Next round':'Nächste Runde',tapgo:'Tippe, wenn du bereit bist','Rest':'Pause','Round rest':'Rundenpause',reps:'Wiederholungen',fight:'Kämpfen!',halfway:'Halbzeit',ten:'Zehn Sekunden',done:'Fertig. Gut gemacht!',sec:'Sekunden',min1:'Minute',min:'Minuten'},
+  fr:{'Get ready':'Prépare-toi','Next round':'Round suivant',tapgo:'Touche quand tu es prêt','Rest':'Repos','Round rest':'Repos entre les rounds',reps:'répétitions',fight:'Combat !',halfway:'Mi-parcours',ten:'Dix secondes',done:'Terminé. Bon travail !',sec:'secondes',min1:'minute',min:'minutes'}};
 function ph(k){const t=VPH[lnorm(voiceLang()).split("-")[0]]||VPH.en;return t[k]??VPH.en[k]??k;}
 function sayDur(d){d=Math.max(0,Math.round(d));const m=Math.floor(d/60),x=d%60;return m?`${m} ${ph(m===1?'min1':'min')}${x?' '+x:''}`:`${x} ${ph('sec')}`;}
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
@@ -709,6 +711,7 @@ function build(r){const st=[];const P=(s)=>st.push(s);
       if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
     });
     if(!last&&r.rest>0)P({type:'time',kind:'rest',label:'Round rest',dur:r.rest,round:k});
+    if(!last&&r.hold)P({type:'wait',kind:'prep',label:'Next round',round:k+1}); // Tap to start: hold until a tap
   }
   return st;}
 
@@ -723,7 +726,7 @@ const DEV=(()=>{let d=null;try{d=JSON.parse(localStorage.getItem('rf2_dev')||'nu
     store(localStorage,'rf2_dev',JSON.stringify(d));}return d;})();
 let OFF=+DEV.off||0;const NOW=()=>Date.now()+OFF; // server-aligned clock
 const mine=()=>!!(X&&X.steps&&X.by===DEV.id);
-const stepLen=s=>s.type==='time'?Math.max(0,+s.dur||0):s.mode==='tap'?Infinity:s.reps*(s.counts*s.tempo+s.repPause);
+const stepLen=s=>s.type==='wait'?Infinity:s.type==='time'?Math.max(0,+s.dur||0):s.mode==='tap'?Infinity:s.reps*(s.counts*s.tempo+s.repPause);
 const boxStr=b=>JSON.stringify(b||{},(k,v)=>v instanceof Set?[...v]:v);
 function unbox(s){let b={};try{b=JSON.parse(s||'{}')||{};}catch(e){}Object.values(b).forEach(B=>{if(B&&typeof B==='object')B.seen=new Set(B.seen||[]);});return b;}
 function runDoc(end){return {sid:X.sid,r:JSON.stringify(X.r),i:X.i,s0:X.s0,t0:X.t0,p:X.p,tap:X.tap,nc:X.nc,ct:X.ct||'',calls:X.calls||0,box:boxStr(X.box),by:X.by,dn:X.dn||'',u:X.u,end:end||null,fin:X.fin||null};}
@@ -765,12 +768,13 @@ function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   run.style.background=`radial-gradient(circle at 50% 45%, ${c}55, #191919 75%), #191919`;ring.style.stroke=c;
   phase.textContent=s.label;phase.style.color=c;showCall(X.ct,false);
   rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
-  const n=X.steps[i+1];next.textContent=n?`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
-  tapHint.textContent=s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
+  const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: Round ${n.round} · tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
+  tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
   pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';}
 function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i];
   if(!quiet){ // announcements
-    if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
+    if(s.type==='wait'){beep(784,.2);buzz([80,60,80]);say(`${ph('Next round')}. ${ph('tapgo')}`);}
+    else if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
       say(s.type==='reps'?`${s.label}. ${s.reps} ${ph('reps')}`:(s.boxing?`${s.label}. ${ph('fight')}`:(s.cue||s.label)));}
     else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${ph(s.label)}. ${sayDur(s.dur)}`);}
     else say(`${X.r.name}. ${ph('Get ready')}`);}
@@ -852,12 +856,12 @@ function countFx(rep,c,s){ // rep 0-based, c 0-based
   if(S.speakCounts==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)),true,true);
   else if(S.speakCounts==='reps'&&first)say(String(rep+1),true,true);
   big.classList.remove('flash');void big.offsetWidth;big.classList.add('flash');}
-function tap(){if(!X||!X.steps||X.p!=null)return;const s=X.steps[X.i];if(s.type!=='reps'||s.mode!=='tap')return;
+function tap(){if(!X||!X.steps||X.p!=null)return;const s=X.steps[X.i];if(s.type==='wait'){ac();jump(1);return;}if(s.type!=='reps'||s.mode!=='tap')return;
   const total=s.reps*s.counts;if(X.tap>=total)return;ac();claim();
   const c=X.tap%s.counts,rep=Math.floor(X.tap/s.counts);countFx(rep,c,s);X.tap++;
   if(X.tap>=total){const sid=X.sid,i=X.i;setTimeout(()=>{if(X&&X.sid===sid&&X.i===i&&mine())jump(1);},350);}
   pushRun();render();}
-document.addEventListener('keydown',e=>{if(!run.classList.contains('on'))return;if(e.code==='Space'){e.preventDefault();const s=X&&X.steps&&X.steps[X.i];if(s&&s.mode==='tap')tap();else togglePause();}
+document.addEventListener('keydown',e=>{if(!run.classList.contains('on'))return;if(e.code==='Space'){e.preventDefault();const s=X&&X.steps&&X.steps[X.i];if(s&&(s.mode==='tap'||s.type==='wait'))tap();else togglePause();}
   if(e.code==='ArrowRight')jump(1);if(e.code==='ArrowLeft')jump(-1);if(e.code==='Escape')stopRun();});
 let FB='';function fitBig(){const t=String(big.textContent),L=t.length,W=big.parentElement.clientWidth,key=t+'|'+W;if(key===FB)return;FB=key;
   const one=!/\s/.test(t);big.style.whiteSpace=one?'nowrap':'';big.style.overflowWrap=one?'normal':'';
@@ -865,7 +869,8 @@ let FB='';function fitBig(){const t=String(big.textContent),L=t.length,W=big.par
   const sw=big.scrollWidth;if(W&&sw>W){const fs=parseFloat(getComputedStyle(big).fontSize);big.style.fontSize=Math.floor(fs*W/sw*0.96)+'px';}}
 function fitCue(){const L=cueLine.textContent.length;cueLine.style.fontSize=L<=10?'':`min(${Math.round(420/L)+10}px, ${(4.6*10/L+1.2).toFixed(1)}vh)`;}
 function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let t=X.t=Math.max(0,((X.p??NOW())-X.s0)/1000),frac=0;
-  if(s.type==='time'){const left=Math.max(0,s.dur-t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
+  if(s.type==='wait'){if(!big.querySelector('svg'))big.innerHTML=svgi('play',96);cueLine.textContent='';sub.textContent='tap to start';fitBig();}
+  else if(s.type==='time'){const left=Math.max(0,s.dur-t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
   else{let rep,c,breather=false;
     if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;t=Math.min(t,s.reps*per-1e-6);rep=Math.floor(t/per);const inRep=t-rep*per;c=Math.floor(inRep/s.tempo);
       if(inRep>=s.counts*s.tempo){breather=true;c=s.counts-1;}frac=t/s.dur;}
@@ -883,7 +888,7 @@ function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let t=X.t=Math.max
     big.textContent=bigTxt;cueLine.textContent=cueTxt;sub.textContent=subTxt;fitBig();fitCue();
     [...pips.children].forEach((p,k)=>{p.className=k<rep||(k===rep&&s.mode==='tap'&&X.tap>=s.reps*s.counts)?'done':k===rep?'now':'';});
   }
-  ring.style.strokeDashoffset=289.03*(1-Math.min(1,frac));
+  ring.style.strokeDashoffset=s.type==='wait'?0:289.03*(1-Math.min(1,frac));
   // overall progress
   const tot=X.steps.length;rBar.style.width=((X.i+Math.min(1,frac))/tot*100)+'%';}
 
