@@ -104,11 +104,11 @@ label .dh{color:var(--tx2);opacity:.75}label .dh.bad{color:var(--red);opacity:1}
 #stage svg{position:absolute;inset:0;transform:rotate(-90deg)}
 #stage .center{text-align:center;z-index:1;width:72%;display:flex;flex-direction:column;align-items:center;gap:4px}
 #phase{font-size:clamp(15px,2.6vh,20px);font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;max-width:92vw;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#big{font-size:clamp(64px,16vh,150px);font-weight:800;line-height:1;max-width:100%;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+#big{font-size:clamp(64px,16vh,150px);font-weight:800;line-height:1;max-width:100%;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;letter-spacing:-.04em;text-box:trim-both cap alphabetic;margin:.1em 0} /* trimmed to the digits (cap height to baseline), so they sit exactly in the middle */
 #cueLine{font-size:clamp(20px,4.2vh,34px);font-weight:700;line-height:1.15;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#cueLine:empty{display:none}
-#big .ic{position:static;inset:auto;transform:none;width:.8em;height:.8em}
-#sub{font-size:clamp(14px,2.4vh,19px);color:var(--tx2);min-height:1.4em;max-width:100%}
+#cueLine:empty{display:none}#stage.cue #cueLine{display:-webkit-box;min-height:1.15em}
+#big .ic{position:static;inset:auto;transform:none;width:.8em;height:.8em;display:block;margin:0 auto}#big:has(.ic){margin:0}
+#sub{font-size:clamp(14px,2.4vh,19px);color:var(--tx2);min-height:1.4em;max-width:100%}#stage.nosub #sub{display:none}
 #call{font-size:clamp(26px,6vh,56px);font-weight:800;min-height:1.2em;text-align:center;letter-spacing:-.02em;max-width:92vw;line-height:1.1}
 #call:empty{min-height:0}
 #pips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:90vw;min-height:14px}
@@ -834,6 +834,10 @@ function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
   const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: ${n.label==='Next round'?`Round ${n.round} · `:''}${X.steps[i+2]?X.steps[i+2].label+' · ':''}tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
   tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
+  // text under the number: room is kept for the whole step (nothing jumps within a step), and only when the step has text,
+  // so a bare number sits exactly in the middle of the ring
+  stage.classList.toggle('nosub',s.type==='time'&&s.kind==='work'&&!(s.boxing&&s.order==='sequence'));
+  stage.classList.toggle('cue',s.type==='reps'&&s.counts>1&&s.display==='both'&&s.cues.length>0);
   pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';}
 function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i],bg=at<BGT; // bg: its beep already played in the background
   if(!quiet){ // announcements
