@@ -241,7 +241,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <div class="grid hgrid" style="margin-top:12px"> <!-- rounds · how it plays · when and tracking -->
       <div><label>Rounds</label><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated"></div>
       <div><label>Rest between rounds <span class="dh"></span></label><div class="durw"><input id="eRest" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
-      <div><label for="eHold">Next round</label><select id="eHold" title="Auto-start: the next round starts by itself · Tap to start: waits (after the rest between rounds) until you tap"><option value="">Auto-start</option><option value="tap">Tap to start</option></select></div>
+      <div><label for="eHold">Continue</label><select id="eHold" title="Auto-start: everything runs by itself · Tap: rounds only: waits before each next round (after the rest between rounds) · Tap: every block: waits before each next block (after its rest)"><option value="">Auto-start</option><option value="rounds">Tap: rounds only</option><option value="blocks">Tap: every block</option></select></div>
       <div><label>Get-ready <span class="dh"></span></label><div class="durw"><input id="ePrep" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="0" oninput="durIn(this)" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
       <div><label for="eLang">Voice language</label><select id="eLang"></select></div>
@@ -249,7 +249,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div class="wm"><label for="eLog">Logging</label><select id="eLog" title="Log and count for streak · Log only (in history, not in streaks) · Off (not logged)"><option value="streak">Log + streak</option><option value="log">Log only</option><option value="off">Off</option></select></div>
     </div>
     <div class="tips">
-      <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one.</p><p style="margin:0"><b style="color:var(--tx)">Next round</b> = Auto-start goes straight on; Tap to start waits (after the rest between rounds) until you tap the circle. See the structure below for exactly what happens.</p></div></details>
+      <details class="info"><summary>Rounds vs blocks</summary><div class="body"><p><b style="color:var(--tx)">Block</b> = one part of your routine (reps, timed, boxing or rest). Blocks run top to bottom.</p><p><b style="color:var(--tx)">Round</b> = all blocks once. <b style="color:var(--tx)">Rounds</b> repeats that whole list.</p><p><b style="color:var(--tx)">Rest after block</b> (in a block) = pause after that block, in every round.</p><p><b style="color:var(--tx)">Rest between rounds</b> = pause after each round, except the last one.</p><p style="margin:0"><b style="color:var(--tx)">Continue</b> = Auto-start goes straight on. <i>Tap: rounds only</i> waits before each next round, <i>Tap: every block</i> before each next block; rests still run by themselves first. Tap the circle to go on. See the structure below for exactly what happens.</p></div></details>
       <details class="info" id="routineInfo"><summary>What is count length?</summary><div class="body"><p style="margin:0">How long one count of a move takes: one count in a rep block, one punch/move in a boxing block. Blocks with an empty count length use this value. Rests, breathers and timers always use real seconds.</p></div></details>
     </div>
     <label style="margin-top:12px">Notes</label><textarea id="eNotes" rows="2"></textarea>
@@ -536,7 +536,7 @@ function toggleDay(x){const d=rDays(cur);const n=d.includes(x)?d.filter(y=>y!==x
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
 function fillEditor(){cur=norm(mig(cur));
-  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.value=logMode(cur);eHold.value=cur.hold?'tap':'';
+  renderIconPick();eName.value=cur.name;eRounds.value=cur.rounds;durSet(eRest,cur.rest);durSet(ePrep,cur.prep);eNotes.value=cur.notes||'';archBtn.innerHTML=svgi(cur.archived?'unarchive':'archive',18)+`<span class="lbl">${cur.archived?'Unarchive':'Archive'}</span>`;archBtn.title=cur.archived?'Unarchive':'Archive';archBtn.style.display=cur._new?'none':'';eSec.value=cur.sec||1;eLog.value=logMode(cur);eHold.value=holdMode(cur);
   eColor.value=cur.color in COLORS?cur.color:'orange';renderSwatches();renderDays();renderLangPick();
   renderBlocks();
 }
@@ -575,7 +575,7 @@ function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
 function rm(i){cur.blocks.splice(i,1);renderBlocks();}
-function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;const ln=eLang.value;if(ln)cur.lang=ln;else delete cur.lang;if(eHold.value==='tap')cur.hold=true;else delete cur.hold;cur.cv=2;}
+function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.rounds=Math.max(1,+eRounds.value||1);cur.rest=+eRest.dataset.v||0;cur.prep=+ePrep.dataset.v||0;cur.color=eColor.value;if(window.eIconBtn)eIconBtn.style.color=COLORS[cur.color];cur.notes=eNotes.value;cur.sec=Math.min(10,Math.max(0.05,+eSec.value||1));const lg=eLog.value;if(lg==='off')cur.nolog=true;else delete cur.nolog;if(lg==='log')cur.streak=false;else if(cur.streak===false)delete cur.streak;const ln=eLang.value;if(ln)cur.lang=ln;else delete cur.lang;if(eHold.value)cur.hold=eHold.value;else delete cur.hold;cur.cv=2;}
 ['input','change'].forEach(t=>document.getElementById('edit').addEventListener(t,queueAutosave));
 ['eRounds','eRest','ePrep','eSec','eHold'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 // blocks with an empty count length follow the routine's: keep their hint and combo preview in step
@@ -585,15 +585,16 @@ function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur
   if(!bl.length){el.innerHTML=`<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;return;}
   const chip=(txt,kind,ic,c)=>`<span class="sc ${kind||''}"${c?` style="--c:${c}"`:''}>${ic?svgi(ic,14):''}${txt}</span>`,ar='<span class="sa">→</span>';
   const warm=bl.filter(b=>b.firstOnly),fin=bl.filter(b=>b.lastOnly&&!b.firstOnly);
-  const one=(list,isLast)=>list.map((b,i)=>{const d=bDur(b,r),bt=BT[b.type]||[];let h=b.type==='rest'?chip(`${esc(b.name||'Rest')} ${mmss(d)}`,'rest',null):chip(`${esc(b.name)} ${d==null?'· tap':mmss(d)}`,'',b.type==='reps'?'hash':b.type==='timed'?'timer':'glove',COLORS[bt[2]]);
+  const hm=holdMode(r),tap1=chip('Tap','wait','play')+ar;
+  const one=(list,isLast)=>list.map((b,i)=>{const d=bDur(b,r),bt=BT[b.type]||[];let h=(hm==='blocks'&&i>0&&b.type!=='rest'?tap1:'')+(b.type==='rest'?chip(`${esc(b.name||'Rest')} ${mmss(d)}`,'rest',null):chip(`${esc(b.name)} ${d==null?'· tap':mmss(d)}`,'',b.type==='reps'?'hash':b.type==='timed'?'timer':'glove',COLORS[bt[2]]));
     const lastInRound=i===list.length-1;if(b.restAfter>0&&b.type!=='rest'&&!(isLast&&lastInRound))h+=ar+chip(`Rest ${mmss(b.restAfter)}`,'rest');return h;}).join(ar);
   const n=Math.max(1,r.rounds|0);let html=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>Structure</b><span class="muted" style="font-size:13px">one round = all blocks, top to bottom</span></div><div class="sflow">`;
   if(r.prep>0)html+=chip(`Get ready ${mmss(r.prep)}`,'prep');
-  const at=k=>bl.filter(b=>inRound(b,k===1,k===n)),box=(lbl,k)=>`<div class="sround"><div class="sl">${lbl}</div><div class="sflow">${one(at(k),false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}${r.hold?ar+chip('Tap to start next round','wait','play'):''}</div></div>`;
+  const at=k=>bl.filter(b=>inRound(b,k===1,k===n)),box=(lbl,k)=>`<div class="sround"><div class="sl">${lbl}</div><div class="sflow">${one(at(k),false)||'<span class="muted">(no blocks)</span>'}${r.rest>0?ar+chip(`Rest between rounds ${mmss(r.rest)}`,'rrest'):''}${hm?ar+chip('Tap to start next round','wait','play'):''}</div></div>`;
   if(n>1&&warm.length){html+=box('Round 1 (first)',1);if(n>2)html+=box(n>3?`Rounds 2–${n-1}`:'Round 2',2);}
   else if(n>1)html+=box(n>2?`Rounds 1–${n-1}`:'Round 1',1);
   html+=`<div class="sround last"><div class="sl">${n>1?`Round ${n} (last)`:'Round 1 (only)'}</div><div class="sflow">${one(at(n),true)}${chip('Done','done','check')}</div></div></div>`;
-  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${warm.length?` · ${warm.map(b=>esc(b.name)).join(', ')} only in the first round`:''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}${r.hold&&n>1?` · each next round starts when you tap`:''}</p>`;
+  html+=`<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n!==1?'s':''}${warm.length?` · ${warm.map(b=>esc(b.name)).join(', ')} only in the first round`:''}${fin.length?` · ${fin.map(b=>esc(b.name)).join(', ')} only in the last round`:''}${r.rest>0&&n>1?` · no round rest after the last round`:''}${hm==='blocks'?` · each next block starts when you tap`:hm&&n>1?` · each next round starts when you tap`:''}</p>`;
   html+=`<p id="eSummary" style="margin:10px 0 0;font-size:14px;font-weight:600;color:var(--tx)"></p>`;
   el.innerHTML=html;}
 function summary(){readHead();renderStruct();queueAutosave();const st=build(cur);const t=st.reduce((a,s)=>a+(s.dur||0),0);
@@ -679,11 +680,11 @@ function renderLangPick(){if(!cur)return;const ls=voiceLangs();if(cur.lang&&!ls.
   eLang.innerHTML=`<option value="">Default (${esc(S.lang)})</option>`+ls.map(l=>`<option ${l===cur.lang?'selected':''}>${esc(l)}</option>`).join('');}
 /* built-in spoken words in the voice language (exercise names, cues and combos are spoken as you typed them) */
 const VPH={
-  en:{'Get ready':'Get ready','Next round':'Next round',tapgo:'Tap when ready','Rest':'Rest','Round rest':'Round rest',reps:'reps',fight:'Fight!',halfway:'Halfway',ten:'Ten seconds',done:'Done. Great work!',sec:'seconds',min1:'minute',min:'minutes'},
-  nl:{'Get ready':'Maak je klaar','Next round':'Volgende ronde',tapgo:'Tik als je klaar bent','Rest':'Rust','Round rest':'Rust tussen rondes',reps:'herhalingen',fight:'Vecht!',halfway:'Halverwege',ten:'Nog tien seconden',done:'Klaar. Goed gedaan!',sec:'seconden',min1:'minuut',min:'minuten'},
-  es:{'Get ready':'Prepárate','Next round':'Siguiente ronda',tapgo:'Toca cuando estés listo','Rest':'Descanso','Round rest':'Descanso entre rondas',reps:'repeticiones',fight:'¡A pelear!',halfway:'Mitad',ten:'Diez segundos',done:'Terminado. ¡Buen trabajo!',sec:'segundos',min1:'minuto',min:'minutos'},
-  de:{'Get ready':'Mach dich bereit','Next round':'Nächste Runde',tapgo:'Tippe, wenn du bereit bist','Rest':'Pause','Round rest':'Rundenpause',reps:'Wiederholungen',fight:'Kämpfen!',halfway:'Halbzeit',ten:'Zehn Sekunden',done:'Fertig. Gut gemacht!',sec:'Sekunden',min1:'Minute',min:'Minuten'},
-  fr:{'Get ready':'Prépare-toi','Next round':'Round suivant',tapgo:'Touche quand tu es prêt','Rest':'Repos','Round rest':'Repos entre les rounds',reps:'répétitions',fight:'Combat !',halfway:'Mi-parcours',ten:'Dix secondes',done:'Terminé. Bon travail !',sec:'secondes',min1:'minute',min:'minutes'}};
+  en:{'Get ready':'Get ready','Next round':'Next round','Next block':'Next block',tapgo:'Tap when ready','Rest':'Rest','Round rest':'Round rest',reps:'reps',fight:'Fight!',halfway:'Halfway',ten:'Ten seconds',done:'Done. Great work!',sec:'seconds',min1:'minute',min:'minutes'},
+  nl:{'Get ready':'Maak je klaar','Next round':'Volgende ronde','Next block':'Volgend blok',tapgo:'Tik als je klaar bent','Rest':'Rust','Round rest':'Rust tussen rondes',reps:'herhalingen',fight:'Vecht!',halfway:'Halverwege',ten:'Nog tien seconden',done:'Klaar. Goed gedaan!',sec:'seconden',min1:'minuut',min:'minuten'},
+  es:{'Get ready':'Prepárate','Next round':'Siguiente ronda','Next block':'Siguiente bloque',tapgo:'Toca cuando estés listo','Rest':'Descanso','Round rest':'Descanso entre rondas',reps:'repeticiones',fight:'¡A pelear!',halfway:'Mitad',ten:'Diez segundos',done:'Terminado. ¡Buen trabajo!',sec:'segundos',min1:'minuto',min:'minutos'},
+  de:{'Get ready':'Mach dich bereit','Next round':'Nächste Runde','Next block':'Nächster Block',tapgo:'Tippe, wenn du bereit bist','Rest':'Pause','Round rest':'Rundenpause',reps:'Wiederholungen',fight:'Kämpfen!',halfway:'Halbzeit',ten:'Zehn Sekunden',done:'Fertig. Gut gemacht!',sec:'Sekunden',min1:'Minute',min:'Minuten'},
+  fr:{'Get ready':'Prépare-toi','Next round':'Round suivant','Next block':'Bloc suivant',tapgo:'Touche quand tu es prêt','Rest':'Repos','Round rest':'Repos entre les rounds',reps:'répétitions',fight:'Combat !',halfway:'Mi-parcours',ten:'Dix secondes',done:'Terminé. Bon travail !',sec:'secondes',min1:'minute',min:'minutes'}};
 function ph(k){const t=VPH[lnorm(voiceLang()).split("-")[0]]||VPH.en;return t[k]??VPH.en[k]??k;}
 function sayDur(d){d=Math.max(0,Math.round(d));const m=Math.floor(d/60),x=d%60;return m?`${m} ${ph(m===1?'min1':'min')}${x?' '+x:''}`:`${x} ${ph('sec')}`;}
 function testVoice(){const was=S.voice;S.voice=true;const nl=S.lang.startsWith('nl'),es=S.lang.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.');S.voice=was;}
@@ -697,7 +698,9 @@ function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22)
 /* ---------- build step list ---------- */
 // A block runs in every round, or only in the first round (warm-up) or only in the last round (finisher)
 function inRound(b,first,last){return b.firstOnly?first:b.lastOnly?last:true;}
-function build(r){const st=[];const P=(s)=>st.push(s);
+/* Continue: '' = auto-start; 'rounds' = wait for a tap before each next round; 'blocks' = before each next block (hold:true from before = rounds) */
+function holdMode(r){return r.hold==='blocks'?'blocks':r.hold?'rounds':'';}
+function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r);
   if(r.prep>0)P({type:'time',kind:'prep',label:'Get ready',dur:r.prep,round:1});
   for(let k=1;k<=r.rounds;k++){const last=k===r.rounds;
     const bl=r.blocks.filter(b=>inRound(b,k===1,last));
@@ -712,8 +715,10 @@ function build(r){const st=[];const P=(s)=>st.push(s);
       if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
     });
     if(!last&&r.rest>0)P({type:'time',kind:'rest',label:'Round rest',dur:r.rest,round:k});
-    if(!last&&r.hold)P({type:'wait',kind:'prep',label:'Next round',round:k+1}); // Tap to start: hold until a tap
+    if(!last&&hm==='rounds')P({type:'wait',kind:'prep',label:'Next round',round:k+1}); // hold until a tap
   }
+  if(hm==='blocks'){const out=[];let pr=0; // hold before every work step but the first (after any rest)
+    st.forEach(s=>{if(s.kind==='work'){if(pr)out.push({type:'wait',kind:'prep',label:s.round!==pr?'Next round':'Next block',round:s.round});pr=s.round;}out.push(s);});return out;}
   return st;}
 
 /* ---------- runner ---------- */
@@ -769,12 +774,12 @@ function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   run.style.background=`radial-gradient(circle at 50% 45%, ${c}55, #191919 75%), #191919`;ring.style.stroke=c;
   phase.textContent=s.label;phase.style.color=c;showCall(X.ct,false);
   rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
-  const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: Round ${n.round} · tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
+  const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: ${n.label==='Next round'?`Round ${n.round} · `:''}${X.steps[i+2]?X.steps[i+2].label+' · ':''}tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
   tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
   pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';}
 function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i];
   if(!quiet){ // announcements
-    if(s.type==='wait'){beep(784,.2);buzz([80,60,80]);say(`${ph('Next round')}. ${ph('tapgo')}`);}
+    if(s.type==='wait'){beep(784,.2);buzz([80,60,80]);say(`${ph(s.label)}. ${ph('tapgo')}`);}
     else if(s.kind==='work'){beep(1046,.25,'square',.6);buzz([120]);
       say(s.type==='reps'?`${s.label}. ${s.reps} ${ph('reps')}`:(s.boxing?`${s.label}. ${ph('fight')}`:(s.cue||s.label)));}
     else if(s.kind==='rest'){bell();buzz([80,60,80]);say(`${ph(s.label)}. ${sayDur(s.dur)}`);}
