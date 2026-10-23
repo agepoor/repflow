@@ -189,7 +189,7 @@ header .eb{height:38px;padding:0 14px;gap:6px;font-weight:600}header .eb.go1{col
 #run .lw{display:flex;justify-content:center}
 #live{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--tx2);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);border-radius:999px;padding:6px 12px}
 #live[hidden]{display:none}#run .ml{display:flex;align-items:center;gap:2px;min-width:0}#minBtn{flex:none;padding:4px;margin:-6px 0 -6px -8px;background:none;border-color:transparent;color:var(--tx2)}#minBtn:hover{color:var(--tx)}
-#mbar{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:728px;margin:0;cursor:pointer;border-color:var(--c);box-shadow:0 6px 24px rgba(0,0,0,.5)}#mbar[hidden]{display:none}#mbar .go{width:44px;height:44px}#mbTx{font-variant-numeric:tabular-nums}body.mbar .view{padding-bottom:120px}body.mbar #toast{bottom:104px!important}#live b{color:var(--tx)}
+.rcard.live{position:relative;overflow:hidden;cursor:pointer;border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}.rcard.live:hover{background:var(--raise)}#mbTx{font-variant-numeric:tabular-nums}.rcard.live .mexp{width:32px;height:32px;display:grid;place-items:center;flex:none;color:var(--tx2);margin-right:-4px}#mbP{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--c)}#live b{color:var(--tx)}
 .livebar{border-color:var(--blue)}.amsg{margin:0 0 12px;font-size:14px;color:var(--yellow)}
 .amsg a,.anote a{color:inherit}.anote{margin:0 0 12px;font-size:14px;color:var(--tx2)}
 .acct-k{font-size:13px;color:var(--tx2);margin:16px 0 4px}
@@ -327,8 +327,6 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <button class="sm" id="muteBtn" onclick="toggleMute()" title="Sound" aria-label="Sound"></button>
   </div>
 </div>
-<!-- minimized workout: tap to open -->
-<div id="mbar" class="card rcard" hidden onclick="maxRun()" role="button" aria-label="Open workout"><div class="dot" id="mbDot"></div><div class="info"><b id="mbName"></b><div class="muted" id="mbTx"></div></div><button class="go primary" id="mbPP" onclick="event.stopPropagation();togglePause()" aria-label="Pause"></button></div>
 
 <script>
 /* ---------- storage: own keys (rf2_*) since v2; v1 data (rf_*) is never written. First open copies v1 routines, settings and history (not the gist token) ---------- */
@@ -466,7 +464,7 @@ function route(){const h=location.hash||'#/',view=(document.querySelector('.view
     else if(h==='#/new'&&d&&d._new){cur=d;fillEditor();show('edit');}
     else{if(view==='edit'&&cur)saveRoutine(false);else show('lib');if(location.hash&&location.hash!=='#/')history.replaceState(null,'','#/');}
   }finally{ROUTING=false;}}
-addEventListener('popstate',()=>{if(ROUTING){ROUTING=false;return;}if(run.classList.contains('on')){if(X&&X.steps)minRun();else{ROUTING=true;stopRun();ROUTING=false;}}route();}); // Back minimizes a running workout
+addEventListener('popstate',()=>{if(ROUTING){ROUTING=false;return;}if(run.classList.contains('on')){if(X&&X.steps)minRun(true);else{ROUTING=true;stopRun();ROUTING=false;}}route();}); // Back minimizes a running workout
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(sec){sec=Math.max(0,Math.ceil(sec));const m=Math.floor(sec/60),s=sec%60;return m?m+':'+String(s).padStart(2,'0'):String(s);}
 /* Durations: stored as whole seconds; typed as 90, 1:30, 1.30, 20m, 1m30, 1m 30s, 1h; shown as m:ss */
@@ -500,19 +498,19 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived),now=new Date(),wd=now.getDay(),tk=dk(now.getTime());
   // r.skip = date key of a day it was skipped ("Skip today"): not highlighted for the rest of that day, still planned for that weekday
   const skip=r=>r.skip===tk,tod=act.filter(r=>rDays(r).includes(wd)&&!skip(r)),oth=act.filter(r=>!tod.includes(r));
-  const done=r=>H.some(h=>h.rid===r.id&&dk(h.ts)===tk);
+  const done=r=>H.some(h=>h.rid===r.id&&dk(h.ts)===tk),LV=!flat&&MINI&&X&&X.steps&&liveIn()?X.r.id:null; // LV: the minimized workout, shown live in its own card
   const handle=`<span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span>`;
   const hd=()=>flat&&act.length>1?handle:''; // drag handles only in the order view
   const dot=(r,sz)=>`<div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),sz)}</div>`;
   const go=(r,sz)=>`<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',sz)}</button>`;
   const tot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
   // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
-  const full=r=>{const st=build(r),t=tot(r),ok=done(r);
+  const full=r=>{if(r.id===LV)return liveCard();const st=build(r),t=tot(r),ok=done(r);
    return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
    ${ok?'':`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
   // other routines: one compact row; a skipped one says so and can be brought back
-  const mini=r=>{const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
+  const mini=r=>{if(r.id===LV)return liveCard();const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
    ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:''}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
@@ -528,7 +526,7 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''}</div></div>
    <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`).join(''):'');
-}
+  if(LV)miniTx();if(MINI)banner();} // archived: the live card goes on top
 let archOpen=false;
 function skipToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;if(on)r.skip=dk(Date.now());else delete r.skip;persist();renderList();}
 function setArchived(id,v){const r=R.find(r=>r.id===id);if(!r)return;if(v)r.archived=true;else delete r.archived;persist();renderList();}
@@ -777,15 +775,29 @@ function pushRun(end){if(!X||!X.steps)return;X.u=Math.max(NOW(),(X.u||0)+1);cons
   if(CU&&CLOUD&&CR1&&!SWITCH)CLOUD.setRun(d).catch(()=>{});}
 function kick(){if(!LOOP){LOOP=true;requestAnimationFrame(loop);}}
 function wake(){if(S.wake&&navigator.wakeLock&&document.visibilityState==='visible')navigator.wakeLock.request('screen').then(w=>{if(X&&X.steps)X.wl=w;else w.release();}).catch(()=>{});}
-/* minimize: the workout keeps running in a bar at the bottom, so the rest of the app stays usable (one workout at a time) */
-let MINI=false,MBT='';
-function minRun(){if(!X||!X.steps)return;MINI=true;run.classList.remove('on');miniUI();}
-function maxRun(){if(!X||!X.steps)return;MINI=false;run.classList.add('on');miniUI();render();}
-function miniUI(){const on=MINI&&!!(X&&X.steps);mbar.hidden=!on;document.body.classList.toggle('mbar',on);if(!on)return;const c=COLORS[X.r.color]||COLORS.blue;
-  mbar.style.setProperty('--c',c);mbDot.style.cssText=`background:${c}22;color:${c}`;mbDot.innerHTML=svgi(iconKey(X.r),22);mbName.textContent=X.r.name;mbPP.style.cssText=`background:${c};border-color:${c}`;MBT='';ppIcon();miniTx();}
-function miniTx(){const s=X.steps[X.i],t=Math.max(0,((X.p??NOW())-X.s0)/1000);
+/* minimize (⌄ or Back): the workout shrinks into its own card on the home screen, which then shows it live (step, time,
+   round, progress, pause); tap the card to expand it again. One workout at a time. An archived one shows on top; the Order view shows only the order. */
+let MINI=false,MORPH=null;
+const liveIn=()=>R.some(r=>r.id===X.r.id&&!r.archived);
+function liveCard(){const r=X.r,c=COLORS[r.color]||COLORS.blue,p=X.p!=null;
+  return `<div class="card rcard live" id="mcard" style="--c:${c}" onclick="maxRun()" role="button" aria-label="Open workout"><div class="dot" style="background:${c}22;color:${c}">${svgi(iconKey(r),22)}</div><div class="info"><b>${esc(r.name)}</b><div class="muted" id="mbTx"></div></div><span class="mexp" aria-hidden="true">${svgi('up',18)}</span><button class="go primary" id="mbPP" style="background:${c};border-color:${c}" onclick="event.stopPropagation();togglePause()" aria-label="${p?'Resume':'Pause'}">${svgi(p?'play':'pause',22)}</button><i id="mbP"></i></div>`;}
+const shown=el=>el&&el.offsetParent?el.getBoundingClientRect():null;
+function minRun(back){if(!X||!X.steps||MINI)return;MINI=true;
+  if(!back){const v=(document.querySelector('.view.on')||{}).id;if(v==='edit'&&cur)saveRoutine(false);else if(v!=='lib')show('lib');} // Back: route() goes home
+  miniUI();requestAnimationFrame(()=>{const c=document.getElementById('mcard');if(shown(c))c.scrollIntoView({block:'nearest'});morph(false,shown(c),()=>{if(MINI)run.classList.remove('on');});});}
+function maxRun(){if(!X||!X.steps)return;if(MORPH)MORPH();const r=shown(document.getElementById('mcard'));MINI=false;run.classList.add('on');render();miniUI();morph(true,r);}
+function miniUI(){renderList();banner();}
+function miniTx(){const el=document.getElementById('mbTx');if(!el||!X||!X.steps)return;const s=X.steps[X.i],t=Math.max(0,((X.p??NOW())-X.s0)/1000);
   const v=s.type==='wait'?'tap to start':s.type==='time'?fmt(s.dur-t):`rep ${Math.min(s.reps,(s.mode==='tap'?Math.floor(X.tap/s.counts):Math.floor(t/(s.counts*s.tempo+s.repPause)))+1)} / ${s.reps}`;
-  const h=`${s.label} · ${v} · Round ${s.round}/${X.r.rounds}${X.p!=null?' · Paused':''}`;if(h!==MBT){MBT=h;mbTx.textContent=h;}}
+  const h=`${s.label} · ${v} · Round ${s.round}/${X.r.rounds}${X.p!=null?' · Paused':''}`;if(el.textContent!==h)el.textContent=h;const b=document.getElementById('mbP');if(b)b.style.width=rBar.style.width;}
+/* the run screen grows out of (open) or shrinks into the card at rect r: a clip that follows the card's shape, the content fading */
+function morph(open,r,done){if(MORPH)MORPH();let a=[];const end=()=>{if(MORPH!==end)return;MORPH=null;if(done)done();a.forEach(x=>x.cancel());};MORPH=end;
+  if(!r||!r.height||!run.animate||matchMedia('(prefers-reduced-motion: reduce)').matches)return end();
+  const W=run.getBoundingClientRect(),m=v=>Math.max(0,Math.round(v))+'px',box=`inset(${m(r.top-W.top)} ${m(W.right-r.right)} ${m(W.bottom-r.bottom)} ${m(r.left-W.left)} round 12px)`,full='inset(0px 0px 0px 0px round 0px)';
+  const o={duration:380,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'};
+  a=[run.animate(open?[{clipPath:box},{clipPath:full}]:[{clipPath:full,opacity:1},{opacity:1,offset:.65},{clipPath:box,opacity:0}],o),
+    ...[...run.children].map(k=>k.animate(open?[{opacity:0},{opacity:0,offset:.45},{opacity:1}]:[{opacity:1},{opacity:0,offset:.3},{opacity:0}],o))];
+  a[0].onfinish=end;}
 function openRun(){MINI=false;miniUI();rName.innerHTML=svgi(iconKey(X.r),16)+'<span>'+esc(X.r.name)+'</span>'+(X.r.test?'<span class="muted" title="Not logged">· Test</span>':'');run.classList.remove('fin');run.classList.add('on');wake();kick();}
 function startRun(id,test){ // test = test run from the editor: plays normally, never logged
   const r=R.find(r=>r.id===id);if(!r)return;
@@ -804,12 +816,12 @@ function adopt(d){let r;try{r=norm(mig(typeof d.r==='string'?JSON.parse(d.r):d.r
 function restoreRun(){let d=null;try{d=JSON.parse(localStorage.getItem('rf2_run')||'null');}catch(e){}
   if(!d||!d.sid||d.end||d.by!==DEV.id||NOW()-(+d.u||0)>12*3600e3){localStorage.removeItem('rf2_run');return;}
   adopt(d);}
-function closeRun(){const m=MINI;if(X&&X.wl)X.wl.release().catch(()=>{});X=null;MINI=false;miniUI();bgOff();hush();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');return m;} // m: was minimized (stay where you are)
+function closeRun(){if(MORPH)MORPH();const m=MINI;if(X&&X.wl)X.wl.release().catch(()=>{});X=null;MINI=false;miniUI();bgOff();hush();run.classList.remove('on','fin');run.style.background='#191919';localStorage.removeItem('rf2_run');return m;} // m: was minimized (stay where you are)
 /* on the device that plays the sound, Stop ends the workout everywhere; on a following device it only closes the view */
 function stopRun(){const stay=run.classList.contains('fin')&&LAST&&LAST.min; // finished while minimized: Close returns to where you were
   if(X&&X.steps&&mine())pushRun('stop');closeRun();if(!stay)show('lib');else if(document.getElementById('lib').classList.contains('on'))renderList();banner();}
 function claim(){if(!X||!X.steps||mine())return;X.by=DEV.id;X.dn=DEV.name;liveUI();}
-function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30);pp.setAttribute('aria-label',p?'Resume':'Pause');if(MINI){mbPP.innerHTML=svgi(p?'play':'pause',20);mbPP.setAttribute('aria-label',p?'Resume':'Pause');}}
+function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30);pp.setAttribute('aria-label',p?'Resume':'Pause');const b=document.getElementById('mbPP');if(b){b.innerHTML=svgi(p?'play':'pause',22);b.setAttribute('aria-label',p?'Resume':'Pause');}}
 function togglePause(){if(!X||!X.steps)return;claim();const t=NOW();
   if(X.p!=null){const d=t-X.p;X.s0+=d;X.t0+=d;X.p=null;}else{X.p=t;hush();}
   ppIcon();pushRun();}
@@ -848,8 +860,9 @@ function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   const entry={id:X.sid,rid:r.id,name:r.name,icon:iconKey(r),color:r.color,ts:end,dur:Math.max(0,Math.round((end-X.t0)/1000)),rounds:r.rounds,reps:tot,calls};if(r.streak===false)entry.streak=false; // Log only: in history, not in the streak
   X={done:true};run.style.background='#191919';localStorage.removeItem('rf2_run');
   const ask=!r.nolog&&late>15*60e3&&!H.some(h=>h.id===entry.id)&&!HDEL[entry.id]; // ended long before the app was opened again: ask instead of logging
+  const mr=MINI&&shown(document.getElementById('mcard')); // finished while minimized: the done screen grows out of the card
   LAST={r,entry,ask,min:MINI,L:r.nolog||ask?null:logWorkout(entry)};MINI=false;miniUI();updHistBtn();showDone();
-  run.classList.add('on','fin');banner();}
+  run.classList.add('on','fin');banner();if(mr)morph(true,mr);}
 function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur;
   const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
   doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--blue);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}${r.test?'Test run · not logged':'Not logged'}</div>`:(H.find(h=>h.id===entry.id)||entry).streak===false?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Logged · not counted for streak</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
@@ -1128,9 +1141,10 @@ function runActive(v){if(!v||v.end||NOW()-(+v.u||0)>12*3600e3)return false;let s
   if(v.p!=null)return true;let t=+v.s0;for(let i=v.i|0;i<st.length;i++){const l=stepLen(st[i]);if(!isFinite(l))return true;t+=l*1000;}return NOW()<t+3000;}
 let BAN='';
 function banner(){const el=document.getElementById('liveBar');if(!el)return;const v=CR;let h='';
-  if(v&&!(X&&X.steps&&X.sid===v.sid)&&runActive(v)){let r={};try{r=JSON.parse(v.r)||{};}catch(e){}const c=COLORS[r.color]||COLORS.blue;
+  if(MINI&&X&&X.steps){if(!SORT&&!liveIn())h=liveCard();} // the Order view shows only the order
+  else if(v&&!(X&&X.steps&&X.sid===v.sid)&&runActive(v)){let r={};try{r=JSON.parse(v.r)||{};}catch(e){}const c=COLORS[r.color]||COLORS.blue;
     h=`<div class="card rcard livebar"><div class="dot" style="background:${c}22;color:${c}">${svgi(iconKey(r),22)}</div><div class="info"><b>${esc(r.name||'Workout')}</b><div class="muted">${v.p!=null?'Paused':'Live'} on ${v.by===DEV.id?'this device':esc(v.dn||'another device')}</div></div><button class="primary" onclick="openLive()">Open</button></div>`;}
-  if(h!==BAN){BAN=h;el.innerHTML=h;}}
+  if(h!==BAN){BAN=h;el.innerHTML=h;if(MINI)miniTx();}}
 function openLive(){if(CR&&runActive(CR)&&adopt(CR))banner();}
 setInterval(()=>{if(CR)banner();},5000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(300);banner();if(document.getElementById('lib').classList.contains('on'))renderList();}});

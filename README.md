@@ -9,7 +9,7 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 - Days per routine: today's routines on top (highlighted until done, skip for today only), the rest as compact rows; a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
 - Per-block display: cue + number / cue only / number only
 - Beeps, voice coach (any browser language, per routine if you like; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on
-- Minimize a running workout (⌄ or Back) to a bar at the bottom and keep using the app; one workout at a time
+- Minimize a running workout (⌄ or Back): it shrinks into its own card on the home screen, which shows it live (step, time, round, progress, pause); tap to expand. Keep using the app meanwhile; one workout at a time
 - Installable PWA, works offline; JSON import/export
 - Sign in with Google or GitHub to sync routines, history and a running workout across devices
 
