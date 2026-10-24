@@ -6,7 +6,8 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 
 - Blocks: reps/counts (guided tempo or tap), timed, boxing combo call-outs, rest
 - Rounds, rest between rounds (auto-start, or wait for a tap before each round or each block), first-round-only warm-ups, last-round-only finishers
-- Days per routine: today's routines on top (highlighted until done, skip for today only), the rest as compact rows; a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
+- Days per routine: today's routines on top (highlighted until done, skip for today only), the rest as compact rows (+ adds one to today, this time only); a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
+- Week view: this week's schedule per day with done, added and skipped routines and the time per day; tap a routine to change its days
 - Per-block display: cue + number / cue only / number only
 - Beeps, voice coach (any browser language, per routine if you like; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on
 - Minimize a running workout (⌄ or Back): it shrinks into its own card on the home screen, which shows it live (step, time, round, progress, pause); tap to expand. Keep using the app meanwhile; one workout at a time

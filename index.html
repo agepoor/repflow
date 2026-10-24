@@ -45,7 +45,8 @@ h2{font-size:20px;margin:0}
 /* Order button: opens the order view (all routines in their real order, drag to reorder, Done to go back) */
 .sech.shead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px}.sech .sht{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sech .sbtn{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;margin-right:-6px;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;border-radius:6px;opacity:.8}.sech .sbtn:hover{opacity:1}
-.sech .sbtn.on{color:var(--blue);opacity:1}
+.sech .sbtn.on{color:var(--blue);opacity:1}.sech .shb{display:flex;gap:4px;flex:none}.sech .shb .sbtn:not(:last-child){margin-right:0}
+/* week */.wsum{margin:-12px 0 12px;font-size:14px}.wcard{padding:0 16px}.wday{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}.wday:last-child{border-bottom:none}.wday .wd{width:40px;flex:none;display:flex;flex-direction:column;align-items:center;line-height:1.2}.wday .wd b{font-size:12px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}.wday .wd span{font-size:19px;font-weight:700;width:32px;height:32px;display:grid;place-items:center;border-radius:50%}.wday.today .wd span{background:var(--blue);color:#fff}.wday.today .wd b{color:var(--blue)}.wl{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;padding-top:4px}.wday .wt{flex:none;font-size:13px;padding-top:9px;white-space:nowrap}.wrest{font-size:14px;padding-top:5px}.wchip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:14px;max-width:100%;line-height:1.3}.wchip>.ic:first-child{color:var(--c);flex:none}.wchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wchip.add{border-style:dashed;border-color:var(--c)}.wchip.sk{opacity:.5}.wchip.sk span{text-decoration:line-through}.wday.past .wchip:not(.done){opacity:.5}.wchip.done>.ic:last-child{color:var(--green);flex:none}.wleg{font-size:13px;margin:12px 0 0}
 .card.noday{display:flex;align-items:center;gap:10px;padding:14px 16px;border-style:dashed;background:none;color:var(--tx2);font-size:14px}
 .rcard .skip{width:32px;height:32px;padding:0;display:grid;place-items:center;flex:none;opacity:.55;margin-right:-4px}.rcard .skip:hover{opacity:1}
 .rcard.mini.tod{border-color:var(--c);box-shadow:inset 3px 0 0 var(--c)} /* drag state: today's routines keep a colour mark */
@@ -61,9 +62,10 @@ h2{font-size:20px;margin:0}
 .rcard.mini{padding:8px 12px;margin-bottom:6px;gap:10px}
 .rcard.mini .handle{padding:8px 4px;margin:-8px 0 -8px -6px}
 .rcard.mini .dot{width:32px;height:32px}
-.rcard.mini .info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* one line: details are cut before the name */
+.rcard.mini .info{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px;line-height:1.35} /* name, then the details; on a narrow row the details move under the name */
+.rcard.mini .info b,.rcard.mini .info .muted{min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rcard.mini .info b{font-weight:600}
-.rcard.mini .info .muted{font-size:13px;margin-left:8px}
+.rcard.mini .info .muted{font-size:13px}
 .rcard.mini .go{width:40px;height:40px}
 .days{display:flex;gap:6px}
 .days button{flex:1 1 0;min-width:0;max-width:40px;height:40px;padding:0;border-radius:50%;font-size:14px;font-weight:600;color:var(--tx2)}
@@ -230,6 +232,15 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   <div id="histBody"></div>
 </section>
 
+<!-- WEEK -->
+<section id="week" class="view">
+  <header>
+    <button class="ghost ib hb" onclick="show('lib')" title="Back"><i data-ic="back"></i><span class="lbl">Back</span></button>
+    <h2 style="margin:0">Week</h2><span style="width:44px"></span>
+  </header>
+  <div id="weekBody"></div>
+</section>
+
 <!-- EDITOR -->
 <section id="edit" class="view">
   <header>
@@ -360,7 +371,7 @@ const IC={
  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
  sliders:'<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/>',
  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
- up:'<path d="m18 15-6-6-6 6"/>',down:'<path d="m6 9 6 6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',
+ up:'<path d="m18 15-6-6-6 6"/>',plus:'<path d="M12 5v14M5 12h14"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',down:'<path d="m6 9 6 6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',
  copy:'<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
  check:'<path d="M20 6 9 17l-5-5"/>',flask:'<path d="M10 2v7.5a2 2 0 0 1-.2.9L4.7 20.6a1 1 0 0 0 .9 1.4h12.8a1 1 0 0 0 .9-1.4l-5.1-10.2a2 2 0 0 1-.2-.9V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',back:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',unarchive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/><path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>',trash:'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
@@ -441,7 +452,7 @@ function addPresets(){PRESETS().forEach(p=>{const i=R.findIndex(r=>r.name===p.na
 
 /* ---------- views ---------- */
 let ROUTING=false;
-function routeOf(v){return v==='hist'?'#/history':v==='set'?'#/settings':v==='edit'&&cur?(cur._new?'#/new':'#/edit/'+cur.id):'#/';}
+function routeOf(v){return v==='hist'?'#/history':v==='week'?'#/week':v==='set'?'#/settings':v==='edit'&&cur?(cur._new?'#/new':'#/edit/'+cur.id):'#/';}
 function show(v){if(v==='lib'&&document.getElementById('list'))renderList();document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));scrollTo(0,0);
   if(v!=='edit')sessionStorage.removeItem('rf2_draft');
   if(ROUTING)return;const h=routeOf(v),st=history.state&&history.state.rf;
@@ -459,6 +470,7 @@ addEventListener('pagehide',saveDraft);document.addEventListener('visibilitychan
 function route(){const h=location.hash||'#/',view=(document.querySelector('.view.on')||{}).id;let d=null;try{d=JSON.parse(sessionStorage.getItem('rf2_draft')||'null');}catch(e){}
   ROUTING=true;try{let m;
     if(h==='#/history')openHist();
+    else if(h==='#/week')openWeek();
     else if(h==='#/settings')openSettings();
     else if((m=h.match(/^#\/edit\/(.+)$/))&&R.find(r=>r.id===m[1])){if(view!=='edit'||!cur||cur.id!==m[1]){if(d&&d.id===m[1]){cur=d;fillEditor();show('edit');}else openEditor(m[1]);}}
     else if(h==='#/new'&&d&&d._new){cur=d;fillEditor();show('edit');}
@@ -497,7 +509,8 @@ function setSort(v){SORT=v;renderList();if(v)document.getElementById('list').scr
 function renderList(){updHistBtn();const flat=SORT; // order view: all routines in one list, in their real order
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived),now=new Date(),wd=now.getDay(),tk=dk(now.getTime());
   // r.skip = date key of a day it was skipped ("Skip today"): not highlighted for the rest of that day, still planned for that weekday
-  const skip=r=>r.skip===tk,tod=act.filter(r=>rDays(r).includes(wd)&&!skip(r)),oth=act.filter(r=>!tod.includes(r));
+  // r.add = date key of a day it was added to ("Add to today", this time only): in Today for the rest of that day
+  const skip=r=>r.skip===tk,added=r=>r.add===tk&&!rDays(r).includes(wd),tod=act.filter(r=>(rDays(r).includes(wd)&&!skip(r))||added(r)),oth=act.filter(r=>!tod.includes(r));
   const done=r=>H.some(h=>h.rid===r.id&&dk(h.ts)===tk),LV=!flat&&MINI&&X&&X.steps&&liveIn()?X.r.id:null; // LV: the minimized workout, shown live in its own card
   const handle=`<span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span>`;
   const hd=()=>flat&&act.length>1?handle:''; // drag handles only in the order view
@@ -507,42 +520,63 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
   // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
   const full=r=>{if(r.id===LV)return liveCard();const st=build(r),t=tot(r),ok=done(r);
    return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}</div></div>
-   ${ok?'':`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
-  // other routines: one compact row; a skipped one says so and can be brought back
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}${added(r)?' · added for today':''}</div></div>
+   ${ok?'':added(r)?`<button class="ghost skip" onclick="addToday('${r.id}',false)" title="Remove from today" aria-label="Remove from today">${svgi('x',16)}</button>`:`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
+  // other routines: one compact row; a skipped one says so and can be brought back, the others can be added to today (+)
   const mini=r=>{if(r.id===LV)return liveCard();const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
-   ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:''}${go(r,18)}</div>`;};
+   ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:flat?'':`<button class="ghost skip" onclick="addToday('${r.id}',true)" title="Add to today (this time only)" aria-label="Add to today">${svgi('plus',16)}</button>`}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
   if(flat&&act.length){document.getElementById('list').innerHTML=`<div class="sech shead"><span class="sht">All routines · in order</span><button class="ghost sbtn on" onclick="setSort(false)">${svgi('check',14,2.5)}Done</button></div>${grp(act,mini)}`;}
   /* home: Today on top (or a quiet note when nothing is left for today), then the other routines; without any days
      planned it is one list. The Order button in the first header opens the order view (the only place to reorder). */
   else{const ord=act.length>1?`<button class="ghost sbtn" onclick="setSort(true)" title="See all routines in their real order and reorder them">${svgi('sort',14)}Order</button>`:'';
-   const head=t=>`<div class="sech shead"><span class="sht">${t}</span>${ord}</div>`,planned=act.some(r=>rDays(r).length);
-   const none=`<div class="card noday">${svgi('moon',18)}<span>${act.some(r=>rDays(r).includes(wd))?'Nothing left for today':'Nothing planned for today'}</span></div>`;
+   const planned=act.some(r=>rDays(r).length)||tod.length>0,wk=planned?`<button class="ghost sbtn" onclick="openWeek()" title="This week at a glance">${svgi('cal',14)}Week</button>`:'';
+   const head=t=>`<div class="sech shead"><span class="sht">${t}</span><span class="shb">${wk}${ord}</span></div>`;
+   const none=`<div class="card noday">${svgi('moon',18)}<span>${act.some(r=>rDays(r).includes(wd))?'Nothing left for today':'Nothing planned for today'}<span class="muted"> · + adds a routine</span></span></div>`;
    document.getElementById('list').innerHTML=!act.length?`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>`:
     !planned?head('Routines')+grp(oth,mini):head(`Today · ${DN[wd]}`)+(tod.length?grp(tod,full):none)+(oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:'');}
   document.getElementById('arch').innerHTML=!arc.length?'':`<button class="ghost" style="padding-left:0" onclick="archOpen=!archOpen;renderList()"><span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span> Archived (${arc.length})</button>`+
    (archOpen?arc.map(r=>`<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r),22)}</div>
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''}</div></div>
    <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`).join(''):'');
-  if(LV)miniTx();if(MINI)banner();} // archived: the live card goes on top
+  if(LV)miniTx();if(MINI)banner();if(document.getElementById('week').classList.contains('on'))renderWeek();} // archived: the live card goes on top
 let archOpen=false;
 function skipToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;if(on)r.skip=dk(Date.now());else delete r.skip;persist();renderList();}
+function addToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;if(on)r.add=dk(Date.now());else delete r.add;persist();renderList();
+  const c=document.querySelector(`#list .rcard[data-id="${id}"]`);if(c){c.scrollIntoView({block:'nearest',behavior:'smooth'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1300);}} // shows where it went
 function setArchived(id,v){const r=R.find(r=>r.id===id);if(!r)return;if(v)r.archived=true;else delete r.archived;persist();renderList();}
 function toggleArchiveCur(){readHead();if(cur.archived)delete cur.archived;else cur.archived=true;saveRoutine(false);}
 
 /* ---------- editor ---------- */
 let cur=null;
 const BT={reps:[svgi('hash',18),'Reps / counts','orange'],timed:[svgi('timer',18),'Timed','red'],boxing:[svgi('glove',18),'Boxing combos','blue'],rest:[svgi('moon',18),'Rest','green']};
-function newRoutine(){cur={id:uid(),name:'New routine',icon:'activity',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
-function openEditor(id){cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
+let EDBACK='lib'; // where the editor's Back goes: home, or the week it was opened from
+function newRoutine(){EDBACK='lib';cur={id:uid(),name:'New routine',icon:'activity',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
+function openEditor(id,from){EDBACK=from||'lib';cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
 function renderSwatches(){eColorPick.innerHTML=Object.entries(COLORS).map(([n,c])=>`<button role="radio" aria-checked="${n===eColor.value}" aria-label="${n}" title="${n}" class="${n===eColor.value?'on':''}" style="--c:${c}" onclick="pickColor('${n}')">${n===eColor.value?svgi('check',16,3):''}</button>`).join('');}
 function pickColor(n){eColor.value=n;cur.color=n;renderSwatches();renderIconPick();renderDays();}
 /* days of the week: r.days = weekday numbers (0 = Sun … 6 = Sat), Monday first in the UI; none = anytime */
 const DOW=[1,2,3,4,5,6,0],DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function rDays(r){return Array.isArray(r.days)?DOW.filter(d=>r.days.includes(d)):[];}
-function daysTxt(r){const d=rDays(r);return d.length===7?'Every day':d.map(x=>DN[x]).join(' · ');}
+function daysTxt(r){const d=rDays(r);if(d.length===7)return 'Every day';const out=[]; // three or more days in a row as a range: Mon–Fri
+  for(let i=0;i<d.length;){let j=i;while(j+1<d.length&&DOW.indexOf(d[j+1])===DOW.indexOf(d[j])+1)j++;out.push(j-i>=2?DN[d[i]]+'–'+DN[d[j]]:d.slice(i,j+1).map(x=>DN[x]).join(' · '));i=j+1;}
+  return out.join(' · ');}
+/* week: this week (Mon–Sun) at a glance: what is planned each day, one-time additions (dashed), done (✓) and skipped (struck
+   through), with the planned time per day. Tap a routine to edit it; its Back returns here. */
+function openWeek(){renderWeek();show('week');}
+function renderWeek(){const today=dk(Date.now()),ws=weekStart(today),act=R.filter(r=>!r.archived),seen=new Set();
+  const tot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0),hm=x=>{const m=Math.round(x/60);return m>=60?`${Math.floor(m/60)} h${m%60?' '+m%60+' min':''}`:`${m} min`;};
+  const chip=(r,c='')=>{c.split(' ').forEach(x=>x&&seen.add(x));return `<button class="wchip ${c}" style="--c:${COLORS[r.color]}" onclick="openEditor('${r.id}','week')">${svgi(iconKey(r),14)}<span>${esc(r.name)}</span>${c.includes('done')?svgi('check',14,3):''}</button>`;};
+  let n=0,sum=0,rows='';
+  for(let i=0;i<7;i++){const k=dayAdd(ws,i),d=kd(k),wd=d.getDay(),pl=r=>rDays(r).includes(wd);
+    const on=act.filter(r=>(pl(r)&&r.skip!==k)||(r.add===k&&!pl(r))),off=act.filter(r=>pl(r)&&r.skip===k),t=on.reduce((a,r)=>a+tot(r),0);n+=on.length;sum+=t;
+    rows+=`<div class="wday${k===today?' today':k<today?' past':''}"><div class="wd"><b>${DN[wd]}</b><span>${d.getDate()}</span></div>
+      <div class="wl">${on.map(r=>chip(r,(H.some(h=>h.rid===r.id&&dk(h.ts)===k)?'done':'')+(pl(r)?'':' add'))).join('')}${off.map(r=>chip(r,'sk')).join('')}${on.length||off.length?'':'<span class="muted wrest">Rest day</span>'}</div>${t?`<span class="wt muted">~${hm(t)}</span>`:''}</div>`;}
+  const any=act.filter(r=>!rDays(r).length),f=k=>kd(k).toLocaleDateString('en',{month:'short',day:'numeric'});
+  const leg=[seen.has('done')&&'✓ done',seen.has('add')&&'dashed: added once',seen.has('sk')&&'struck through: skipped'].filter(Boolean);
+  weekBody.innerHTML=`<p class="muted wsum">${f(ws)} – ${f(dayAdd(ws,6))} · ${n} workout${n!==1?'s':''} planned${sum?` · ~${hm(sum)}`:''}</p><div class="card wcard">${rows}</div>`+
+    (any.length?`<div class="sech" style="margin-top:20px">Anytime</div><div class="wl">${any.map(r=>chip(r)).join('')}</div>`:'')+`<p class="muted wleg">${[...leg,'tap a routine to change its days'].join(' · ')}</p>`;}
 function renderDays(){const d=rDays(cur);eDays.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
   eDays.innerHTML=DOW.map(x=>`<button type="button" class="${d.includes(x)?'on':''}" aria-pressed="${d.includes(x)}" title="${DN[x]}" onclick="toggleDay(${x})">${DN[x][0]}</button>`).join('');
   eDaysHint.textContent=d.length?'· highlighted on '+(d.length===7?'every day':d.length===1?DN[d[0]]:d.length+' days'):'· none = anytime';}
@@ -615,7 +649,7 @@ function summary(){readHead();renderStruct();queueAutosave();const st=build(cur)
   const reps=st.filter(s=>s.type==='reps').reduce((a,s)=>a+s.reps,0);
   const sm=document.getElementById('eSummary');if(sm)sm.textContent=`Total ≈ ${fmt(t)}${reps?` · ${reps} reps`:''} · ${st.length} steps`;}
 function saveRoutine(start){clearTimeout(autoT);autoT=null;readHead();delete cur._new;putR(cur);persist();renderList();
-  if(start)startRun(cur.id,start==='test');else show('lib');}
+  if(start)startRun(cur.id,start==='test');else if(EDBACK==='week'&&!ROUTING)openWeek();else show('lib');}
 function closeEditor(){saveRoutine(false);}
 function deleteRoutine(){if(!confirm('Delete this routine?'))return;clearTimeout(autoT);autoT=null;R=R.filter(r=>r.id!==cur.id);persist();renderList();show('lib');}
 
