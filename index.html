@@ -508,9 +508,9 @@ let SORT=false; // order view, opened with the Order button: all routines in the
 function setSort(v){SORT=v;renderList();if(v)document.getElementById('list').scrollIntoView({block:'nearest'});}
 function renderList(){updHistBtn();const flat=SORT; // order view: all routines in one list, in their real order
   const act=R.filter(r=>!r.archived),arc=R.filter(r=>r.archived),now=new Date(),wd=now.getDay(),tk=dk(now.getTime());
-  // r.skip = date key of a day it was skipped ("Skip today"): not highlighted for the rest of that day, still planned for that weekday
-  // r.add = date key of a day it was added to ("Add to today", this time only): in Today for the rest of that day
-  const skip=r=>r.skip===tk,added=r=>r.add===tk&&!rDays(r).includes(wd),tod=act.filter(r=>(rDays(r).includes(wd)&&!skip(r))||added(r)),oth=act.filter(r=>!tod.includes(r));
+  // r.skip = date keys of the days it was skipped ("Skip today"): not highlighted for the rest of that day, still planned for that weekday
+  // r.add = date keys of the days it was added to ("Add to today", this time only): in Today for the rest of that day
+  const skip=r=>onDay(r,'skip',tk),added=r=>onDay(r,'add',tk)&&!rDays(r).includes(wd),tod=act.filter(r=>(rDays(r).includes(wd)&&!skip(r))||added(r)),oth=act.filter(r=>!tod.includes(r));
   const done=r=>H.some(h=>h.rid===r.id&&dk(h.ts)===tk),LV=!flat&&MINI&&X&&X.steps&&liveIn()?X.r.id:null; // LV: the minimized workout, shown live in its own card
   const handle=`<span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span>`;
   const hd=()=>flat&&act.length>1?handle:''; // drag handles only in the order view
@@ -542,8 +542,11 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
    <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`).join(''):'');
   if(LV)miniTx();if(MINI)banner();if(document.getElementById('week').classList.contains('on'))renderWeek();} // archived: the live card goes on top
 let archOpen=false;
-function skipToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;if(on)r.skip=dk(Date.now());else delete r.skip;persist();renderList();}
-function addToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;if(on)r.add=dk(Date.now());else delete r.add;persist();renderList();
+/* r.skip / r.add hold a list of date keys (older data: one key), so every skip and add of the week stays visible in the week view; kept for 14 days */
+const dlist=v=>Array.isArray(v)?v:v?[v]:[],onDay=(r,f,k)=>dlist(r[f]).includes(k);
+function setDay(r,f,on){const tk=dk(Date.now()),min=dayAdd(tk,-14),l=dlist(r[f]).filter(k=>k!==tk&&k>=min);if(on)l.push(tk);if(l.length)r[f]=l;else delete r[f];}
+function skipToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;setDay(r,'skip',on);persist();renderList();}
+function addToday(id,on){const r=R.find(r=>r.id===id);if(!r)return;setDay(r,'add',on);persist();renderList();
   const c=document.querySelector(`#list .rcard[data-id="${id}"]`);if(c){c.scrollIntoView({block:'nearest',behavior:'smooth'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1300);}} // shows where it went
 function setArchived(id,v){const r=R.find(r=>r.id===id);if(!r)return;if(v)r.archived=true;else delete r.archived;persist();renderList();}
 function toggleArchiveCur(){readHead();if(cur.archived)delete cur.archived;else cur.archived=true;saveRoutine(false);}
@@ -571,7 +574,7 @@ function renderWeek(){const today=dk(Date.now()),ws=weekStart(today),act=R.filte
   const chip=(r,c,x)=>`<button class="wchip ${c}" style="--c:${COLORS[r.color]}" onclick="openEditor('${r.id}','week')">${svgi(iconKey(r),14)}<span>${esc(r.name)}</span>${x}</button>`;
   let P=0,PT=0,D=0,DT=0,K=0,nl=0,rows='';
   for(let i=0;i<7;i++){const k=dayAdd(ws,i),d=kd(k),wd=d.getDay(),hs=H.filter(h=>dk(h.ts)===k);let pt=0,dt=0;const g=[[],[],[]];
-    act.forEach(r=>{const pl=rDays(r).includes(wd),hd=hs.filter(h=>h.rid===r.id),sk=pl&&r.skip===k&&!hd.length,plan=(pl||r.add===k)&&!sk;
+    act.forEach(r=>{const pl=rDays(r).includes(wd),hd=hs.filter(h=>h.rid===r.id),sk=pl&&onDay(r,'skip',k)&&!hd.length,plan=(pl||onDay(r,'add',k))&&!sk;
       if(!plan&&!sk&&!hd.length)return;const off=logMode(r)==='off';if(off)nl++;
       if(plan){P++;pt+=tot(r);}if(sk)K++;D+=hd.length;dt+=hd.reduce((a,h)=>a+(h.dur||0),0);
       g[sk?2:plan?0:1].push(chip(r,[hd.length&&'done',!pl&&'add',sk&&'sk',off&&!hd.length&&'nl'].filter(Boolean).join(' '),
