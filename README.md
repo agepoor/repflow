@@ -16,6 +16,8 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 
 **Live:** https://agepoor.github.io/repflow/ — open in Chrome on Android → ⋮ → *Install app*.
 
+**Brand:** PunchPace logo; display type [Saira](https://github.com/Omnibus-Type/Saira) (SIL Open Font License 1.1, see `fonts/OFL.txt`).
+
 ### Account, sync and a persistent timer (since v2)
 
 - **Sign in with Google or GitHub** (Firebase Authentication) instead of a gist token. Routines and history sync through Firebase Realtime Database (`users/<uid>/doc`, merged on every device); audio settings stay per device.
