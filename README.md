@@ -1,4 +1,4 @@
-# Workout Pacer
+# PunchPace (formerly Workout Pacer)
 
 *Think once. Move without thinking.*
 

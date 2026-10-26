@@ -1,6 +1,6 @@
 {
-  "name": "Workout Pacer",
-  "short_name": "Pacer",
+  "name": "PunchPace",
+  "short_name": "PunchPace",
   "description": "Think once. Move without thinking. Audio-guided pacer for rep, timed and boxing workouts.",
   "start_url": "./",
   "scope": "./",
@@ -22,7 +22,7 @@
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

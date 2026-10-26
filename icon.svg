@@ -1,6 +1,2 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" fill="#191919"/>
-<circle cx="256" cy="256" r="150" fill="none" stroke="#383836" stroke-width="40"/>
-<circle cx="256" cy="256" r="150" fill="none" stroke="#DE9255" stroke-width="40" stroke-linecap="round" stroke-dasharray="660 943" transform="rotate(-90 256 256)"/>
-<text x="256" y="300" font-family="Arial, sans-serif" font-weight="900" font-size="130" fill="#fff" text-anchor="middle">12</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="PunchPace favicon"><title>PunchPace favicon</title><path fill="#252525" d="M96 0H416Q512 0 512 96V416Q512 512 416 512H96Q0 512 0 416V96Q0 0 96 0Z"/><g id="pp-symbol" transform="translate(40 84) scale(1.4)"><path id="front-p" fill="#F2EFE3" d="M 0 0 H 164 L 215 67 L 199 108 L 145 130 H 75 L 49 187 H 0 L 56 58 H 106 L 93 88 H 139 L 168 75 L 143 42 H 36 Z" /><path id="rear-p" fill="#FF4B16" d="M 184 0 H 246 L 308 88 L 224 187 H 130 L 119 213 L 56 246 L 100 146 H 201 L 251 88 Z" /></g>
 </svg>

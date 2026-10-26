@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#191919">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Workout Pacer — Think once. Move without thinking.</title>
+<title>PunchPace — Think once. Move without thinking.</title>
 <style>
 :root{--bg:#191919;--surf:#202020;--raise:#383836;--tx:#fff;--tx2:rgba(255,255,255,.65);--bd:rgba(255,255,255,.2);
 --blue:#5E9FE8;--green:#72BC8F;--orange:#DE9255;--red:#E97366;--yellow:#EAC26B;--purple:#BF8EDA}
@@ -28,6 +29,7 @@ label{display:block;font-size:14px;color:var(--tx2)}
 .view.on{display:block}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}
 h1{font-size:28px;margin:0;letter-spacing:-.02em}
+#appName{line-height:0;margin:2px 0 6px}#appName .brand{display:block;height:32px;width:auto}
 h2{font-size:20px;margin:0}
 .muted{color:var(--tx2);font-size:14px}
 .card{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
@@ -166,7 +168,7 @@ header{flex-wrap:nowrap}
 #doneView .acts button{flex:1;height:48px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 /* home actions: same visual gap between the icons and up to + Routine (icon padding = half the gap) */
 #lib header .row{gap:0}#lib header .row button.ghost{padding:8px 10px}#lib header .row button.primary{margin-left:10px}
-@media (max-width:480px){#lib header h1{font-size:clamp(19px,5.7vw,22px);white-space:nowrap}#lib header{gap:8px}#lib header>div:first-child{min-width:0}#syncLine{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#lib header .row button.ghost{padding:8px 6px}#lib header .row button.primary{margin-left:6px}header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}header .eb{padding:0 10px}}
+@media (max-width:480px){#lib header h1{font-size:clamp(19px,5.7vw,22px);white-space:nowrap}#appName .brand{height:clamp(24px,7vw,28px)}#lib header{gap:8px}#lib header>div:first-child{min-width:0}#syncLine{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#lib header .row button.ghost{padding:8px 6px}#lib header .row button.primary{margin-left:6px}header .hb .lbl{display:none}header .hb{padding:8px 10px}header .row button.primary{padding:8px 12px}header .eb{padding:0 10px}}
 @media (max-width:660px){header .hb:has(+.row .eb) .lbl,header .eb.hb .lbl{display:none}header .eb.hb{width:38px;padding:0;justify-content:center}} /* editor actions: Back, Archive and Delete icon-only before the row gets too wide */
 /* editor actions: one style (outlined, icon + label, same height); Start only differs in colour */
 header .eb{height:38px;padding:0 14px;gap:6px;font-weight:600}header .eb.go1{color:var(--blue);border-color:var(--blue)}header .eb.danger{color:var(--red)}
@@ -211,7 +213,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 <!-- LIBRARY -->
 <section id="lib" class="view on">
   <header>
-    <div><h1 id="appName">Workout Pacer</h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
+    <div><h1 id="appName" aria-label="PunchPace"><svg class="brand" viewBox="0 0 1140 270" aria-hidden="true" focusable="false"><g id="pp-symbol" transform="translate(12 12)"><path id="front-p" fill="#F2EFE3" d="M 0 0 H 164 L 215 67 L 199 108 L 145 130 H 75 L 49 187 H 0 L 56 58 H 106 L 93 88 H 139 L 168 75 L 143 42 H 36 Z"/><path id="rear-p" fill="#FF4B16" d="M 184 0 H 246 L 308 88 L 224 187 H 130 L 119 213 L 56 246 L 100 146 H 201 L 251 88 Z"/></g><g transform="translate(360 80) scale(1.02)"><g id="wordmark" fill-rule="evenodd"><path id="letter-1-P" fill="#F2EFE3" transform="translate(0 0)" d="M 22 4 H 75 C 92 4 98 13 94 31 L 88 57 C 85 72 76 76 62 76 H 31 L 24 108 H 0 Z M 29 26 L 42 36 L 38 53 H 58 C 61 53 62 51 63 48 L 67 29 C 68 26 67 26 64 26 Z"/><path id="letter-2-u" fill="#F2EFE3" transform="translate(91 0)" d="M 11 28 H 36 L 24 83 C 22 91 27 93 33 90 L 42 86 L 54 28 H 79 L 62 108 H 38 L 40 99 C 31 107 22 111 11 109 C -2 107 -6 98 -3 85 Z"/><path id="letter-3-n" fill="#F2EFE3" transform="translate(169 0)" d="M 15 28 H 39 L 37 38 C 46 29 56 26 66 27 C 80 27 86 35 82 52 L 70 108 H 45 L 57 54 C 58 49 55 47 50 48 L 35 53 L 23 108 H -2 Z"/><path id="letter-4-c" fill="#F2EFE3" transform="translate(244 4.6154) scale(1 .86813)" d="M 38 28 H 72 C 88 28 94 37 91 52 L 89 58 H 65 L 66 51 C 67 48 65 48 62 48 H 46 C 43 48 42 49 41 53 L 31 96 C 31 99 32 100 35 100 H 51 C 54 100 55 99 56 96 L 58 90 H 82 L 80 98 C 77 112 68 119 53 119 H 23 C 7 119 1 110 4 94 L 14 53 C 18 36 24 28 38 28 Z"/><path id="letter-5-h" fill="#F2EFE3" transform="translate(322 0)" d="M 27 0 H 52 L 44 38 C 53 29 63 26 72 27 C 86 27 92 35 88 51 L 74 108 H 49 L 63 52 C 64 47 61 45 56 46 L 41 51 L 28 108 H 3 Z"/><path id="letter-6-P" fill="#FF4B16" transform="translate(410 0)" d="M 22 4 H 75 C 92 4 98 13 94 31 L 88 57 C 85 72 76 76 62 76 H 31 L 24 108 H 0 Z M 29 26 L 42 36 L 38 53 H 58 C 61 53 62 51 63 48 L 67 29 C 68 26 67 26 64 26 Z"/><path id="letter-7-a" fill="#FF4B16" transform="translate(493 0)" d="M 40 28 C 53 28 61 31 65 37 L 67 28 H 91 L 74 108 H 50 L 52 99 C 43 108 33 111 23 110 C 7 109 3 99 6 84 L 13 53 C 17 36 25 28 40 28 Z M 45 49 C 41 49 39 52 38 56 L 31 83 C 29 90 32 93 38 91 L 52 86 L 59 55 C 54 51 50 49 45 49 Z"/><path id="letter-8-c" fill="#FF4B16" transform="translate(573 4.6154) scale(1 .86813)" d="M 38 28 H 72 C 88 28 94 37 91 52 L 89 58 H 65 L 66 51 C 67 48 65 48 62 48 H 46 C 43 48 42 49 41 53 L 31 96 C 31 99 32 100 35 100 H 51 C 54 100 55 99 56 96 L 58 90 H 82 L 80 98 C 77 112 68 119 53 119 H 23 C 7 119 1 110 4 94 L 14 53 C 18 36 24 28 38 28 Z"/><path id="letter-9-e" fill="#FF4B16" transform="translate(652 4.6154) scale(1 .86813)" d="M 40 28 H 72 C 89 28 94 38 90 55 L 84 79 H 31 L 28 94 C 27 99 29 100 33 100 H 49 C 53 100 55 98 56 94 L 57 90 H 81 L 79 98 C 76 112 68 119 52 119 H 22 C 7 119 1 110 4 95 L 14 53 C 18 36 25 28 40 28 Z M 44 48 C 41 48 40 49 39 52 L 36 64 H 64 L 66 52 C 67 49 65 48 62 48 Z"/></g></g></svg></h1><div class="muted" id="syncLine">Think once. Move without thinking.</div></div>
     <div class="row">
       <button class="ghost ib" id="histBtn" onclick="openHist()" title="History" aria-label="History"></button>
       <button class="ghost" onclick="openSettings()" title="Settings" aria-label="Settings"><span id="gearIc"></span></button>
@@ -1138,7 +1140,7 @@ function deleteAcct(){if(!CLOUD||!CU)return;const p=CU.providers.includes('googl
       CLOUD.deleteAccount(p).then(()=>{if(wipe)clearLocal();localStorage.removeItem('rf2_uid');authMsg='';DELNOTE=delNote(was);refreshAcct();},
         e=>{authMsg=e&&e.dataGone?'Your synced data was deleted, but the account itself couldn’t be. Sign in and try again.':authErr(e,p);refreshAcct();});}},
       {label:'Cancel',cls:'ghost'}]});}
-const delNote=ps=>'Account deleted. Workout Pacer may still be listed in '+[ps.includes('google.com')&&'<a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">your Google connections</a>',ps.includes('github.com')&&'<a href="https://github.com/settings/applications" target="_blank" rel="noopener">your GitHub apps</a>'].filter(Boolean).join(' and ')+'; you can remove it there.';
+const delNote=ps=>'Account deleted. PunchPace may still be listed in '+[ps.includes('google.com')&&'<a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">your Google connections</a>',ps.includes('github.com')&&'<a href="https://github.com/settings/applications" target="_blank" rel="noopener">your GitHub apps</a>'].filter(Boolean).join(' and ')+'; you can remove it there.';
 function onGone(){DELNOTE='This account was deleted on another device. Your routines and history stay on this device.';refreshAcct();}
 /* a different account than last time: add this device's data to it, use only its data, or sign out (wrong account) */
 function askSwitch(){const fresh=PEND==null,me=CU.email||CU.name||'this account';
@@ -1157,7 +1159,7 @@ function authErr(e,p){const c=e&&e.code||'';
   if(c==='auth/unauthorized-domain')return 'This site isn’t allowed to sign in yet (Firebase → Authentication → Settings → Authorized domains).';
   if(c==='auth/operation-not-allowed')return `${pname(p)} sign-in isn’t switched on yet (Firebase → Authentication → Sign-in method).`;
   if(c==='auth/network-request-failed')return 'No connection. Try again when you’re online.';
-  if(c==='auth/credential-already-in-use')return `That ${pname(p)} account already has its own Workout Pacer account, so it can’t be added here.`;
+  if(c==='auth/credential-already-in-use')return `That ${pname(p)} account already has its own PunchPace account, so it can’t be added here.`;
   if(c==='auth/user-mismatch')return `That’s a different ${pname(p)} account. Choose the one you’re signed in with.`;
   if(c==='auth/requires-recent-login')return 'For your security, sign out and in again, then try again.';
   if(c==='auth/no-such-provider')return `${pname(p)} sign-in was already removed.`;
@@ -1171,7 +1173,7 @@ function syncCard(){const h=`<h2 style="margin-bottom:8px">Account & sync</h2>`,
     <div class="row"><button class="ib" onclick="signIn('google')">Continue with Google</button><button class="ib" onclick="signIn('github')">Continue with GitHub</button></div>`;
   const ms=CU.methods||CU.providers.map(id=>({id,label:''})),two=ms.length>1,miss=['google','github'].filter(p=>!CU.providers.includes(p+'.com'));
   return h+`<p style="margin:0;overflow-wrap:anywhere">${esc(CU.email||CU.name||'Signed in')}</p>
-    <div class="sstat muted"><span id="syncStatus"></span><button class="ghost" title="Sync now" aria-label="Sync now" onclick="syncNow()">${svgi('refresh',16)}</button><button class="ghost" id="syncRetry" hidden onclick="syncNow()">Retry</button></div>${msg}${SWITCH?`<p class="amsg">Waiting for your choice about the routines and history from ${esc(SWITCH.email||'another account')}. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="askSwitch()">Choose</button></p>`:''}${NEWACCT&&!SWITCH?`<p class="amsg">This is a new account. Already use Workout Pacer with ${ms.length===1&&miss.length?pname(miss[0]):'another sign-in'}? Sign out and continue with that, so everything stays in one account. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="NEWACCT=false;refreshAcct()">I’m new, keep this</button></p>`:''}
+    <div class="sstat muted"><span id="syncStatus"></span><button class="ghost" title="Sync now" aria-label="Sync now" onclick="syncNow()">${svgi('refresh',16)}</button><button class="ghost" id="syncRetry" hidden onclick="syncNow()">Retry</button></div>${msg}${SWITCH?`<p class="amsg">Waiting for your choice about the routines and history from ${esc(SWITCH.email||'another account')}. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="askSwitch()">Choose</button></p>`:''}${NEWACCT&&!SWITCH?`<p class="amsg">This is a new account. Already use PunchPace with ${ms.length===1&&miss.length?pname(miss[0]):'another sign-in'}? Sign out and continue with that, so everything stays in one account. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="NEWACCT=false;refreshAcct()">I’m new, keep this</button></p>`:''}
     <div class="acct-k">Sign-in methods</div>
     ${ms.map(m=>{const p=m.id.replace('.com','');return `<div class="meth"><span><b>${pname(m.id)}</b>${m.label?` · ${esc(m.label)}`:''}</span>${two?`<button class="ghost" onclick="removeProv('${p}')">Remove</button>`:''}</div>`;}).join('')}
     ${miss.map(p=>`<div class="meth"><span class="muted">Optional backup for this account</span><button class="ghost" onclick="linkProv('${p}')">+ Add ${pname(p)}</button></div>`).join('')}
