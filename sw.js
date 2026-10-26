@@ -1,4 +1,4 @@
-const CACHE='pacer-live-7';
+const CACHE='pacer-live-8';
 const FILES=['./','index.html','cloud.js','manifest.webmanifest','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','icon.svg','saira.woff2','saira-italic.woff2'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting();});
 // clears every older cache, including v1 (repflow-*) and the retired v2 preview (pacer-v2-*)
