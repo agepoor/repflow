@@ -168,7 +168,7 @@ header{flex-wrap:nowrap}
 /* the voice can't keep up with a block: what happens instead (editor), and the run-screen line that says so */
 .vnote{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,75,22,.08);border:1px solid rgba(255,75,22,.3);font-size:14px}
 .vnote .vw{display:flex;align-items:flex-start;gap:6px;color:var(--orange);font-weight:600}.vnote .vw .ic{flex:none;margin-top:3px}
-.vnote .vsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:4px}.vnote .vsel label{margin:0}.vnote .vsel select{width:auto;max-width:100%}
+.pvp{padding:2px 6px;display:inline-grid;place-items:center;color:var(--tx2)}.pvp:hover{color:var(--tx)} /* ▶: a combo as tones */
 #tapHint.rsv{min-height:1.4em}
 #rName{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #rName span{overflow:hidden;text-overflow:ellipsis}
@@ -645,8 +645,9 @@ function renderBlocks(){
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
    if(b.type==='boxing')f=`<div class="grid">${dur(b.id,'work',b.work,'Duration',1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" data-rsec placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea><div id="vf-${b.id}">${vfNote(b)}</div>
+     <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="vs-${b.id}">Calls</label><select id="vs-${b.id}" style="width:auto;max-width:100%;align-self:flex-start" onchange="setB('${b.id}','vfit',this.value)">${[['wait','Voice'],['pace','Voice, tones when too fast'],['tones','Tones only']].map(([v,l])=>`<option value="${v}" ${(b.vfit==='pace'||b.vfit==='tones'?b.vfit:'wait')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
-     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it, with a choice: <b style="color:var(--tx)">Wait for the voice</b> (every call said in full; the voice sets the pace) or <b style="color:var(--tx)">Keep the pace</b> (calls stay on time: said faster, up to 1.5×, or only beeped and shown when even that doesn't fit).</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
+     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it.</p><p><b style="color:var(--tx)">Calls:</b> <b style="color:var(--tx)">Voice</b> says every call in full (when it's too slow, calls wait for it). <b style="color:var(--tx)">Voice, tones when too fast</b> keeps calls on time: said faster (up to 1.5×), or played as tones when even that doesn't fit. <b style="color:var(--tx)">Tones only</b>: exact timing, and on Android they keep playing with the screen off.</p><p><b style="color:var(--tx)">Tones:</b> one per move, in rhythm at the count length, the same in every routine. Jab (1) and cross (2) steady, hooks (3, 4) fall, uppercuts (5, 6) rise; lead hand low, rear hand high. Slip, duck and roll: a soft whoosh. Other moves get the next free tone (up to 8 different sounds per routine), then a tick. ▶ under <i>Show moves per combo</i> plays a combo.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
    if(b.type==='rest')f=`<div class="grid">${dur(b.id,'work',b.work,'Rest',1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -655,21 +656,20 @@ function renderBlocks(){
     ${f}<div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label>Runs in</label><select style="width:auto;max-width:100%;align-self:flex-start" onchange="setRun('${b.id}',this.value)">${[['all','Every round'],['first','First round only (warm-up)'],['last','Last round only (finisher)']].map(([v,l])=>`<option value="${v}" ${(b.firstOnly?'first':b.lastOnly?'last':'all')===v?'selected':''}>${l}</option>`).join('')}</select></div></div></div>`}).join('');
   summary();
 }
-/* editor: the voice can't keep up with this block (estimated for this device's voice): what happens instead; for combos, your choice */
+/* editor: the voice can't keep up with this block (estimated for this device's voice): what happens instead; for combos, as chosen under Calls */
 function repsVoice(b){if(!vEd()||b.mode==='tap'||S.speakCounts==='off')return null;
   const p=countPlan({counts:Math.max(1,b.counts|0),reps:Math.max(1,b.reps|0),tempo:b.tempo>0?b.tempo:(cur.sec||1),repPause:+b.repPause||0,cues:(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean)},cur.lang||S.lang);
   return p.say===S.speakCounts?null:p;}
 function vfNote(b){const f=x=>+x.toFixed(1),f2=x=>+x.toFixed(2),warn=t=>`<span class="vw">${svgi('alert',14,2.5)}<span>${t}</span></span>`;
   if(b.type==='reps'){const p=repsVoice(b);if(!p||!p.w)return '';
     return `<div class="vnote">${warn(`${S.speakCounts==='reps'?'Rep numbers':'Counts'} too fast to speak · “${esc(p.w.t)}” needs ~${f(p.w.v)} s, gets ${f2(p.w.slot)} s`)}<span class="muted">${p.say==='reps'?'Counts beep; the rep number is spoken at the start of each rep.':'Beeps only, no voice.'} A longer count length or a faster voice (Settings) brings it back.</span></div>`;}
-  if(b.type!=='boxing'||!vEd())return '';
+  if(b.type!=='boxing'||!vEd()||b.vfit==='tones')return ''; // Tones only: the voice doesn't say the calls
   const cl=b.tempo>0?b.tempo:(cur.sec||1),g=Math.max(0,+b.minGap||0),G=Math.max(g,+b.maxGap||0),lang=cur.lang||S.lang,pace=b.vfit==='pace';
   const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);let n=0,fast=0,beep=0,w=null;
   L.forEach(l=>{const tx=callTxt(l),m=moves(l)*cl,v=voiceSec(tx,S.rate,lang);if(!vSlow(v,m+g))return;n++;if(!w||v-m>w.v-w.m)w={v,m};if(fitRate(tx,m+g,lang))fast++;else beep++;});
   if(!n)return '';const tm=G>g?`${f2(w.m+g)}–${f2(w.m+G)} s`:`${f2(w.m+g)} s`;
-  const body=!pace?`Calls wait for the voice: up to ~${f(w.v)} s apart instead of ${tm}.`:beep&&fast?`Calls stay on time: ${fast} said faster, ${beep} beep only (shown on screen).`:beep?`Calls stay on time: ${n===L.length?'beep only, each call shown on screen':`${beep} beep only (shown on screen), the others are said`}.`:'Calls stay on time: the voice speaks faster (up to 1.5×).';
-  return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span>
-    <div class="vsel"><label for="vs-${b.id}">If the voice is too slow</label><select id="vs-${b.id}" onchange="setB('${b.id}','vfit',this.value)">${[['wait','Wait for the voice'],['pace','Keep the pace']].map(([v,l])=>`<option value="${v}" ${(pace?'pace':'wait')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>`;}
+  const body=!pace?`Calls wait for the voice: up to ~${f(w.v)} s apart instead of ${tm}.`:beep&&fast?`Calls stay on time: ${fast} said faster, ${beep} as tones (shown on screen).`:beep?`Calls stay on time: ${n===L.length?'as tones, each call shown on screen':`${beep} as tones (shown on screen), the others are said`}.`:'Calls stay on time: the voice speaks faster (up to 1.5×).';
+  return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span></div>`;}
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
   if(!n)return '';const ok=n===c;const col=ok?'var(--green)':'var(--orange)';
   const msg=ok?'matches counts per rep':n<c?`${c-n} short — counts ${n+1}–${c} show numbers`:`${n-c} extra — cue${n-c>1?'s':''} after count ${c} ignored`;
@@ -745,7 +745,8 @@ function beep(f=880,d=.08,type='sine',vol=1,at){if(!S.beeps||muted||silentHere()
   g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02);return o;}
 function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>beep(1320,.35,'triangle'),t*1000));}
 /* In the background (another app, screen off) the browser stops the timer loop. So the beeps of what comes next are queued
-   on the audio clock, which keeps playing on Android and computers (an iPhone pauses web apps). Speech can't be queued.
+   on the audio clock, which keeps playing on Android and computers (an iPhone pauses web apps). Speech can't be queued; Tones only
+   combo calls can: they are drawn ahead (X.bq) and the loop goes on from them back in view.
    A near-silent tone (until the last queued beep) keeps the page counted as playing sound, so it isn't put to sleep.
    Back in view, the queue is dropped and the loop takes over. BGT: when it was dropped (beeps before it already played). */
 let BG=[],BGT=0;
@@ -753,6 +754,7 @@ function bgOff(){if(!BG.length)return;BG.forEach(o=>{try{o.stop();}catch(e){}});
 function bgOn(){bgOff();if(!document.hidden||!X||!X.steps||X.p!=null||!mine()||!AC||AC.state!=='running'||!S.beeps||muted)return;
   const c=AC,now=NOW(),base=c.currentTime;let end=0,s0=X.s0;
   const add=(ms,f,d,type='sine',vol=1)=>{if(ms<now||BG.length>=3000)return;const o=beep(f,d,type,vol,base+(ms-now)/1000);if(o){BG.push(o);end=Math.max(end,ms);}};
+  const addT=(ms,i,d)=>{if(ms<now||BG.length>=3000)return;const o=tone(i,d,base+(ms-now)/1000);if(o){BG.push(o);end=Math.max(end,ms);}};
   const bellAt=ms=>[0,180,360].forEach(d=>add(ms+d,1320,.35,'triangle'));
   const keep=()=>{if(!BG.length)return;const o=c.createOscillator(),g=c.createGain();o.frequency.value=50;g.gain.value=.001;o.connect(g).connect(c.destination);o.start();o.stop(base+(end-now)/1000+1);BG.push(o);};
   for(let i=X.i;i<X.steps.length;i++){const s=X.steps[i],L=stepLen(s);if(s0-now>3600e3)return keep(); // up to an hour ahead
@@ -760,8 +762,17 @@ function bgOn(){bgOff();if(!document.hidden||!X||!X.steps||X.p!=null||!mine()||!
     if(!isFinite(L))return keep(); // waits for a tap
     if(s.type==='time')for(let k=Math.min(S.countdown|0,Math.ceil(s.dur));k>0;k--)add(s0+Math.max(0,s.dur-k)*1000,k===1?880:660,.12); // same as tick()
     else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;for(let r=0;r<s.reps;r++)for(let k=0;k<s.counts;k++){const t=s0+(r*per+k*s.tempo)*1000;if(k)add(t,740,.06,'sine',.5);else add(t,1175,.12,'square',.7);}} // same as countFx()
+    if(s.boxing&&s.vfit==='tones'&&s.combos.length){const q=X.bq||(X.bq=[]),cl=s.cl||1,put=e=>{e.a=s0+e.t*1000;moveTones(e.c,s.tm).forEach((k,j)=>addT(e.a+j*cl*1000,k,cl*.85));};
+      let t=i===X.i?Math.max(X.nc,(now-s0)/1000+.1):1.5;q.forEach(e=>{if(e.i===i){put(e);t=e.n;}}); // queued before: again, then more
+      while(s.dur-t>1.5&&BG.length<3000){const c=nextCombo(s),e={i,t,c,n:t+callGap(s,c),u:X.box[s.bid].num};q.push(e);put(e);t=e.n;}} // same timing as boxCall
     s0+=L*1000;}
   bellAt(s0);keep();} // done
+// back in view: Tones only calls that played in the background count as done (before catchUp, which may finish the workout); the one
+// still playing is shown and the rest of its tones queued again (bgOff stopped them); the loop goes on from the plan
+function bqPlayed(now){const q=X.bq,p=[];while(q&&q.length&&q[0].a<=now)p.push(q.shift());X.calls=(X.calls||0)+p.length;return p;}
+function bqBack(p,now){const s=X.steps[X.i],h=p.filter(e=>e.i===X.i),e=h[h.length-1],q=X.bq;
+  if(e){X.sc=(X.sc||0)+h.length;X.ct=e.c;showCall(e.c,false);if(X.box[s.bid])X.box[s.bid].num=e.u;comboTones(e.c,s.cl||1,s.tm,ac().currentTime+(e.a-now)/1000);X.nc=e.n;}
+  if(q&&q.length&&q[0].i===X.i)X.nc=q[0].t;}
 let UTT=null,SAYT=0,SAYN=0,SAYI=0,SAYC=-1e9,SAW=false,SAYB=0; // SAYB: until then a phrase just handed over counts as speaking · UTT: current utterance, kept referenced (Chrome can drop it mid-sentence otherwise) · SAYN: newest phrase · SAYI: newest phrase that interrupts · SAYC: last cancel() · SAW: this device reports speech starts
 function say(t,interrupt=true,cue=false,o){if(!t)return; // o: {rate, call: a boxing call}
   const why=!window.speechSynthesis?'no speechSynthesis in this browser':!S.voice?'voice coach off':muted?'muted':silentHere()?'sound on another device':'';if(why){vd('skipped: '+why);if(!window.speechSynthesis&&S.voice)vdFail();return;}
@@ -808,7 +819,7 @@ function vLearn(u,sec){const t=u.text,n=vUnits(t);if(document.hidden||n<4||!(sec
   const r=Math.min(2.5,Math.max(.4,b/(.062*n)));VFIT[k]=+(VFIT[k]?VFIT[k]*.8+r*.2:r).toFixed(3); // this voice
   const ps=Object.keys(VFIT).filter(x=>x.includes('|'));if(ps.length>400)delete VFIT[ps[0]];
   try{localStorage.setItem('rf2_vfit',JSON.stringify(VFIT));}catch(e){}}
-// Keep the pace: the voice rate that fits a phrase in the time it has (s): your voice speed, faster (up to 1.5×), or 0 = too long to say
+// Voice, tones when too fast: the voice rate that fits a phrase in the time it has (s): your voice speed, faster (up to 1.5×), or 0 = too long to say
 function fitRate(t,avail,lang){const r=S.rate||1,b=vBody(t,lang),room=avail-VLAT-.05;if(!b)return r;if(room<=0)return 0;
   const need=b/room;return need<=r?r:need<=r*1.5?Math.min(r*1.5,need*1.03):0;}
 const vSlow=(v,time)=>v>time+.2; // noticeably longer to say than the time it gets
@@ -845,7 +856,7 @@ function toggleMute(){muted=!muted;muteBtn.innerHTML=svgi(muted?'mute':'vol',22)
 function inRound(b,first,last){return b.firstOnly?first:b.lastOnly?last:true;}
 /* Continue: '' = auto-start; 'rounds' = wait for a tap before each next round; 'blocks' = before each next block (hold:true from before = rounds) */
 function holdMode(r){return r.hold==='blocks'?'blocks':r.hold?'rounds':'';}
-function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r);
+function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r),tm=toneMap(r.blocks);
   if(r.prep>0)P({type:'time',kind:'prep',label:'Get ready',dur:r.prep,round:1});
   for(let k=1;k<=r.rounds;k++){const last=k===r.rounds;
     const bl=r.blocks.filter(b=>inRound(b,k===1,last));
@@ -855,7 +866,7 @@ function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r);
         P({type:'reps',kind:'work',label:b.name,reps,counts,tempo,mode:b.mode,repPause:b.repPause||0,
           display:b.display||'both',cues:(b.cues||'').split(',').map(s=>s.trim()).filter(Boolean),dur:b.mode==='tap'?0:reps*per-(b.repPause||0),round:k});}
       else if(b.type==='timed')P({type:'time',kind:'work',label:b.name,dur:b.work,cue:b.cue,round:k});
-      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,cl:b.tempo>0?b.tempo:(r.sec||1),order:b.order||'random',repeat:Math.max(1,b.repeat|0||1),poolPause:Math.max(0,+b.poolPause||0),vfit:b.vfit==='pace'?'pace':'',bid:b.id,round:k});
+      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,cl:b.tempo>0?b.tempo:(r.sec||1),order:b.order||'random',repeat:Math.max(1,b.repeat|0||1),poolPause:Math.max(0,+b.poolPause||0),vfit:b.vfit==='pace'||b.vfit==='tones'?b.vfit:'',tm,bid:b.id,round:k});
       else if(b.type==='rest')P({type:'time',kind:'rest',label:b.name||'Rest',dur:b.work,round:k});
       if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
     });
@@ -938,7 +949,7 @@ function ppIcon(){const p=!!(X&&X.p!=null);pp.innerHTML=svgi(p?'play':'pause',30
 function togglePause(){if(!X||!X.steps)return;claim();const t=NOW();
   if(X.p!=null){const d=t-X.p;X.s0+=d;X.t0+=d;X.p=null;}else{X.p=t;hush();}
   ppIcon();pushRun();}
-function jump(d){if(!X||!X.steps)return;claim();const j=X.i+d;if(j<0)return;const t=X.p??NOW();if(j>=X.steps.length)return finish(t);enter(j,t);}
+function jump(d){if(!X||!X.steps)return;claim();X.bq=null;const j=X.i+d;if(j<0)return;const t=X.p??NOW();if(j>=X.steps.length)return finish(t);enter(j,t);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
 function setStep(i,at){X.i=i;X.s0=at;X.lastCount=-1;X.lastSec=null;X.tap=0;X.ct='';X.nc=1.5;X.sc=0;X.vn='';} // sc: calls in this step · vn: voice note
 function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
@@ -1003,12 +1014,43 @@ let PRIMED=false; // first tap: unlock speech on Android with a silent utterance
 function movesOf(c){return c.split(/[\s\-–—,·]+/).filter(Boolean);}
 function moves(c){return Math.max(1,movesOf(c).length);}
 const spoken=c=>c.replace(/_/g,' ');
-function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1),vo=vEd(),g=Math.max(0,+b.minGap||0);
+/* move tones: each move of a combo has its own sound, played in rhythm (one per move, at the count length). The same move sounds the
+   same in every routine: straights (1 jab, 2 cross) steady, hooks (3, 4) fall, uppercuts (5, 6) rise, lead hand low, rear hand high;
+   slip, duck and roll a soft whoosh. Other moves get the next free sound (up to 8 sounds per routine), then a neutral tick.
+   [tag colour, wave, from Hz, to Hz, s, volume] */
+const TONES=[['#4D94FF','triangle',523,523,.11,1],['#FF4D5E','triangle',784,784,.11,1], // jab · cross
+  ['#FFC93C','triangle',698,466,.15,1],['#FF9F43','triangle',1047,698,.15,1], // lead hook · rear hook
+  ['#3DDC84','triangle',466,698,.15,1],['#22CCE0','triangle',698,1047,.15,1], // lead uppercut · rear uppercut
+  ['#C4B5FD','noise',3200,1600,.14,1.6],['#A78BFA','noise',1200,600,.18,2.6],['#8B9CFF','noise',700,2100,.24,2.6], // slip · duck · roll
+  ...[1319,330,1568,262,1175,392,1760,294].map((f,i)=>[['#FF5CAA','#A3E635','#FDBA74','#E879F9','#5EEAD4','#FCA5A5','#93C5FD','#FDE68A'][i],'square',f,f,.09,.45])], // free
+  TICK=[null,'noise',5000,5000,.03,1.6],TFREE=9;
+const mkey=t=>t.toLowerCase().replace(/[^\p{L}\p{N}_]/gu,'');
+function knownMove(k){const n=k.match(/^[1-6](?![0-9])/),rear=/rear|right|back|rechts|achter|derech/.test(k);
+  return n?n[0]-1:/upper|opstoot/.test(k)?(rear?5:4):/hook|hoek|gancho/.test(k)?(rear?3:2):/cross|straight|direct|recht|recto|cruzado/.test(k)?1:/jab/.test(k)?0
+    :/slip|ontwijk|esquiv/.test(k)?6:/duck|buk|duik|agach/.test(k)?7:/rol|bob|weave/.test(k)?8:-1;}
+function toneMap(bl){const m=new Map(),used=new Set();let f=TFREE; // move → sound (-1: tick), for a routine's boxing blocks
+  for(const b of bl||[])if(b.type==='boxing')for(const l of (b.combos||'').split('\n'))for(const t of movesOf(l)){const k=mkey(t);if(!k||m.has(k))continue;
+    let i=knownMove(k);if(i<0&&used.size<8&&f<TONES.length)i=f++;m.set(k,i);if(i>=0)used.add(i);}
+  return m;}
+const moveTones=(c,tm)=>movesOf(c).map(t=>{const i=tm&&tm.get(mkey(t));return i==null?-1:i;});
+let NOISE=null;
+function tone(i,d,at,force){if(!force&&(!S.beeps||muted||silentHere()))return;const c=ac(),[,w,f0,f1,len,vol]=TONES[i]||TICK,t=at??c.currentTime,e=Math.max(.03,Math.min(len,d||len)),g=c.createGain();let o;
+  if(w==='noise'){if(!NOISE){NOISE=c.createBuffer(1,c.sampleRate/2|0,c.sampleRate);const a=NOISE.getChannelData(0);let r=1;for(let k=0;k<a.length;k++)a[k]=(r=r*16807%2147483647)/1073741823.5-1;} // the same noise every time
+    o=c.createBufferSource();o.buffer=NOISE;const bp=c.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.2;bp.frequency.setValueAtTime(f0,t);bp.frequency.exponentialRampToValueAtTime(f1,t+e);o.connect(bp).connect(g);}
+  else{o=c.createOscillator();o.type=w;o.frequency.setValueAtTime(f0,t);if(f1!==f0)o.frequency.exponentialRampToValueAtTime(f1,t+e);o.connect(g);}
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,S.volume*vol),t+(w==='noise'?e*.4:.01));g.gain.exponentialRampToValueAtTime(.0001,t+e);
+  g.connect(c.destination);o.start(t);o.stop(t+e+.02);return o;}
+// a combo as tones from audio time at (s): one per move, cl s apart; moves already past are skipped
+function comboTones(c,cl,tm,at,force){const a=ac(),t0=at??a.currentTime;moveTones(c,tm).forEach((i,j)=>{const t=t0+j*cl;if(t>=a.currentTime-.01)tone(i,cl*.85,t,force);});}
+function playCombo(id,n){const b=cur&&cur.blocks.find(x=>x.id===id),l=b&&(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean)[n];
+  if(l)comboTones(l,b.tempo>0?b.tempo:(cur.sec||1),toneMap(cur.blocks),ac().currentTime+.05,true);} // editor ▶ (plays even with beeps off)
+function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1),vo=vEd()&&b.vfit!=='tones',g=Math.max(0,+b.minGap||0),tm=toneMap(cur.blocks);
   const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';
-  return L.map(l=>{const m=movesOf(l),v=vo?voiceSec(callTxt(l),S.rate,cur.lang||S.lang):0,sl=vo&&vSlow(v,moves(l)*cl+g);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px">${m.map(t=>`<span class="tag">${esc(spoken(t))}</span>`).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra${vo?` · <span style="color:${sl?'var(--orange)':'inherit'}">voice ~${+v.toFixed(1)} s</span>`:''}</span></div>`;}).join('');}
+  return L.map((l,n)=>{const m=movesOf(l),v=vo?voiceSec(callTxt(l),S.rate,cur.lang||S.lang):0,sl=vo&&vSlow(v,moves(l)*cl+g);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px"><button class="ghost pvp" onclick="playCombo('${id}',${n})" title="Play as tones" aria-label="Play as tones">${svgi('play',14)}</button>${m.map(t=>{const T=TONES[tm.get(mkey(t))];return `<span class="tag"${T?` style="background:${T[0]}2e;color:${T[0]}"`:''}>${esc(spoken(t))}</span>`;}).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra${vo?` · <span style="color:${sl?'var(--orange)':'inherit'}">voice ~${+v.toFixed(1)} s</span>`:''}</span></div>`;}).join('');}
 const OPEN=new Set();
 function info(k,title,body){return `<details class="info" ${OPEN.has(k)?'open':''} ontoggle="this.open?OPEN.add('${k}'):OPEN.delete('${k}')"><summary>${title}</summary><div class="body">${body}</div></details>`;}
-function pvUpd(id){const e=document.getElementById('pv-'+id);if(e)e.innerHTML=poolPreview(id);const n=document.getElementById('vf-'+id),b=cur&&cur.blocks.find(x=>x.id===id);if(n&&b)n.innerHTML=vfNote(b);}
+function pvUpd(id){if(cur)cur.blocks.forEach(x=>{const e=x.type==='boxing'&&document.getElementById('pv-'+x.id);if(e)e.innerHTML=poolPreview(x.id);}); // all: a routine's moves share their tones
+  const n=document.getElementById('vf-'+id),b=cur&&cur.blocks.find(x=>x.id===id);if(n&&b)n.innerHTML=vfNote(b);}
 function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
   B.poolDone=false;
@@ -1020,22 +1062,26 @@ function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   B.last=k;B.left=s.repeat-1;B.num=k+1;B.seen.add(k);poolChk(B,n);return L[k];}
 function poolChk(B,n){if(B.left===0&&B.seen.size>=n){B.poolDone=true;B.seen=new Set();}}
 function showCall(c,flash=true){call.textContent=c?spoken(c):'';if(!c)return;const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;if(flash){call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');}}
-/* a boxing call. Saying it can take longer than the time it gets (short count length, long combo):
-   Wait for the voice (default): the next call waits until the previous one is said (max 4 s late), so the voice sets the pace.
-   Keep the pace: calls stay on time; each is said at your voice speed, faster (up to 1.5×) or, when even that doesn't fit, only
-   beeped and shown. Never cut off, never behind. Either way the run screen says so (X.vn) */
+/* a boxing call (s.vfit). Saying it can take longer than the time it gets (short count length, long combo):
+   Voice (default): the next call waits until the previous one is said (max 4 s late), so the voice sets the pace.
+   Voice, tones when too fast (pace): calls stay on time; each is said at your voice speed, faster (up to 1.5×) or, when even that
+   doesn't fit, played as tones and shown. Never cut off, never behind. Either way the run screen says so (X.vn).
+   Tones only: every call as tones, on time (in the background drawn ahead, see bgOn) */
 const callTxt=c=>spoken(c).replace(/-/g,' ');
 function vOn(){return !!window.speechSynthesis&&S.voice&&!muted&&!silentHere();}
 function vBusy(){return speechSynthesis.speaking||performance.now()<SAYB;}
-function boxCall(s,t){const v=vOn(),busy=v&&vBusy(),byCall=busy&&!!(UTT&&UTT.call),pace=s.vfit==='pace',late=t-X.nc;
-  if(busy&&(!pace||!X.sc)&&late<4){if(!pace&&byCall&&late>.2)vnSet('wait');return;} // still saying the previous call (or the block's name, before its first call)
-  const c=nextCombo(s),tx=callTxt(c);X.ct=c;X.calls=(X.calls||0)+1;X.sc=(X.sc||0)+1;showCall(c);beep(1500,.05,'square',.4);
-  X.nc=t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);
-  if(!pace)say(tx,false,false,{call:true});
-  else if(v){const k=busy?0:fitRate(tx,X.nc-t);if(k){const r=Math.max(k,boxRate(s));say(tx,false,false,{call:true,rate:r});if(r>S.rate*1.1)vnSet('fast');}else if(!busy||byCall)vnSet('beep');} // busy with something else (Ten seconds): just this call beeps
+function boxCall(s,t){const v=vOn(),busy=v&&vBusy(),byCall=busy&&!!(UTT&&UTT.call),m=s.vfit,late=t-X.nc;
+  if(busy&&(!m||!X.sc)&&late<4){if(!m&&byCall&&late>.2)vnSet('wait');return;} // still saying the previous call (or the block's name, before its first call)
+  const q=X.bq;while(q&&q.length&&q[0].i<X.i)q.shift();const e=m==='tones'&&q&&q.length&&q[0].i===X.i?q.shift():null; // Tones only: the call drawn ahead in the background
+  const c=e?e.c:nextCombo(s),tx=callTxt(c);X.ct=c;X.calls=(X.calls||0)+1;X.sc=(X.sc||0)+1;showCall(c);if(e&&X.box[s.bid])X.box[s.bid].num=e.u;
+  X.nc=e?e.n:t+callGap(s,c);let said=!m;
+  if(!m)say(tx,false,false,{call:true});
+  else if(m==='pace'&&v){const k=busy?0:fitRate(tx,X.nc-t);if(k){const r=Math.max(k,boxRate(s));say(tx,false,false,{call:true,rate:r});said=true;if(r>S.rate*1.1)vnSet('fast');}else if(!busy||byCall)vnSet('beep');} // busy with something else (Ten seconds): just this call as tones
+  if(said)beep(1500,.05,'square',.4);else comboTones(c,s.cl||1,s.tm);
   pushRun();}
+const callGap=(s,c)=>moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0); // until the next call, right after nextCombo drew c
 function boxRate(s){const k=String(S.rate);if(s.vrk!==k){s.vrk=k;s.vr=Math.max(S.rate,...s.combos.map(c=>fitRate(callTxt(c),moves(c)*(s.cl||1)+(+s.minGap||0))));}return s.vr;} // one steady (faster) voice speed per block
-const VN={wait:'Paced by voice: calls wait until it finishes',fast:'Keeping the pace: voice sped up',beep:'Too fast to speak: beep + call on screen'};
+const VN={wait:'Paced by voice: calls wait until it finishes',fast:'Keeping the pace: voice sped up',beep:'Too fast to speak: tones + call on screen'};
 function vnTxt(s){if(!s||!mine()||!S.voice)return '';if(s.boxing)return VN[X.vn]||'';
   if(s.type==='reps'&&s.mode==='guided'){const p=cSay(s);if(p!==S.speakCounts)return p==='reps'?'Counts too fast to speak: rep numbers only':'Too fast to speak: beeps only';}return '';}
 function vnSet(k){if(X.vn===k||X.vn==='beep')return;X.vn=k;tapHint.textContent=vnTxt(X.steps[X.i]);}
@@ -1276,7 +1322,7 @@ function onRemoteRun(v){if(SWITCH){PENDRUN=v;return;}const first=!CR1;CR1=true;C
     else if(CR){if(!closeRun())show('lib');}}
   else if(first&&LASTDOC&&LASTDOC.end&&CR&&CR.sid===LASTDOC.sid&&!CR.end&&LASTDOC.u>(CR.u||0))CLOUD.setRun(LASTDOC).catch(()=>{});
   banner();if(document.hidden)bgOn();} // in the background: queue the beeps again for the new state
-function applySame(v){const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
+function applySame(v){X.bq=null;const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
   X.u=+v.u||0;X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0;X.p=v.p==null?null:+v.p;
   if(st){setStep(Math.max(0,Math.min(X.steps.length-1,v.i|0)),+v.s0);stepUI();}
   X.tap=v.tap|0;X.nc=+v.nc||0;X.calls=v.calls|0;X.box=unbox(v.box);if((v.ct||'')!==X.ct){X.ct=v.ct||'';showCall(X.ct);}
@@ -1342,7 +1388,7 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&X&&X.steps&&S.wake&&navigator.wakeLock)try{X.wl=await navigator.wakeLock.request('screen');}catch(e){}});
 // background beeps: queue them when hidden; when back, drop the queue and catch up without repeating what already played
 document.addEventListener('visibilitychange',()=>{if(document.hidden){bgOn();return;}const had=BG.length>0;bgOff();if(!had||!X||!X.steps||X.p!=null)return;
-  catchUp(NOW());if(!X||!X.steps)return;const s=X.steps[X.i],t=(NOW()-X.s0)/1000;
+  const now=NOW(),bq=bqPlayed(now);catchUp(now);if(!X||!X.steps)return;bqBack(bq,now);const s=X.steps[X.i],t=(NOW()-X.s0)/1000;
   if(s.type==='time')X.lastSec=Math.ceil(s.dur-t);else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause,rep=Math.floor(t/per),k=Math.floor((t-rep*per)/s.tempo);if(k<s.counts)X.lastCount=rep*1000+k;}});
 </script>
 </body>
