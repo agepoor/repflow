@@ -10,6 +10,7 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 - Week view: this week's schedule per day with done, added, skipped and not-done routines (also workouts done on other days), planned and done time per day, and a key; Schedule shows the usual week from the days set in each routine only; tap a routine to change its days
 - Per-block display: cue + number / cue only / number only
 - Beeps, voice coach (any browser language, per routine if you like; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on
+- When the voice can't keep up (short count length, long combos), the editor says so and the run screen shows it. Boxing: *Wait for the voice* (default) or *Keep the pace* (said faster, up to 1.5×, or beep + call on screen). Guided counts that are too fast to say fall back to rep numbers, then beeps. Each device learns how long its voice takes per phrase
 - Minimize a running workout (⌄ or Back): it shrinks into its own card on the home screen, which shows it live (step, time, round, progress, pause); tap to expand. Keep using the app meanwhile; one workout at a time
 - Installable PWA, works offline; JSON import/export
 - Sign in with Google or GitHub to sync routines, history and a running workout across devices

@@ -165,6 +165,11 @@ header{flex-wrap:nowrap}
 .rcard .go .ic{margin-left:3px}
 .block .head .icon{display:grid;place-items:center;padding:6px 8px}
 .cuecount span{display:inline-flex;align-items:center;gap:6px}
+/* the voice can't keep up with a block: what happens instead (editor), and the run-screen line that says so */
+.vnote{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,75,22,.08);border:1px solid rgba(255,75,22,.3);font-size:14px}
+.vnote .vw{display:flex;align-items:flex-start;gap:6px;color:var(--orange);font-weight:600}.vnote .vw .ic{flex:none;margin-top:3px}
+.vnote .vsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:4px}.vnote .vsel label{margin:0}.vnote .vsel select{width:auto;max-width:100%}
+#tapHint.rsv{min-height:1.4em}
 #rName{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #rName span{overflow:hidden;text-overflow:ellipsis}
 .block .head input{flex:1;min-width:0}
@@ -433,6 +438,7 @@ let S=JSON.parse(localStorage.getItem('rf2_set')||'null')||{...DEF_SET};S={...DE
 let H=JSON.parse(localStorage.getItem('rf2_hist')||'[]'),HDEL=JSON.parse(localStorage.getItem('rf2_hdel')||'{}');
 let R=JSON.parse(localStorage.getItem('rf2_routines')||'null');
 let SY={last:(JSON.parse(localStorage.getItem('rf2_sync')||'null')||{}).last||0};
+let VFIT={};try{VFIT=JSON.parse(localStorage.getItem('rf2_vfit')||'{}')||{};}catch(e){} // how fast this device's voices really speak (vLearn)
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null,syncFails=0,retryIn=0;
 const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
 /* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
@@ -634,13 +640,13 @@ function renderBlocks(){
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
      <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" data-rsec placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[['both','Cue + number'],['cue','Cue only'],['number','Number only']].map(([v,l])=>`<option value="${v}" ${(b.display||'both')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
-     <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div>`;
+     <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>`;
    if(b.type==='timed')f=`<div class="grid">${dur(b.id,'work',b.work,'Work',1)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
      <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
    if(b.type==='boxing')f=`<div class="grid">${dur(b.id,'work',b.work,'Duration',1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" data-rsec placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id,'minGap',b.minGap,'Extra s (min)',0.5,0)}${num(b.id,'maxGap',b.maxGap,'Extra s (max)',0.5,0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[['random','Random'],['shuffle','Shuffle (each once)'],['sequence','In order']].map(([v,l])=>`<option value="${v}" ${(b.order||'random')===v?'selected':''}>${l}</option>`).join('')}</select></div>${num(b.id,'repeat',b.repeat||1,'Repeat each call ×',1,1)}${num(b.id,'poolPause',b.poolPause||0,'Pause after full pool (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
-     <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea>
+     <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea><div id="vf-${b.id}">${vfNote(b)}</div>
      ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
-     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. The voice always finishes the line before the next call.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
+     ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it, with a choice: <b style="color:var(--tx)">Wait for the voice</b> (every call said in full; the voice sets the pace) or <b style="color:var(--tx)">Keep the pace</b> (calls stay on time: said faster, up to 1.5×, or only beeped and shown when even that doesn't fit).</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
    if(b.type==='rest')f=`<div class="grid">${dur(b.id,'work',b.work,'Rest',1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -649,11 +655,26 @@ function renderBlocks(){
     ${f}<div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label>Runs in</label><select style="width:auto;max-width:100%;align-self:flex-start" onchange="setRun('${b.id}',this.value)">${[['all','Every round'],['first','First round only (warm-up)'],['last','Last round only (finisher)']].map(([v,l])=>`<option value="${v}" ${(b.firstOnly?'first':b.lastOnly?'last':'all')===v?'selected':''}>${l}</option>`).join('')}</select></div></div></div>`}).join('');
   summary();
 }
+/* editor: the voice can't keep up with this block (estimated for this device's voice): what happens instead; for combos, your choice */
+function repsVoice(b){if(!vEd()||b.mode==='tap'||S.speakCounts==='off')return null;
+  const p=countPlan({counts:Math.max(1,b.counts|0),reps:Math.max(1,b.reps|0),tempo:b.tempo>0?b.tempo:(cur.sec||1),repPause:+b.repPause||0,cues:(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean)},cur.lang||S.lang);
+  return p.say===S.speakCounts?null:p;}
+function vfNote(b){const f=x=>+x.toFixed(1),f2=x=>+x.toFixed(2),warn=t=>`<span class="vw">${svgi('alert',14,2.5)}<span>${t}</span></span>`;
+  if(b.type==='reps'){const p=repsVoice(b);if(!p||!p.w)return '';
+    return `<div class="vnote">${warn(`${S.speakCounts==='reps'?'Rep numbers':'Counts'} too fast to speak · “${esc(p.w.t)}” needs ~${f(p.w.v)} s, gets ${f2(p.w.slot)} s`)}<span class="muted">${p.say==='reps'?'Counts beep; the rep number is spoken at the start of each rep.':'Beeps only, no voice.'} A longer count length or a faster voice (Settings) brings it back.</span></div>`;}
+  if(b.type!=='boxing'||!vEd())return '';
+  const cl=b.tempo>0?b.tempo:(cur.sec||1),g=Math.max(0,+b.minGap||0),G=Math.max(g,+b.maxGap||0),lang=cur.lang||S.lang,pace=b.vfit==='pace';
+  const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);let n=0,fast=0,beep=0,w=null;
+  L.forEach(l=>{const tx=callTxt(l),m=moves(l)*cl,v=voiceSec(tx,S.rate,lang);if(!vSlow(v,m+g))return;n++;if(!w||v-m>w.v-w.m)w={v,m};if(fitRate(tx,m+g,lang))fast++;else beep++;});
+  if(!n)return '';const tm=G>g?`${f2(w.m+g)}–${f2(w.m+G)} s`:`${f2(w.m+g)} s`;
+  const body=!pace?`Calls wait for the voice: up to ~${f(w.v)} s apart instead of ${tm}.`:beep&&fast?`Calls stay on time: ${fast} said faster, ${beep} beep only (shown on screen).`:beep?`Calls stay on time: ${n===L.length?'beep only, each call shown on screen':`${beep} beep only (shown on screen), the others are said`}.`:'Calls stay on time: the voice speaks faster (up to 1.5×).';
+  return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span>
+    <div class="vsel"><label for="vs-${b.id}">If the voice is too slow</label><select id="vs-${b.id}" onchange="setB('${b.id}','vfit',this.value)">${[['wait','Wait for the voice'],['pace','Keep the pace']].map(([v,l])=>`<option value="${v}" ${(pace?'pace':'wait')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>`;}
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
   if(!n)return '';const ok=n===c;const col=ok?'var(--green)':'var(--orange)';
   const msg=ok?'matches counts per rep':n<c?`${c-n} short — counts ${n+1}–${c} show numbers`:`${n-c} extra — cue${n-c>1?'s':''} after count ${c} ignored`;
   return `<span style="color:${col}">${svgi(ok?'check':'alert',14,2.5)} ${n} cue${n>1?'s':''} / ${c} counts per rep · ${msg}</span>`;}
-function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();summary();}
+function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}b[k]=v;if(k==='cues'||k==='counts'){const el=document.getElementById('cc_'+id);if(el)el.innerHTML=cueInfo(b);}if(k==='mode')renderBlocks();else if(k!=='name')pvUpd(id);summary();}
 function setRun(id,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}if(v==='first')b.firstOnly=true;else delete b.firstOnly;b.lastOnly=v==='last';summary();}
 function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
   const d={reps:{name:'Burpees',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
@@ -667,6 +688,7 @@ function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.ro
 ['eRounds','eRest','ePrep','eSec','eHold'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{readHead();summary();}));
 // blocks with an empty count length follow the routine's: keep their hint and combo preview in step
 eSec.addEventListener('input',()=>{document.querySelectorAll('#edit [data-rsec]').forEach(e=>e.placeholder=`Routine (${cur.sec} s)`);cur.blocks.forEach(b=>pvUpd(b.id));});
+eLang.addEventListener('change',()=>{readHead();cur.blocks.forEach(b=>pvUpd(b.id));}); // another voice: its own speed
 function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
 function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur)return;const r=cur,bl=r.blocks||[];
   if(!bl.length){el.innerHTML=`<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;return;}
@@ -740,25 +762,25 @@ function bgOn(){bgOff();if(!document.hidden||!X||!X.steps||X.p!=null||!mine()||!
     else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;for(let r=0;r<s.reps;r++)for(let k=0;k<s.counts;k++){const t=s0+(r*per+k*s.tempo)*1000;if(k)add(t,740,.06,'sine',.5);else add(t,1175,.12,'square',.7);}} // same as countFx()
     s0+=L*1000;}
   bellAt(s0);keep();} // done
-let UTT=null,SAYT=0,SAYN=0,SAYI=0,SAYC=-1e9,SAW=false; // UTT: current utterance, kept referenced (Chrome can drop it mid-sentence otherwise) · SAYN: newest phrase · SAYI: newest phrase that interrupts · SAYC: last cancel() · SAW: this device reports speech starts
-function say(t,interrupt=true,cue=false){if(!t)return;
+let UTT=null,SAYT=0,SAYN=0,SAYI=0,SAYC=-1e9,SAW=false,SAYB=0; // SAYB: until then a phrase just handed over counts as speaking · UTT: current utterance, kept referenced (Chrome can drop it mid-sentence otherwise) · SAYN: newest phrase · SAYI: newest phrase that interrupts · SAYC: last cancel() · SAW: this device reports speech starts
+function say(t,interrupt=true,cue=false,o){if(!t)return; // o: {rate, call: a boxing call}
   const why=!window.speechSynthesis?'no speechSynthesis in this browser':!S.voice?'voice coach off':muted?'muted':silentHere()?'sound on another device':'';if(why){vd('skipped: '+why);if(!window.speechSynthesis&&S.voice)vdFail();return;}
-  const n=++SAYN;if(interrupt)SAYI=n;
+  const n=++SAYN;if(interrupt)SAYI=n;SAYB=performance.now()+150;
   // phrases said in the same moment (an exercise name, then its first count): only the newest reaches the engine
   queueMicrotask(()=>{if(SAYI>n)return;try{const ss=speechSynthesis,t0=performance.now(),busy=ss.speaking||ss.pending,p=UTT;
   // Chrome sometimes drops a phrase spoken shortly after cancel(). A cue that is already playing is nearly done,
   // so the next cue waits behind it (up to 0.2 s) instead of cutting it off
   const soft=cue&&p&&p.cue&&p.on&&!ss.pending&&t0-p.on<1500,cut=interrupt&&busy&&!soft;
-  const stop=()=>{clearTimeout(SAYT);SAYC=performance.now();ss.cancel();};
+  const stop=()=>{clearTimeout(SAYT);SAYC=performance.now();if(UTT)UTT.cut=true;if(p)p.cut=true;ss.cancel();};
   if(cut)stop();
-  const go=re=>{if(SAYI>n)return;try{const u=new SpeechSynthesisUtterance(t);u.lang=voiceLang();const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=S.rate;u.pitch=S.pitch||1;u.volume=S.volume;u.cue=cue;
+  const go=re=>{if(SAYI>n)return;try{const u=new SpeechSynthesisUtterance(t);u.lang=voiceLang();const v=pickVoice();if(v){u.voice=v;u.lang=v.lang;}u.rate=o&&o.rate||S.rate;u.pitch=S.pitch||1;u.volume=S.volume;u.cue=cue;u.call=!!(o&&o.call);
     // ended without ever starting while still the newest phrase: the engine dropped it, so say it once more while still on time
     const lost=c=>{if(re||u.on||u.dead||n!==SAYN||performance.now()-t0>700||!(c==='interrupted'||c==='canceled'||(c==='end'&&SAW)))return false;
       vd('dropped ('+c+'), retrying');clearTimeout(SAYT);SAYT=setTimeout(()=>{if(n===SAYN)go(true);},100);return true;};
     u.onstart=()=>{u.on=performance.now();SAW=true;clearTimeout(VDWD);VDBAD=false;vd('started');};
-    u.onend=()=>{u.done=true;if(UTT===u)UTT=null;if(!lost('end'))vd('ended');};
+    u.onend=()=>{u.done=true;if(UTT===u)UTT=null;if(!lost('end')){vd('ended');if(u.q&&u.on&&!u.cut)vLearn(u,(performance.now()-u.q)/1000);}};
     u.onerror=e=>{u.done=true;if(UTT===u)UTT=null;clearTimeout(VDWD);const c=e.error||'unknown';if(lost(c))return;if(c!=='interrupted'&&c!=='canceled')vdFail();vd('error: '+c);};
-    const idle=!ss.speaking&&!ss.pending;UTT=u;if(ss.paused)ss.resume();ss.speak(u);
+    const idle=!ss.speaking&&!ss.pending;UTT=u;if(ss.paused)ss.resume();u.q=idle?performance.now():0;ss.speak(u);
     if(idle){clearTimeout(VDWD);VDWD=setTimeout(()=>{if(UTT===u&&!ss.speaking){vdFail();vd('did not start within 4 s');}},4000);}
     // the cue it waits for is still busy after 0.2 s: cut it after all
     if(soft&&!re)setTimeout(()=>{if(n===SAYN&&!u.on&&!p.done){u.dead=true;vd('previous cue still busy, cutting');stop();SAYT=setTimeout(()=>{if(n===SAYN)go(true);},60);}},200);
@@ -772,12 +794,30 @@ function vdFail(){VDBAD=true;if(!VDTOAST){VDTOAST=true;toast('Voice coach is not
 function vd(m){const d=new Date();VDL.unshift(d.toTimeString().slice(0,8)+' '+m);VDL.length=Math.min(VDL.length,5);vdShow();}
 function vdShow(){const el=document.getElementById('vdiag');if(!el)return;el.hidden=!VDBAD;if(!VDBAD)return;let h='<b>Voice problem</b> · <a href="#" onclick="VDBAD=false;vdShow();return false">Hide</a><br>';try{const ss=window.speechSynthesis,all=ss?ss.getVoices():[],v=ss?pickVoice():null,cv=(navigator.userAgent.match(/Chrome\/(\d+)/)||[])[1];
   h+=`Voices: ${all.length} · for ${esc(S.lang)}: ${ss?langVoices().length:0} · using: ${v?esc(v.name)+' ('+esc(v.lang)+(v.localService?'':', online')+')':'browser default'}<br>rate ${esc(String(S.rate))} · pitch ${esc(String(S.pitch))} · volume ${esc(String(S.volume))} · voice coach ${S.voice?'on':'off'}${muted?' · muted':''}<br>state: ${ss?(ss.speaking?'speaking ':'')+(ss.pending?'pending ':'')+(ss.paused?'paused ':'')||'idle':'n/a'} · Chrome ${cv||'?'}${matchMedia('(display-mode: standalone)').matches?' · installed app':' · browser tab'}<br>${VDL.map(esc).join('<br>')||'Tap Test sound & voice'}`;}catch(e){h='diagnostics error: '+esc(e.message);}el.innerHTML=h;}
-function hush(){SAYI=++SAYN;clearTimeout(SAYT);SAYC=performance.now();speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
+function hush(){SAYI=++SAYN;clearTimeout(SAYT);SAYC=performance.now();if(UTT)UTT.cut=true;speechSynthesis.cancel();} // stop speech, including a phrase waiting to start
+/* how long the voice takes to say a phrase, in s (handed over until it ends). Learned on this device while it speaks: per phrase
+   (combos and counts come back every workout), and per voice for phrases it hasn't said yet (estimated from their length) */
+const numLen=n=>n<10?4:n<20?6:n<100?9:n<1000?14:18; // a number: about as many letters as it has spoken
+function vUnits(t){return String(t||'').replace(/_/g,' ').replace(/\d+/g,m=>' '+'x'.repeat(numLen(+m))+' ').split(/[^\p{L}\p{N}]+/u).filter(Boolean).reduce((n,w)=>n+w.length+1.5,0);}
+const VLAT=.15; // s until the voice starts, about
+function vKey(lang){const v=window.speechSynthesis&&pickVoice(lang||undefined);return v?v.name:'default';}
+function vBody(t,lang){const k=vKey(lang),m=VFIT[k+'|'+t];return m!=null?m:.062*vUnits(t)*(VFIT[k]||1);} // s to say t at rate 1, once started
+function voiceSec(t,rate=S.rate,lang){return vUnits(t)?VLAT+vBody(t,lang)/Math.max(.1,rate||1):0;}
+function vLearn(u,sec){const t=u.text,n=vUnits(t);if(document.hidden||n<4||!(sec>.1&&sec<20))return;const k=u.voice?u.voice.name:'default',b=Math.max(.05,sec-VLAT)*(u.rate||1),pk=k+'|'+t,o=VFIT[pk];
+  delete VFIT[pk];VFIT[pk]=+(o!=null?(o+b)/2:b).toFixed(3); // this phrase (newest last)
+  const r=Math.min(2.5,Math.max(.4,b/(.062*n)));VFIT[k]=+(VFIT[k]?VFIT[k]*.8+r*.2:r).toFixed(3); // this voice
+  const ps=Object.keys(VFIT).filter(x=>x.includes('|'));if(ps.length>400)delete VFIT[ps[0]];
+  try{localStorage.setItem('rf2_vfit',JSON.stringify(VFIT));}catch(e){}}
+// Keep the pace: the voice rate that fits a phrase in the time it has (s): your voice speed, faster (up to 1.5×), or 0 = too long to say
+function fitRate(t,avail,lang){const r=S.rate||1,b=vBody(t,lang),room=avail-VLAT-.05;if(!b)return r;if(room<=0)return 0;
+  const need=b/room;return need<=r?r:need<=r*1.5?Math.min(r*1.5,need*1.03):0;}
+const vSlow=(v,time)=>v>time+.2; // noticeably longer to say than the time it gets
+const vEd=()=>S.voice&&!!window.speechSynthesis; // the editor checks the voice only when it is on
 const lnorm=l=>(l||'').toLowerCase().replace('_','-');
 function langVoices(lang=S.lang){const L=lnorm(lang);return speechSynthesis.getVoices().filter(v=>lnorm(v.lang)===L).sort((a,b)=>(b.localService-a.localService)||a.name.localeCompare(b.name));}
 /* voice language per routine: r.lang (e.g. nl-NL) overrides Settings during that routine; none = the Settings language */
 function voiceLang(){return (X&&X.r&&X.r.lang)||S.lang;}
-function pickVoice(){const all=speechSynthesis.getVoices(),L=voiceLang(),own=lnorm(L)===lnorm(S.lang);
+function pickVoice(L=voiceLang()){const all=speechSynthesis.getVoices(),own=lnorm(L)===lnorm(S.lang);
   return (own&&S.voiceURI&&all.find(v=>v.voiceURI===S.voiceURI))||langVoices(L)[0]||  // saved voice (Settings language only), else best voice for the language
     all.filter(v=>lnorm(v.lang).split('-')[0]===lnorm(L).split('-')[0]).sort((a,b)=>b.localService-a.localService)[0]||null;} // else any voice for that language (nl-BE for nl-NL)
 function voiceLangs(){const v=speechSynthesis.getVoices().map(v=>v.lang).filter((v,i,a)=>a.indexOf(v)===i).sort();return v.length?v:['en-US','en-GB','nl-NL','es-ES','de-DE','fr-FR'];}
@@ -815,7 +855,7 @@ function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r);
         P({type:'reps',kind:'work',label:b.name,reps,counts,tempo,mode:b.mode,repPause:b.repPause||0,
           display:b.display||'both',cues:(b.cues||'').split(',').map(s=>s.trim()).filter(Boolean),dur:b.mode==='tap'?0:reps*per-(b.repPause||0),round:k});}
       else if(b.type==='timed')P({type:'time',kind:'work',label:b.name,dur:b.work,cue:b.cue,round:k});
-      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,cl:b.tempo>0?b.tempo:(r.sec||1),order:b.order||'random',repeat:Math.max(1,b.repeat|0||1),poolPause:Math.max(0,+b.poolPause||0),bid:b.id,round:k});
+      else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,cl:b.tempo>0?b.tempo:(r.sec||1),order:b.order||'random',repeat:Math.max(1,b.repeat|0||1),poolPause:Math.max(0,+b.poolPause||0),vfit:b.vfit==='pace'?'pace':'',bid:b.id,round:k});
       else if(b.type==='rest')P({type:'time',kind:'rest',label:b.name||'Rest',dur:b.work,round:k});
       if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
     });
@@ -900,13 +940,14 @@ function togglePause(){if(!X||!X.steps)return;claim();const t=NOW();
   ppIcon();pushRun();}
 function jump(d){if(!X||!X.steps)return;claim();const j=X.i+d;if(j<0)return;const t=X.p??NOW();if(j>=X.steps.length)return finish(t);enter(j,t);}
 function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
-function setStep(i,at){X.i=i;X.s0=at;X.lastCount=-1;X.lastSec=null;X.tap=0;X.ct='';X.nc=1.5;}
+function setStep(i,at){X.i=i;X.s0=at;X.lastCount=-1;X.lastSec=null;X.tap=0;X.ct='';X.nc=1.5;X.sc=0;X.vn='';} // sc: calls in this step · vn: voice note
 function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   run.style.background=`radial-gradient(circle at 50% 45%, ${c}55, #171717 75%), #171717`;ring.style.stroke=c;
   phase.textContent=s.label;phase.style.color=c;showCall(X.ct,false);
   rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
   const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: ${n.label==='Next round'?`Round ${n.round} · `:''}${X.steps[i+2]?X.steps[i+2].label+' · ':''}tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
-  tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':'';
+  tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':vnTxt(s);
+  tapHint.classList.toggle('rsv',!!s.boxing&&vOn()); // room for the voice line, so nothing moves when it shows up
   // text under the number: room is kept for the whole step (nothing jumps within a step), and only when the step has text,
   // so a bare number sits exactly in the middle of the ring
   stage.classList.toggle('nosub',s.type==='time'&&s.kind==='work'&&!(s.boxing&&s.order==='sequence'));
@@ -962,12 +1003,12 @@ let PRIMED=false; // first tap: unlock speech on Android with a silent utterance
 function movesOf(c){return c.split(/[\s\-–—,·]+/).filter(Boolean);}
 function moves(c){return Math.max(1,movesOf(c).length);}
 const spoken=c=>c.replace(/_/g,' ');
-function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1);
+function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1),vo=vEd(),g=Math.max(0,+b.minGap||0);
   const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';
-  return L.map(l=>{const m=movesOf(l);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px">${m.map(t=>`<span class="tag">${esc(spoken(t))}</span>`).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra</span></div>`;}).join('');}
+  return L.map(l=>{const m=movesOf(l),v=vo?voiceSec(callTxt(l),S.rate,cur.lang||S.lang):0,sl=vo&&vSlow(v,moves(l)*cl+g);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px">${m.map(t=>`<span class="tag">${esc(spoken(t))}</span>`).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra${vo?` · <span style="color:${sl?'var(--orange)':'inherit'}">voice ~${+v.toFixed(1)} s</span>`:''}</span></div>`;}).join('');}
 const OPEN=new Set();
 function info(k,title,body){return `<details class="info" ${OPEN.has(k)?'open':''} ontoggle="this.open?OPEN.add('${k}'):OPEN.delete('${k}')"><summary>${title}</summary><div class="body">${body}</div></details>`;}
-function pvUpd(id){const e=document.getElementById('pv-'+id);if(e)e.innerHTML=poolPreview(id);}
+function pvUpd(id){const e=document.getElementById('pv-'+id);if(e)e.innerHTML=poolPreview(id);const n=document.getElementById('vf-'+id),b=cur&&cur.blocks.find(x=>x.id===id);if(n&&b)n.innerHTML=vfNote(b);}
 function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
   B.poolDone=false;
@@ -979,6 +1020,25 @@ function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   B.last=k;B.left=s.repeat-1;B.num=k+1;B.seen.add(k);poolChk(B,n);return L[k];}
 function poolChk(B,n){if(B.left===0&&B.seen.size>=n){B.poolDone=true;B.seen=new Set();}}
 function showCall(c,flash=true){call.textContent=c?spoken(c):'';if(!c)return;const L=c.length,w=Math.max(...c.split(/\s+/).map(x=>x.length),Math.ceil(L/3));call.style.fontSize=L<=10?'':`min(56px, ${Math.round(480/w)}px, ${(140/w).toFixed(1)}vw)`;if(flash){call.classList.remove('flash');void call.offsetWidth;call.classList.add('flash');}}
+/* a boxing call. Saying it can take longer than the time it gets (short count length, long combo):
+   Wait for the voice (default): the next call waits until the previous one is said (max 4 s late), so the voice sets the pace.
+   Keep the pace: calls stay on time; each is said at your voice speed, faster (up to 1.5×) or, when even that doesn't fit, only
+   beeped and shown. Never cut off, never behind. Either way the run screen says so (X.vn) */
+const callTxt=c=>spoken(c).replace(/-/g,' ');
+function vOn(){return !!window.speechSynthesis&&S.voice&&!muted&&!silentHere();}
+function vBusy(){return speechSynthesis.speaking||performance.now()<SAYB;}
+function boxCall(s,t){const v=vOn(),busy=v&&vBusy(),byCall=busy&&!!(UTT&&UTT.call),pace=s.vfit==='pace',late=t-X.nc;
+  if(busy&&(!pace||!X.sc)&&late<4){if(!pace&&byCall&&late>.2)vnSet('wait');return;} // still saying the previous call (or the block's name, before its first call)
+  const c=nextCombo(s),tx=callTxt(c);X.ct=c;X.calls=(X.calls||0)+1;X.sc=(X.sc||0)+1;showCall(c);beep(1500,.05,'square',.4);
+  X.nc=t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);
+  if(!pace)say(tx,false,false,{call:true});
+  else if(v){const k=busy?0:fitRate(tx,X.nc-t);if(k){const r=Math.max(k,boxRate(s));say(tx,false,false,{call:true,rate:r});if(r>S.rate*1.1)vnSet('fast');}else if(!busy||byCall)vnSet('beep');} // busy with something else (Ten seconds): just this call beeps
+  pushRun();}
+function boxRate(s){const k=String(S.rate);if(s.vrk!==k){s.vrk=k;s.vr=Math.max(S.rate,...s.combos.map(c=>fitRate(callTxt(c),moves(c)*(s.cl||1)+(+s.minGap||0))));}return s.vr;} // one steady (faster) voice speed per block
+const VN={wait:'Paced by voice: calls wait until it finishes',fast:'Keeping the pace: voice sped up',beep:'Too fast to speak: beep + call on screen'};
+function vnTxt(s){if(!s||!mine()||!S.voice)return '';if(s.boxing)return VN[X.vn]||'';
+  if(s.type==='reps'&&s.mode==='guided'){const p=cSay(s);if(p!==S.speakCounts)return p==='reps'?'Counts too fast to speak: rep numbers only':'Too fast to speak: beeps only';}return '';}
+function vnSet(k){if(X.vn===k||X.vn==='beep')return;X.vn=k;tapHint.textContent=vnTxt(X.steps[X.i]);}
 function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))return;
   if(s.type==='time'){
     const left=s.dur-t;const sec=Math.ceil(left);
@@ -986,8 +1046,7 @@ function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))re
       if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true,true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say(ph('halfway'),false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say(ph('ten'),false);}}
-    if(s.boxing&&mine()&&t>=X.nc&&left>1.5&&!(S.voice&&!muted&&speechSynthesis.speaking&&t-X.nc<4)){const c=nextCombo(s);X.ct=c;X.calls=(X.calls||0)+1;showCall(c);
-      beep(1500,.05,'square',.4);say(spoken(c).replace(/-/g,' '),false);X.nc=t+moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0);pushRun();}
+    if(s.boxing&&mine()&&t>=X.nc&&left>1.5)boxCall(s,t);
   } else if(s.mode==='guided'){
     const per=s.counts*s.tempo+s.repPause;const rep=Math.floor(t/per);const inRep=t-rep*per;
     const c=inRep<s.counts*s.tempo?Math.floor(inRep/s.tempo):-2; // -2 = breather
@@ -996,10 +1055,20 @@ function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))re
   }}
 function countFx(rep,c,s){ // rep 0-based, c 0-based
   const first=c===0;beep(first?1175:740,first?.12:.06,first?'square':'sine',first?.7:.5);if(first)buzz(40);
-  const lbl=s.cues[c];
-  if(S.speakCounts==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)),true,true);
-  else if(S.speakCounts==='reps'&&first)say(String(rep+1),true,true);
+  const lbl=s.cues[c],sp=s.mode==='guided'?cSay(s):S.speakCounts;
+  if(sp==='every')say(lbl||(s.counts>1?String(c+1):String(rep+1)),true,true);
+  else if(sp==='reps'&&first)say(String(rep+1),true,true);
   big.classList.remove('flash');void big.offsetWidth;big.classList.add('flash');}
+/* guided counts are only spoken when each fits its count (said before the next one starts); otherwise only the rep number (at the
+   first count), otherwise beeps only. s: a reps step, or the editor's view of a block. w: the phrase that fits worst */
+function countPlan(s,lang){const per=s.counts*s.tempo+s.repPause;let say=S.speakCounts,w=null;
+  const fits=(t,slot)=>{const v=voiceSec(t,S.rate,lang);if(v<=slot+.05)return true;if(!w||v-slot>w.v-w.slot)w={t,v,slot};return false;};
+  if(say==='every'){let ok=true;if(s.counts>1){for(let k=0;k<s.counts;k++)if(!fits(s.cues[k]||String(k+1),s.tempo+(k===s.counts-1?s.repPause:0)))ok=false;}
+    else ok=fits(String(s.reps),s.tempo+s.repPause);
+    if(!ok)say=s.counts>1?'reps':'off';}
+  if(say==='reps'&&!fits(String(s.reps),per))say='off';
+  return {say,w};}
+function cSay(s){if(!S.voice)return S.speakCounts;const k=S.speakCounts+'|'+S.rate;if(s.vpk!==k){s.vpk=k;s.vp=countPlan(s).say;}return s.vp;} // decided once per step
 function tap(){if(!X||!X.steps||X.p!=null)return;const s=X.steps[X.i];if(s.type==='wait'){ac();jump(1);return;}if(s.type!=='reps'||s.mode!=='tap')return;
   const total=s.reps*s.counts;if(X.tap>=total)return;ac();claim();
   const c=X.tap%s.counts,rep=Math.floor(X.tap/s.counts);countFx(rep,c,s);X.tap++;
