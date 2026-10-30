@@ -299,6 +299,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <span class="muted">Add block:</span>
     <button class="ib" onclick="addBlock('reps')"><i data-ic="hash"></i>Reps / counts</button>
     <button class="ib" onclick="addBlock('timed')"><i data-ic="timer"></i>Timed</button>
+    <button class="ib" onclick="addBlock('seq')"><i data-ic="steps"></i>Sequence</button>
     <button class="ib" onclick="addBlock('boxing')"><i data-ic="glove"></i>Boxing combos</button>
     <button class="ib" onclick="addBlock('rest')"><i data-ic="moon"></i>Rest</button>
   </div>
@@ -390,6 +391,7 @@ const IC={
  juggle:'<circle cx="12" cy="6.5" r="3.5"/><circle cx="6" cy="16.5" r="3.5"/><circle cx="18" cy="16.5" r="3.5"/>',
  bounce:'<circle cx="15" cy="7" r="4"/><path d="M2 21h20"/><path d="M4 17.5c1.5-3.5 3.5-6 6.5-8" stroke-dasharray="2 3"/>',
  hash:'<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/>',
+ steps:'<path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/>',
  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
  sliders:'<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/>',
  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
@@ -448,7 +450,7 @@ function mig(r){if(r.cv>=2)return r;const rs=r.sec||1;
     if(Math.abs(eff-rs)<1e-9)delete x.tempo;else x.tempo=eff;return x;})};}
 /* repair blocks: every block needs a unique id (inputs edit blocks by id) and its type's defaults */
 const BDEF={reps:{name:'Reps',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
-  boxing:{name:'Shadow boxing',work:120,combos:'1-2',minGap:1,maxGap:2},rest:{name:'Rest',work:30}};
+  boxing:{name:'Shadow boxing',work:120,combos:'1-2',minGap:1,maxGap:2},seq:{name:'Sequence',work:3,steps:''},rest:{name:'Rest',work:30}};
 function norm(r){if(!r||typeof r!=='object')return r;const seen=new Set();let fixed=false;
   const blocks=(Array.isArray(r.blocks)?r.blocks:[]).filter(b=>b&&typeof b==='object').map((b,i)=>{const t=BDEF[b.type]?b.type:'timed';
     let id=b.id!=null&&b.id!==''?String(b.id):'';if(!id||seen.has(id)){id=(r.id||'r')+'-b'+i;while(seen.has(id))id+='x';}seen.add(id);
@@ -579,7 +581,7 @@ function toggleArchiveCur(){readHead();if(cur.archived)delete cur.archived;else 
 
 /* ---------- editor ---------- */
 let cur=null;
-const BT={reps:[svgi('hash',18),'Reps / counts','orange'],timed:[svgi('timer',18),'Timed','red'],boxing:[svgi('glove',18),'Boxing combos','blue'],rest:[svgi('moon',18),'Rest','green']};
+const BT={reps:[svgi('hash',18),'Reps / counts','orange'],timed:[svgi('timer',18),'Timed','red'],seq:[svgi('steps',18),'Sequence','purple'],boxing:[svgi('glove',18),'Boxing combos','blue'],rest:[svgi('moon',18),'Rest','green']};
 let EDBACK='lib'; // where the editor's Back goes: home, or the week it was opened from
 function newRoutine(){EDBACK='lib';cur={id:uid(),name:'New routine',icon:'activity',color:'orange',rounds:1,rest:60,prep:10,notes:'',blocks:[],_new:true};fillEditor();show('edit');}
 function openEditor(id,from){EDBACK=from||'lib';cur=JSON.parse(JSON.stringify(R.find(r=>r.id===id)));fillEditor();show('edit');}
@@ -648,6 +650,9 @@ function renderBlocks(){
      <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="vs-${b.id}">Calls</label><select id="vs-${b.id}" style="width:auto;max-width:100%;align-self:flex-start" onchange="setB('${b.id}','vfit',this.value)">${[['wait','Voice'],['pace','Voice, tones when too fast'],['tones','Tones only']].map(([v,l])=>`<option value="${v}" ${(b.vfit==='pace'||b.vfit==='tones'?b.vfit:'wait')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
      ${info(b.id+'-pv','Show moves per combo',`<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
      ${info(b.id+'-how','How timing works',`<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it.</p><p><b style="color:var(--tx)">Calls:</b> <b style="color:var(--tx)">Voice</b> says every call in full (when it's too slow, calls wait for it). <b style="color:var(--tx)">Voice, tones when too fast</b> keeps calls on time: said faster (up to 1.5×), or played as tones when even that doesn't fit. <b style="color:var(--tx)">Tones only</b>: exact timing, and on Android they keep playing with the screen off.</p><p><b style="color:var(--tx)">Tones:</b> one per move, in rhythm at the count length, the same in every routine. Jab (1) and cross (2) steady, hooks (3, 4) fall, uppercuts (5, 6) rise; lead hand low, rear hand high. Slip, duck and roll: a soft whoosh. Other moves get the next free tone (up to 8 different sounds per routine), then a tick. They are calls, so they play with Beeps off too. ▶ under <i>Show moves per combo</i> plays a combo.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
+   if(b.type==='seq')f=`<div class="grid"><div><label>Time per step (s)</label><input type="number" step="0.5" min="0.1" value="${+b.work>0?b.work:''}" placeholder="3" oninput="setB('${b.id}','work',+this.value||0)"></div>${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>
+     <label style="margin-top:12px">Steps — one per line</label><textarea rows="6" placeholder="Ready @tap&#10;Step one&#10;Hold @10" oninput="setB('${b.id}','steps',this.value)">${esc(b.steps)}</textarea><div class="cuecount" id="sq-${b.id}">${seqInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>
+     ${info(b.id+'-how','How it works',`<p><b style="color:var(--tx)">Steps</b> run once, top to bottom; each is spoken and shown as you type it. The block lasts as long as its steps together.</p><p><b style="color:var(--tx)">Own time:</b> end a line with <code>@6</code> (6 s), <code>@1.5</code> (1.5 s), <code>@1:30</code> (1 min 30 s) or <code>@tap</code> (waits for a tap). Other lines get the Time per step. A line with only a time (<code>@2</code>) is a silent pause.</p><p><b style="color:var(--tx)">Beeps:</b> one at the start of each step; countdown beeps only on steps of 10 s or longer.</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the last step.</p>`)}`;
    if(b.type==='rest')f=`<div class="grid">${dur(b.id,'work',b.work,'Rest',1)}</div>`;
    return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
@@ -663,6 +668,9 @@ function repsVoice(b){if(!vEd()||b.mode==='tap'||S.speakCounts==='off')return nu
 function vfNote(b){const f=x=>+x.toFixed(1),f2=x=>+x.toFixed(2),warn=t=>`<span class="vw">${svgi('alert',14,2.5)}<span>${t}</span></span>`;
   if(b.type==='reps'){const p=repsVoice(b);if(!p||!p.w)return '';
     return `<div class="vnote">${warn(`${S.speakCounts==='reps'?'Rep numbers':'Counts'} too fast to speak · “${esc(p.w.t)}” needs ~${f(p.w.v)} s, gets ${f2(p.w.slot)} s`)}<span class="muted">${p.say==='reps'?'Counts beep; the rep number is spoken at the start of each rep.':'Beeps only, no voice.'} A longer count length or a faster voice (Settings) brings it back.</span></div>`;}
+  if(b.type==='seq'){if(!vEd())return '';const lang=cur.lang||S.lang;let n=0,w=null; // the next step cuts a phrase off
+    seqSteps(b).forEach(x=>{if(x.tap||x.q)return;const v=voiceSec(x.t,S.rate,lang);if(!vSlow(v,x.dur))return;n++;if(!w||v-x.dur>w.v-w.d)w={v,d:x.dur,t:x.t};});
+    return n?`<div class="vnote">${warn(`Voice too slow for ${n===1?'1 step':`${n} steps`} · “${esc(w.t)}” needs ~${f(w.v)} s, gets ${f2(w.d)} s`)}<span class="muted">The next step cuts it off. Give it more time with @, or a shorter name.</span></div>`:'';}
   if(b.type!=='boxing'||!vEd()||b.vfit==='tones')return ''; // Tones only: the voice doesn't say the calls
   const cl=b.tempo>0?b.tempo:(cur.sec||1),g=Math.max(0,+b.minGap||0),G=Math.max(g,+b.maxGap||0),lang=cur.lang||S.lang,pace=b.vfit==='pace';
   const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);let n=0,fast=0,beep=0,w=null;
@@ -670,6 +678,8 @@ function vfNote(b){const f=x=>+x.toFixed(1),f2=x=>+x.toFixed(2),warn=t=>`<span c
   if(!n)return '';const tm=G>g?`${f2(w.m+g)}–${f2(w.m+G)} s`:`${f2(w.m+g)} s`;
   const body=!pace?`Calls wait for the voice: up to ~${f(w.v)} s apart instead of ${tm}.`:beep&&fast?`Calls stay on time: ${fast} said faster, ${beep} as tones (shown on screen).`:beep?`Calls stay on time: ${n===L.length?'as tones, each call shown on screen':`${beep} as tones (shown on screen), the others are said`}.`:'Calls stay on time: the voice speaks faster (up to 1.5×).';
   return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span></div>`;}
+function seqInfo(b){const L=seqSteps(b);if(!L.length)return '';const tp=L.filter(x=>x.tap).length,bad=L.filter(x=>x.bad);
+  return `<span class="muted">${L.length} step${L.length!==1?'s':''} · ${mmss(bDur(b))}${tp?` + ${tp} tap${tp>1?'s':''}`:''}</span>${bad.length?`<br><span style="color:var(--orange)">${svgi('alert',14,2.5)} Not understood: ${bad.map(x=>`“@${esc(x.v)}”`).join(', ')} · use @6, @1.5, @1:30 or @tap</span>`:''}`;}
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
   if(!n)return '';const ok=n===c;const col=ok?'var(--green)':'var(--orange)';
   const msg=ok?'matches counts per rep':n<c?`${c-n} short — counts ${n+1}–${c} show numbers`:`${n-c} extra — cue${n-c>1?'s':''} after count ${c} ignored`;
@@ -678,7 +688,7 @@ function setB(id,k,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks(
 function setRun(id,v){const b=cur.blocks.find(b=>b.id===id);if(!b){renderBlocks();return;}if(v==='first')b.firstOnly=true;else delete b.firstOnly;b.lastOnly=v==='last';summary();}
 function addBlock(t){const base={id:uid(),type:t,lastOnly:false,restAfter:0};
   const d={reps:{name:'Burpees',reps:10,counts:12,mode:'guided',repPause:0,cues:'',display:'both'},timed:{name:'Work',work:30,cue:''},
-  boxing:{name:'Shadow boxing',work:120,combos:'1-2\n1-2-3\n1-1-2\n2-3-2',minGap:1,maxGap:2},rest:{name:'Rest',work:30}}[t];
+  boxing:{name:'Shadow boxing',work:120,combos:'1-2\n1-2-3\n1-1-2\n2-3-2',minGap:1,maxGap:2},seq:{name:'Sequence',work:3,steps:'Ready @tap\nStep one\nStep two\nHold @10'},rest:{name:'Rest',work:30}}[t];
   cur.blocks.push({...base,...d});renderBlocks();}
 function mv(i,d){const j=i+d;if(j<0||j>=cur.blocks.length)return;[cur.blocks[i],cur.blocks[j]]=[cur.blocks[j],cur.blocks[i]];renderBlocks();}
 function dup(i){cur.blocks.splice(i+1,0,{...cur.blocks[i],id:uid()});renderBlocks();}
@@ -689,13 +699,19 @@ function readHead(){cur.icon=iconKey(cur);cur.name=eName.value||'Routine';cur.ro
 // blocks with an empty count length follow the routine's: keep their hint and combo preview in step
 eSec.addEventListener('input',()=>{document.querySelectorAll('#edit [data-rsec]').forEach(e=>e.placeholder=`Routine (${cur.sec} s)`);cur.blocks.forEach(b=>pvUpd(b.id));});
 eLang.addEventListener('change',()=>{readHead();cur.blocks.forEach(b=>pvUpd(b.id));}); // another voice: its own speed
-function bDur(b,r){if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
+/* Sequence block: one step per line, spoken and shown as typed. "@6" (s), "@1.5", "@1:30" or "@tap" at the end of a line
+   gives it its own time or waits for a tap; other lines get the block's time per step; a line with only a time is a silent pause */
+function stepSec(v){v=v.replace(/,/g,'.');const m=v.match(/^(\d+(?:\.\d+)?)\s*(?:s|secs?|seconds?)?$/);if(m)return +m[1];const s=parseDur(v);return s>0?s:NaN;}
+function seqSteps(b){const d=+b.work>0?+b.work:3;return (b.steps||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+  const m=l.match(/^(.*?)\s*@\s*([^@]*)$/);if(!m)return {t:l,dur:d};const t=m[1].trim(),v=m[2].trim().toLowerCase();
+  if(v==='tap')return {t,tap:true};const s=stepSec(v);if(!(s>0))return {t:l,dur:d,bad:true,v:m[2].trim()};return t?{t,dur:s}:{t:'Pause',dur:s,q:true};});}
+function bDur(b,r){if(b.type==='seq')return seqSteps(b).reduce((a,x)=>a+(x.tap?0:x.dur),0);if(b.type==='reps'){if(b.mode==='tap')return null;const t=b.tempo>0?b.tempo:(r.sec||1),n=Math.max(1,b.reps|0);return n*Math.max(1,b.counts|0)*t+(n-1)*(b.repPause||0);}return +b.work||0;}
 function renderStruct(){const el=document.getElementById('eStruct');if(!el||!cur)return;const r=cur,bl=r.blocks||[];
   if(!bl.length){el.innerHTML=`<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;return;}
   const chip=(txt,kind,ic,c)=>`<span class="sc ${kind||''}"${c?` style="--c:${c}"`:''}>${ic?svgi(ic,14):''}${txt}</span>`,ar='<span class="sa">→</span>';
   const warm=bl.filter(b=>b.firstOnly),fin=bl.filter(b=>b.lastOnly&&!b.firstOnly);
   const hm=holdMode(r),tap1=chip('Tap','wait','play')+ar;
-  const one=(list,isLast)=>list.map((b,i)=>{const d=bDur(b,r),bt=BT[b.type]||[];let h=(hm==='blocks'&&i>0&&b.type!=='rest'?tap1:'')+(b.type==='rest'?chip(`${esc(b.name||'Rest')} ${mmss(d)}`,'rest',null):chip(`${esc(b.name)} ${d==null?'· tap':mmss(d)}`,'',b.type==='reps'?'hash':b.type==='timed'?'timer':'glove',COLORS[bt[2]]));
+  const one=(list,isLast)=>list.map((b,i)=>{const d=bDur(b,r),bt=BT[b.type]||[];let h=(hm==='blocks'&&i>0&&b.type!=='rest'?tap1:'')+(b.type==='rest'?chip(`${esc(b.name||'Rest')} ${mmss(d)}`,'rest',null):chip(`${esc(b.name)} ${d==null?'· tap':mmss(d)}${b.type==='seq'&&seqSteps(b).some(x=>x.tap)?' + tap':''}`,'',b.type==='reps'?'hash':b.type==='timed'?'timer':b.type==='seq'?'steps':'glove',COLORS[bt[2]]));
     const lastInRound=i===list.length-1;if(b.restAfter>0&&b.type!=='rest'&&!(isLast&&lastInRound))h+=ar+chip(`Rest ${mmss(b.restAfter)}`,'rest');return h;}).join(ar);
   const n=Math.max(1,r.rounds|0);let html=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>Structure</b><span class="muted" style="font-size:13px">one round = all blocks, top to bottom</span></div><div class="sflow">`;
   if(r.prep>0)html+=chip(`Get ready ${mmss(r.prep)}`,'prep');
@@ -760,7 +776,7 @@ function bgOn(){bgOff();if(!document.hidden||!X||!X.steps||X.p!=null||!mine()||!
   for(let i=X.i;i<X.steps.length;i++){const s=X.steps[i],L=stepLen(s);if(s0-now>3600e3)return keep(); // up to an hour ahead
     if(i>X.i){if(s.type==='wait')add(s0,784,.2);else if(s.kind==='work')add(s0,1046,.25,'square',.6);else if(s.kind==='rest')bellAt(s0);} // same as enter()
     if(!isFinite(L))return keep(); // waits for a tap
-    if(s.type==='time')for(let k=Math.min(S.countdown|0,Math.ceil(s.dur));k>0;k--)add(s0+Math.max(0,s.dur-k)*1000,k===1?880:660,.12); // same as tick()
+    if(s.type==='time')for(let k=Math.min(cdn(s),Math.ceil(s.dur));k>0;k--)add(s0+Math.max(0,s.dur-k)*1000,k===1?880:660,.12); // same as tick()
     else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;for(let r=0;r<s.reps;r++)for(let k=0;k<s.counts;k++){const t=s0+(r*per+k*s.tempo)*1000;if(k)add(t,740,.06,'sine',.5);else add(t,1175,.12,'square',.7);}} // same as countFx()
     if(s.boxing&&s.vfit==='tones'&&s.combos.length){const q=X.bq||(X.bq=[]),cl=s.cl||1,put=e=>{e.a=s0+e.t*1000;moveTones(e.c,s.tm).forEach((k,j)=>addT(e.a+j*cl*1000,k,cl*.85));};
       let t=i===X.i?Math.max(X.nc,(now-s0)/1000+.1):1.5;q.forEach(e=>{if(e.i===i){put(e);t=e.n;}}); // queued before: again, then more
@@ -867,15 +883,19 @@ function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r),tm=to
           display:b.display||'both',cues:(b.cues||'').split(',').map(s=>s.trim()).filter(Boolean),dur:b.mode==='tap'?0:reps*per-(b.repPause||0),round:k});}
       else if(b.type==='timed')P({type:'time',kind:'work',label:b.name,dur:b.work,cue:b.cue,round:k});
       else if(b.type==='boxing')P({type:'time',kind:'work',label:b.name,dur:b.work,boxing:true,combos:(b.combos||'').split('\n').map(s=>s.trim()).filter(Boolean),minGap:b.minGap,maxGap:b.maxGap,cl:b.tempo>0?b.tempo:(r.sec||1),order:b.order||'random',repeat:Math.max(1,b.repeat|0||1),poolPause:Math.max(0,+b.poolPause||0),vfit:b.vfit==='pace'||b.vfit==='tones'?b.vfit:'',tm,bid:b.id,round:k});
+      else if(b.type==='seq'){const L=seqSteps(b);L.forEach((x,j)=>P({...(x.tap?{type:'wait',kind:'prep'}:{type:'time',kind:'work',dur:x.dur}),label:x.t,...(x.q?{q:true}:{}),seq:true,blk:b.name,si:j,sn:L.length,round:k}));}
       else if(b.type==='rest')P({type:'time',kind:'rest',label:b.name||'Rest',dur:b.work,round:k});
       if(b.restAfter>0&&b.type!=='rest'&&!(last&&bi===bl.length-1))P({type:'time',kind:'rest',label:'Rest',dur:b.restAfter,round:k});
     });
     if(!last&&r.rest>0)P({type:'time',kind:'rest',label:'Round rest',dur:r.rest,round:k});
     if(!last&&hm==='rounds')P({type:'wait',kind:'prep',label:'Next round',round:k+1}); // hold until a tap
   }
-  if(hm==='blocks'){const out=[];let pr=0; // hold before every work step but the first (after any rest)
-    st.forEach(s=>{if(s.kind==='work'){if(pr)out.push({type:'wait',kind:'prep',label:s.round!==pr?'Next round':'Next block',round:s.round});pr=s.round;}out.push(s);});return out;}
-  return st;}
+  let out=st;
+  if(hm==='blocks'){out=[];let pr=0; // hold before every work step but the first (after any rest); in a sequence, only before its first step
+    st.forEach(s=>{if(s.kind==='work'){if(pr&&!(s.si>0))out.push({type:'wait',kind:'prep',label:s.round!==pr?'Next round':'Next block',round:s.round});pr=s.round;}out.push(s);});}
+  return out.filter((s,i)=>!(s.type==='wait'&&!s.seq&&out[i+1]&&out[i+1].type==='wait'));} // right before a sequence's own tap step: one tap
+const waitTx=s=>s.seq?(s.label?s.label+'. ':'')+ph('tapgo'):`${ph(s.label)}. ${ph('tapgo')}`;
+const cdn=s=>s.seq&&s.dur<10?0:S.countdown|0; // countdown beeps (last s): none on short sequence steps
 
 /* ---------- runner ---------- */
 /* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
@@ -913,7 +933,7 @@ function maxRun(){if(!X||!X.steps)return;if(MORPH)MORPH();const r=shown(document
 function miniUI(){renderList();banner();}
 function miniTx(){const el=document.getElementById('mbTx');if(!el||!X||!X.steps)return;const s=X.steps[X.i],t=Math.max(0,((X.p??NOW())-X.s0)/1000);
   const v=s.type==='wait'?'tap to start':s.type==='time'?fmt(s.dur-t):`rep ${Math.min(s.reps,(s.mode==='tap'?Math.floor(X.tap/s.counts):Math.floor(t/(s.counts*s.tempo+s.repPause)))+1)} / ${s.reps}`;
-  const h=`${s.label} · ${v} · Round ${s.round}/${X.r.rounds}${X.p!=null?' · Paused':''}`;if(el.textContent!==h)el.textContent=h;const b=document.getElementById('mbP');if(b)b.style.width=rBar.style.width;}
+  const h=`${s.seq&&!s.label?s.blk:s.label} · ${v} · Round ${s.round}/${X.r.rounds}${X.p!=null?' · Paused':''}`;if(el.textContent!==h)el.textContent=h;const b=document.getElementById('mbP');if(b)b.style.width=rBar.style.width;}
 /* the run screen grows out of (open) or shrinks into the card at rect r: a clip that follows the card's shape, the content fading */
 function morph(open,r,done){if(MORPH)MORPH();let a=[];const end=()=>{if(MORPH!==end)return;MORPH=null;if(done)done();a.forEach(x=>x.cancel());};MORPH=end;
   if(!r||!r.height||!run.animate||matchMedia('(prefers-reduced-motion: reduce)').matches)return end();
@@ -954,21 +974,22 @@ function color(s){return s.kind==='work'?COLORS[X.r.color]:PH[s.kind];}
 function setStep(i,at){X.i=i;X.s0=at;X.lastCount=-1;X.lastSec=null;X.tap=0;X.ct='';X.nc=1.5;X.sc=0;X.vn='';} // sc: calls in this step · vn: voice note
 function stepUI(){const i=X.i,s=X.steps[i],c=color(s);
   run.style.background=`radial-gradient(circle at 50% 45%, ${c}55, #171717 75%), #171717`;ring.style.stroke=c;
-  phase.textContent=s.label;phase.style.color=c;showCall(X.ct,false);
+  phase.textContent=s.seq?s.blk:s.label;phase.style.color=c;showCall(s.seq?s.label:X.ct,false);
   rRound.textContent=`Round ${s.round}/${X.r.rounds}`;
-  const n=X.steps[i+1];next.textContent=n?n.type==='wait'?`Next: ${n.label==='Next round'?`Round ${n.round} · `:''}${X.steps[i+2]?X.steps[i+2].label+' · ':''}tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
+  const n=X.steps[i+1];next.textContent=n?n.type==='wait'?n.seq?`Next: ${n.label?n.label+' · ':''}tap to start`:`Next: ${n.label==='Next round'?`Round ${n.round} · `:''}${X.steps[i+2]?X.steps[i+2].label+' · ':''}tap to start`:`Next: ${n.label}${n.type==='reps'?` · ${n.reps}×`:` · ${fmt(n.dur)}`}`:'Last one — finish strong';
   tapHint.textContent=s.type==='wait'?'Tap the circle when ready · space works too':s.type==='reps'&&s.mode==='tap'?'Tap the circle for each '+(s.counts>1?'count':'rep')+' · space works too':vnTxt(s);
   tapHint.classList.toggle('rsv',!!s.boxing&&vOn()); // room for the voice line, so nothing moves when it shows up
   // text under the number: room is kept for the whole step (nothing jumps within a step), and only when the step has text,
   // so a bare number sits exactly in the middle of the ring
-  stage.classList.toggle('nosub',s.type==='time'&&s.kind==='work'&&!(s.boxing&&s.order==='sequence'));
+  stage.classList.toggle('nosub',s.type==='time'&&s.kind==='work'&&!(s.boxing&&s.order==='sequence')&&!s.seq);
   stage.classList.toggle('cue',s.type==='reps'&&s.counts>1&&s.display==='both'&&s.cues.length>0);
   pips.innerHTML=s.type==='reps'&&s.reps<=40?Array.from({length:s.reps},()=>'<b></b>').join(''):'';}
 function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i],bg=at<BGT; // bg: its beep already played in the background
   if(!quiet){ // announcements
-    if(s.type==='wait'){if(!bg)beep(784,.2);buzz([80,60,80]);say(`${ph(s.label)}. ${ph('tapgo')}`);}
+    if(s.seq)showCall(s.label); // flash: the same step twice in a row still shows a new one
+    if(s.type==='wait'){if(!bg)beep(784,.2);buzz([80,60,80]);say(waitTx(s));}
     else if(s.kind==='work'){if(!bg)beep(1046,.25,'square',.6);buzz([120]);
-      say(s.type==='reps'?`${s.label}. ${s.reps} ${ph('reps')}`:(s.boxing?`${s.label}. ${ph('fight')}`:(s.cue||s.label)));}
+      say(s.type==='reps'?`${s.label}. ${s.reps} ${ph('reps')}`:(s.boxing?`${s.label}. ${ph('fight')}`:s.q?'':(s.cue||s.label)));}
     else if(s.kind==='rest'){if(!bg)bell();buzz([80,60,80]);say(`${ph(s.label)}. ${sayDur(s.dur)}`);}
     else say(`${X.r.name}. ${ph('Get ready')}`);}
   if(mine())pushRun();render();}
@@ -980,7 +1001,7 @@ function catchUp(now){let moved=false,late=0;
       return finish(end,late);}
     setStep(X.i+1,end);moved=true;}
   if(moved){const q=late>2000;enter(X.i,X.s0,q);if(q&&UNLOCKED&&mine())back();}}
-function back(){const s=X.steps[X.i];beep(1046,.12,'sine',.5);say(s.type==='wait'?`${ph(s.label)}. ${ph('tapgo')}`:s.kind==='work'?s.label:ph(s.label));}
+function back(){const s=X.steps[X.i];beep(1046,.12,'sine',.5);say(s.type==='wait'?waitTx(s):s.kind==='work'?(s.q?'':s.label):ph(s.label));}
 function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   if(mine()&&!remote){X.fin=end;pushRun('done');}
   const bgd=end<BGT;bgOff();hush();if(late<2000){if(!bgd)bell();buzz([200,100,200,100,400]);say(ph('done'));}
@@ -1050,7 +1071,7 @@ function poolPreview(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return
 const OPEN=new Set();
 function info(k,title,body){return `<details class="info" ${OPEN.has(k)?'open':''} ontoggle="this.open?OPEN.add('${k}'):OPEN.delete('${k}')"><summary>${title}</summary><div class="body">${body}</div></details>`;}
 function pvUpd(id){if(cur)cur.blocks.forEach(x=>{const e=x.type==='boxing'&&document.getElementById('pv-'+x.id);if(e)e.innerHTML=poolPreview(x.id);}); // all: a routine's moves share their tones
-  const n=document.getElementById('vf-'+id),b=cur&&cur.blocks.find(x=>x.id===id);if(n&&b)n.innerHTML=vfNote(b);}
+  const n=document.getElementById('vf-'+id),b=cur&&cur.blocks.find(x=>x.id===id);if(n&&b)n.innerHTML=vfNote(b);const q=b&&b.type==='seq'&&document.getElementById('sq-'+id);if(q)q.innerHTML=seqInfo(b);}
 function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
   const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
   B.poolDone=false;
@@ -1089,7 +1110,7 @@ function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))re
   if(s.type==='time'){
     const left=s.dur-t;const sec=Math.ceil(left);
     if(sec!==X.lastSec){X.lastSec=sec;
-      if(sec<=S.countdown&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true,true);}
+      if(sec<=cdn(s)&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true,true);}
       if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say(ph('halfway'),false);
       if(s.kind==='work'&&sec===10&&s.dur>=30){say(ph('ten'),false);}}
     if(s.boxing&&mine()&&t>=X.nc&&left>1.5)boxCall(s,t);
@@ -1129,7 +1150,7 @@ let FB='';function fitBig(){const t=String(big.textContent),L=t.length,W=big.par
 function fitCue(){const L=cueLine.textContent.length;cueLine.style.fontSize=L<=10?'':`min(${Math.round(420/L)+10}px, ${(4.6*10/L+1.2).toFixed(1)}vh)`;}
 function render(){if(!X||!X.steps)return;const s=X.steps[X.i];let t=X.t=Math.max(0,((X.p??NOW())-X.s0)/1000),frac=0;
   if(s.type==='wait'){if(!big.querySelector('svg'))big.innerHTML=svgi('play',96);cueLine.textContent='';sub.textContent='tap to start';fitBig();}
-  else if(s.type==='time'){const left=Math.max(0,s.dur-t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.kind==='work'?'':'breathe');}
+  else if(s.type==='time'){const left=Math.max(0,s.dur-t);big.textContent=fmt(left);cueLine.textContent='';fitBig();frac=t/s.dur;sub.textContent=s.boxing?(s.order==='sequence'&&X.box[s.bid]?`combo ${X.box[s.bid].num} / ${s.combos.length}`:''):(s.seq?`step ${s.si+1} / ${s.sn}`:s.kind==='work'?'':'breathe');}
   else{let rep,c,breather=false;
     if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;t=Math.min(t,s.reps*per-1e-6);rep=Math.floor(t/per);const inRep=t-rep*per;c=Math.floor(inRep/s.tempo);
       if(inRep>=s.counts*s.tempo){breather=true;c=s.counts-1;}frac=t/s.dur;}
