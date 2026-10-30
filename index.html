@@ -103,7 +103,8 @@ label .dh{color:var(--tx2);opacity:.75}label .dh.bad{color:var(--red);opacity:1}
 .block .head input{font-weight:600}
 .tag{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--raise);white-space:nowrap}
 .icon{padding:6px 10px}
-.settings{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}#eSndBox[hidden]{display:none}
+.settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}.settings>div>label{line-height:1.25;margin-bottom:4px}.settings .tg{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 24px}#eSndBox[hidden]{display:none}
+@media (max-width:560px){.settings{grid-template-columns:minmax(0,1fr)}}
 .cuecount{font-size:14px;margin-top:4px;min-height:0}
 .chk{display:flex;gap:8px;align-items:center;color:var(--tx)}
 .nst{display:inline-flex;align-items:center;gap:3px;vertical-align:-2px}
@@ -309,10 +310,14 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 <!-- SETTINGS -->
 <section id="set" class="view">
   <header><button class="ghost" onclick="show('lib')">← Back</button><h2>Settings</h2><span></span></header>
-  <div class="card settings" id="setForm"></div>
-  <div class="card"><div class="row" style="flex-wrap:wrap;gap:8px"><button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button><button class="ib ghost" onclick="resetAudio()"><i data-ic="refresh"></i>Reset to defaults</button></div>
-  <div id="vdiag" hidden class="muted" style="font-size:12px;line-height:1.5;margin-top:8px;word-break:break-word"></div>
-    <p class="muted" style="margin:10px 0 0;font-size:13px">Reset restores beeps, voice coach, language, voice, speed, pitch, volume, spoken counts and countdown beeps. Vibrate and Keep screen on stay as they are.</p></div>
+  <div class="card">
+    <h2 style="margin-bottom:8px">Sound &amp; voice</h2>
+    <p class="muted" style="margin:0 0 12px">For all routines, unless a routine has its own (editor → Sound &amp; voice → Own).</p>
+    <div class="settings" id="setForm"></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bd)"><button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button><button class="ib ghost" onclick="resetAudio()"><i data-ic="refresh"></i>Reset to defaults</button></div>
+    <div id="vdiag" hidden class="muted" style="font-size:12px;line-height:1.5;margin-top:8px;word-break:break-word"></div>
+    <p class="muted" style="margin:10px 0 0;font-size:13px">Reset restores beeps, voice coach, language, voice, speed, pitch, volume, spoken counts and countdown beeps. Vibrate, Keep screen on and routines with their own sound &amp; voice stay as they are.</p>
+  </div>
   <div class="card" id="syncCard"></div>
   <div class="card">
     <h2 style="margin-bottom:8px">Backup</h2>
@@ -854,14 +859,15 @@ function voiceLangs(){const v=speechSynthesis.getVoices().map(v=>v.lang).filter(
 /* sound & voice form: Settings (k 'S': S) or a routine's own (k 'R': cur.snd) */
 function sndForm(o,k,extra=''){const ls=voiceLangs();if(!ls.includes(o.lang))ls.unshift(o.lang);
   const chk=(c,l)=>`<label class="chk"><input type="checkbox" ${o[c]?'checked':''} onchange="sndSet('${k}','${c}',this.checked)"> ${l}</label>`,
-    rng=(c,l,a,b,tst)=>`<div><label>${l}</label><input type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" oninput="sndSet('${k}','${c}',+this.value)"${tst?` onchange="testVoice('${k}')"`:''}></div>`;
-  return chk('beeps','Beeps')+chk('voice','Voice coach')+extra+`
+    rng=(c,l,a,b,tst)=>`<div><label>${l} <span class="dh">${sndVal(c,o[c])}</span></label><input type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" oninput="sndSet('${k}','${c}',+this.value);this.previousElementSibling.lastChild.textContent=sndVal('${c}',this.value)"${tst?` onchange="testVoice('${k}')"`:''}></div>`;
+  return `<div class="tg">${chk('beeps','Beeps')+chk('voice','Voice coach')+extra}</div>`+`
   <div><label>Voice language</label><select onchange="sndSet('${k}','lang',this.value)">${ls.map(l=>`<option ${l===o.lang?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
   <div><label>Voice</label><div style="display:flex;gap:8px"><select style="flex:1;min-width:0" onchange="sndSet('${k}','voiceURI',this.value);testVoice('${k}')"><option value="">Default for ${esc(o.lang)}</option>${langVoices(o.lang).map(v=>`<option value="${esc(v.voiceURI)}" ${v.voiceURI===o.voiceURI?'selected':''}>${esc(v.name)}${v.localService?'':' · online'}</option>`).join('')}</select><button type="button" class="ib" style="padding:4px 12px" onclick="testVoice('${k}')" title="Test voice">${svgi('play',14)}Test</button></div></div>
   <div><label>Speak counts</label><select onchange="sndSet('${k}','speakCounts',this.value)">
     ${[['every','Every count'],['reps','Rep numbers only'],['off','Off']].map(([v,l])=>`<option value="${v}" ${o.speakCounts===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" oninput="sndSet('${k}','countdown',+this.value)"></div>
   ${rng('volume','Volume','0','1')}${rng('rate','Voice speed','0.7','1.8',1)}${rng('pitch','Voice pitch','0.5','1.5',1)}`;}
+const sndVal=(c,v)=>'· '+(c==='volume'?Math.round(v*100)+'%':(+v).toFixed(2).replace(/\.?0+$/,'')+(c==='rate'?'×':'')); // a slider's value next to its name
 function sndSet(k,c,v){const o=k==='R'?cur&&cur.snd:S;if(!o)return;o[c]=v;if(c==='lang')o.voiceURI=''; // another language: its best voice
   if(k==='S'){persist();if(c==='lang')openSettings();return;}
   queueAutosave();if(c==='lang')renderSnd();vfAll();}
