@@ -169,6 +169,7 @@ header{flex-wrap:nowrap}
 /* the voice can't keep up with a block: what happens instead (editor), and the run-screen line that says so */
 .vnote{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,75,22,.08);border:1px solid rgba(255,75,22,.3);font-size:14px}
 .vnote .vw{display:flex;align-items:flex-start;gap:6px;color:var(--orange);font-weight:600}.vnote .vw .ic{flex:none;margin-top:3px}
+.vnote .vst{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--tx2);font-size:13px}.vnote .vst button{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;font-size:13px}
 .pvp{padding:2px 6px;display:inline-grid;place-items:center;color:var(--tx2)}.pvp:hover{color:var(--tx)} /* ▶: a combo as tones */
 #tapHint.rsv{min-height:1.4em}
 #rName{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -681,17 +682,26 @@ function repsVoice(b){if(!vEd()||b.mode==='tap'||SV().speakCounts==='off')return
 function vfNote(b){return withSnd(cur,()=>vfNote0(b));} // with this routine's sound & voice
 function vfNote0(b){const f=x=>+x.toFixed(1),f2=x=>+x.toFixed(2),warn=t=>`<span class="vw">${svgi('alert',14,2.5)}<span>${t}</span></span>`;
   if(b.type==='reps'){const p=repsVoice(b);if(!p||!p.w)return '';
-    return `<div class="vnote">${warn(`${SV().speakCounts==='reps'?'Rep numbers':'Counts'} too fast to speak · “${esc(p.w.t)}” needs ~${f(p.w.v)} s, gets ${f2(p.w.slot)} s`)}<span class="muted">${p.say==='reps'?'Counts beep; the rep number is spoken at the start of each rep.':'Beeps only, no voice.'} A longer count length or a faster voice (${cur.snd?'Sound &amp; voice':'Settings'}) brings it back.</span></div>`;}
-  if(b.type==='seq'){if(!vEd())return '';const lang=SV().lang;let n=0,w=null; // the next step cuts a phrase off
-    seqSteps(b).forEach(x=>{if(x.tap||x.q)return;const v=voiceSec(x.t,SV().rate,lang);if(!vSlow(v,x.dur))return;n++;if(!w||v-x.dur>w.v-w.d)w={v,d:x.dur,t:x.t};});
-    return n?`<div class="vnote">${warn(`Voice too slow for ${n===1?'1 step':`${n} steps`} · “${esc(w.t)}” needs ~${f(w.v)} s, gets ${f2(w.d)} s`)}<span class="muted">The next step cuts it off. Give it more time with @, or a shorter name.</span></div>`:'';}
+    return `<div class="vnote">${warn(`${SV().speakCounts==='reps'?'Rep numbers':'Counts'} too fast to speak · “${esc(p.w.t)}” needs ~${f(p.w.v)} s, gets ${f2(p.w.slot)} s`)}<span class="muted">${p.say==='reps'?'Counts beep; the rep number is spoken at the start of each rep.':'Beeps only, no voice.'} A longer count length or a faster voice (${cur.snd?'Sound &amp; voice':'Settings'}) brings it back.</span>${vState(b.id,[p.w.t],SV().lang)}</div>`;}
+  if(b.type==='seq'){if(!vEd())return '';const lang=SV().lang,F=[];let n=0,w=null; // the next step cuts a phrase off
+    seqSteps(b).forEach(x=>{if(x.tap||x.q)return;const v=voiceSec(x.t,SV().rate,lang);if(!vSlow(v,x.dur))return;n++;F.push(x.t);if(!w||v-x.dur>w.v-w.d)w={v,d:x.dur,t:x.t};});
+    return n?`<div class="vnote">${warn(`Voice too slow for ${n===1?'1 step':`${n} steps`} · “${esc(w.t)}” needs ~${f(w.v)} s, gets ${f2(w.d)} s`)}<span class="muted">The next step cuts it off. Give it more time with @, or a shorter name.</span>${vState(b.id,F,lang)}</div>`:'';}
   if(b.type!=='boxing'||!vEd()||b.vfit==='tones')return ''; // Tones only: the voice doesn't say the calls
   const cl=b.tempo>0?b.tempo:(cur.sec||1),g=Math.max(0,+b.minGap||0),G=Math.max(g,+b.maxGap||0),lang=SV().lang,pace=b.vfit==='pace';
-  const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);let n=0,fast=0,beep=0,w=null;
-  L.forEach(l=>{const tx=callTxt(l),m=moves(l)*cl,v=voiceSec(tx,SV().rate,lang);if(!vSlow(v,m+g))return;n++;if(!w||v-m>w.v-w.m)w={v,m};if(fitRate(tx,m+g,lang))fast++;else beep++;});
+  const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean),F=[];let n=0,fast=0,beep=0,w=null;
+  L.forEach(l=>{const tx=callTxt(l),m=moves(l)*cl,v=voiceSec(tx,SV().rate,lang);if(!vSlow(v,m+g))return;n++;F.push(tx);if(!w||v-m>w.v-w.m)w={v,m};if(fitRate(tx,m+g,lang))fast++;else beep++;});
   if(!n)return '';const tm=G>g?`${f2(w.m+g)}–${f2(w.m+G)} s`:`${f2(w.m+g)} s`;
   const body=!pace?`Calls wait for the voice: up to ~${f(w.v)} s apart instead of ${tm}.`:beep&&fast?`Calls stay on time: ${fast} said faster, ${beep} as tones (shown on screen).`:beep?`Calls stay on time: ${n===L.length?'as tones, each call shown on screen':`${beep} as tones (shown on screen), the others are said`}.`:'Calls stay on time: the voice speaks faster (up to 1.5×).';
-  return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span></div>`;}
+  return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span>${vState(b.id,F,lang)}</div>`;}
+/* in a voice note: are these times measured (said on this device) or estimated? Estimated: Measure lets the voice say them once */
+let VFLAG={},VMS=0; // per block: its slow phrases not heard yet · VMS: measuring
+function vState(id,ts,lang){const k=vKey(lang);ts=[...new Set(ts)].filter(x=>VFIT[k+'|'+x]==null);VFLAG[id]=ts;const one=ts.length===1;
+  return `<span class="vst">${!ts.length?'Measured with this voice on this device.':`Estimated: the voice hasn't said ${one?'this':'these'} on this device yet. ${VMS?'Listening…':`<button type="button" class="ghost" onclick="vMeasure('${id}')" title="The voice says ${one?'it':'them'} once, so the app can time ${one?'it':'them'}">${svgi('play',12)}Measure</button>`}`}</span>`;}
+function vMeasure(id){const L=(VFLAG[id]||[]).slice(0,8);if(!L.length||VMS)return;ac();VMS=1;const t0=performance.now();let i=0;vfAll();
+  const next=()=>{const ss=speechSynthesis,end=()=>{VMS=0;vfAll();if(cur&&cur.snd)renderSnd();};if(!editOn()||performance.now()-t0>40000)return end();
+    if(ss.speaking||ss.pending||performance.now()<SAYB+200)return setTimeout(next,150);if(i>=L.length)return end();
+    withSnd(cur,()=>say(L[i++],true,false,{force:true}));setTimeout(next,400);}; // one at a time, each from silence (vLearn times it)
+  next();}
 function seqInfo(b){const L=seqSteps(b);if(!L.length)return '';const tp=L.filter(x=>x.tap).length,bad=L.filter(x=>x.bad);
   return `<span class="muted">${L.length} step${L.length!==1?'s':''} · ${mmss(bDur(b))}${tp?` + ${tp} tap${tp>1?'s':''}`:''}</span>${bad.length?`<br><span style="color:var(--orange)">${svgi('alert',14,2.5)} Not understood: ${bad.map(x=>`“@${esc(x.v)}”`).join(', ')} · use @6, @1.5, @1:30 or @tap</span>`:''}`;}
 function cueInfo(b){const n=(b.cues||'').split(',').map(x=>x.trim()).filter(Boolean).length,c=Math.max(1,b.counts|0);
@@ -835,8 +845,8 @@ function vBody(t,lang){const k=vKey(lang),m=VFIT[k+'|'+t];if(m!=null)return m;co
 let VFC={}; // vFit per voice, until it learns more
 function vFit(k){if(VFC[k])return VFC[k];const p=k+'|',P=[];for(const q in VFIT)if(q.startsWith(p))P.push([vUnits(q.slice(p.length)),VFIT[q]]);
   const n=P.length;let f=null;if(n>=5){const mx=P.reduce((a,x)=>a+x[0],0)/n,my=P.reduce((a,x)=>a+x[1],0)/n;let sxx=0,sxy=0;P.forEach(([x,y])=>{sxx+=(x-mx)**2;sxy+=(x-mx)*(y-my);});
-    const s=sxy/sxx,a=my-s*mx;if(sxx>n*16&&s>=.02&&s<=.2&&a>=0&&a<=1.5)f={a,s};} // enough phrases of different lengths, and a sensible line
-  return VFC[k]=f||{a:0,s:.062*(VFIT[k]||1)};} // else: its average speed
+    const s=sxy/sxx,a=my-s*mx;if(sxx>n*16&&s>=.02&&s<=.2&&a>=0&&a<=1.5)f={a,s,fit:true};} // enough phrases of different lengths, and a sensible line
+  return VFC[k]={...(f||{a:0,s:.062*(VFIT[k]||1)}),n};} // else: its average speed · n: phrases heard
 function voiceSec(t,rate=SV().rate,lang){return vUnits(t)?VLAT+vBody(t,lang)/Math.max(.1,rate||1):0;}
 function vLearn(u,sec){const t=u.text,n=vUnits(t);if(document.hidden||n<4||!(sec>.1&&sec<20))return;VFC={};const k=u.voice?u.voice.name:'default',b=Math.max(.05,sec-VLAT)*(u.rate||1),pk=k+'|'+t,o=VFIT[pk];
   delete VFIT[pk];VFIT[pk]=+(o!=null?(o+b)/2:b).toFixed(3); // this phrase (newest last)
@@ -863,10 +873,16 @@ function sndForm(o,k,extra=''){const ls=voiceLangs();if(!ls.includes(o.lang))ls.
   return `<div class="tg">${chk('beeps','Beeps')+chk('voice','Voice coach')+extra}</div>`+`
   <div><label>Voice language</label><select onchange="sndSet('${k}','lang',this.value)">${ls.map(l=>`<option ${l===o.lang?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
   <div><label>Voice</label><div style="display:flex;gap:8px"><select style="flex:1;min-width:0" onchange="sndSet('${k}','voiceURI',this.value);testVoice('${k}')"><option value="">Default for ${esc(o.lang)}</option>${langVoices(o.lang).map(v=>`<option value="${esc(v.voiceURI)}" ${v.voiceURI===o.voiceURI?'selected':''}>${esc(v.name)}${v.localService?'':' · online'}</option>`).join('')}</select><button type="button" class="ib" style="padding:4px 12px" onclick="testVoice('${k}')" title="Test voice">${svgi('play',14)}Test</button></div></div>
+  <div style="grid-column:1/-1;margin-top:-6px">${vTimeInfo(o,k)}</div>
   <div><label>Speak counts</label><select onchange="sndSet('${k}','speakCounts',this.value)">
     ${[['every','Every count'],['reps','Rep numbers only'],['off','Off']].map(([v,l])=>`<option value="${v}" ${o.speakCounts===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" oninput="sndSet('${k}','countdown',+this.value)"></div>
   ${rng('volume','Volume','0','1')}${rng('rate','Voice speed','0.7','1.8',1)}${rng('pitch','Voice pitch','0.5','1.5',1)}`;}
+/* how well this device knows the chosen voice's timing, in plain words */
+function vTimeInfo(o,k){const v=window.speechSynthesis&&pickVoice(o.lang,o),f=vFit(v?v.name:'default'),n=f.n;
+  const st=!n?'not learned yet':f.fit?`learned (${n} phrases)`:`learning (${n} phrase${n>1?'s':''})`;
+  const tip=!n?'To start, do a test run, or press Measure under a voice warning in the editor.':f.fit?'Nothing to do: it keeps learning as you train.':'A few more workouts or test runs, with phrases of different lengths, make it precise.';
+  return info('vtime'+k,`Voice timing on this device: ${st}`,`<p style="margin:0 0 6px">While the voice speaks in a workout or test, the app times it. That's how the editor knows when a step, count or combo is too short to say. Phrases it has said are measured; new ones are estimated from how fast this voice speaks, more precisely the more it has heard.</p><p style="margin:0">${tip} Kept on this device, per voice.</p>`);}
 const sndVal=(c,v)=>'· '+(c==='volume'?Math.round(v*100)+'%':(+v).toFixed(2).replace(/\.?0+$/,'')+(c==='rate'?'×':'')); // a slider's value next to its name
 function sndSet(k,c,v){const o=k==='R'?cur&&cur.snd:S;if(!o)return;o[c]=v;if(c==='lang')o.voiceURI=''; // another language: its best voice
   if(k==='S'){persist();if(c==='lang')openSettings();return;}
