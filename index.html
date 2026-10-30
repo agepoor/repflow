@@ -170,7 +170,7 @@ header{flex-wrap:nowrap}
 .vnote{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,75,22,.08);border:1px solid rgba(255,75,22,.3);font-size:14px}
 .vnote .vw{display:flex;align-items:flex-start;gap:6px;color:var(--orange);font-weight:600}.vnote .vw .ic{flex:none;margin-top:3px}
 .vnote .vst{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--tx2);font-size:13px}.vnote .vst button{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;font-size:13px}
-.pvp{padding:2px 6px;display:inline-grid;place-items:center;color:var(--tx2)}.pvp:hover{color:var(--tx)} /* ▶: a combo as tones */
+.pvp{padding:2px 6px;display:inline-grid;place-items:center;color:var(--tx2)}.pvp:hover{color:var(--tx)} /* ▶: a combo as set under Calls */
 #tapHint.rsv{min-height:1.4em}
 #rName{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #rName span{overflow:hidden;text-overflow:ellipsis}
@@ -455,6 +455,7 @@ let H=JSON.parse(localStorage.getItem('rf2_hist')||'[]'),HDEL=JSON.parse(localSt
 let R=JSON.parse(localStorage.getItem('rf2_routines')||'null');
 let SY={last:(JSON.parse(localStorage.getItem('rf2_sync')||'null')||{}).last||0};
 let VFIT={};try{VFIT=JSON.parse(localStorage.getItem('rf2_vfit')||'{}')||{};}catch(e){} // how fast this device's voices really speak (vLearn)
+let VFR={};try{VFR=JSON.parse(localStorage.getItem('rf2_vfr')||'{}')||{};}catch(e){} // per phrase: its time at each voice speed it was said at
 let syncState='',syncBusy=false,syncAgain=false,syncTimer=null,syncFails=0,retryIn=0;
 const PRESET_IDS=()=>{const m={};PRESETS().forEach(p=>m[p.name]=p.id);return m;};
 /* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
@@ -695,8 +696,8 @@ function vfNote0(b){const f=x=>+x.toFixed(1),f2=x=>+x.toFixed(2),warn=t=>`<span 
   return `<div class="vnote">${warn(`Voice too slow for ${n===L.length?(n===1?'this combo':`all ${n} combos`):`${n} of ${L.length} combos`} · needs ~${f(w.v)} s, time per call ${tm}`)}<span class="muted">${body}</span>${vState(b.id,F,lang)}</div>`;}
 /* in a voice note: are these times measured (said on this device) or estimated? Estimated: Measure lets the voice say them once */
 let VFLAG={},VMS=0; // per block: its slow phrases not heard yet · VMS: measuring
-function vState(id,ts,lang){const k=vKey(lang);ts=[...new Set(ts)].filter(x=>VFIT[k+'|'+x]==null);VFLAG[id]=ts;const one=ts.length===1;
-  return `<span class="vst">${!ts.length?'Measured with this voice on this device.':`Estimated: the voice hasn't said ${one?'this':'these'} on this device yet. ${VMS?'Listening…':`<button type="button" class="ghost" onclick="vMeasure('${id}')" title="The voice says ${one?'it':'them'} once, so the app can time ${one?'it':'them'}">${svgi('play',12)}Measure</button>`}`}</span>`;}
+function vState(id,ts,lang){const k=vKey(lang),r=SV().rate,x=rk(r)+'×';ts=[...new Set(ts)].filter(t=>vAt(k,t,r)==null);VFLAG[id]=ts;const one=ts.length===1;
+  return `<span class="vst">${!ts.length?`Measured with this voice at ${x} on this device.`:`Estimated: the voice hasn't said ${one?'this':'these'} at ${x} on this device yet. ${VMS?'Listening…':`<button type="button" class="ghost" onclick="vMeasure('${id}')" title="The voice says ${one?'it':'them'} once, so the app can time ${one?'it':'them'}">${svgi('play',12)}Measure</button>`}`}</span>`;}
 function vMeasure(id){const L=(VFLAG[id]||[]).slice(0,8);if(!L.length||VMS)return;ac();VMS=1;const t0=performance.now();let i=0;vfAll();
   const next=()=>{const ss=speechSynthesis,end=()=>{VMS=0;vfAll();if(cur&&cur.snd)renderSnd();};if(!editOn()||performance.now()-t0>40000)return end();
     if(ss.speaking||ss.pending||performance.now()<SAYB+200)return setTimeout(next,150);if(i>=L.length)return end();
@@ -841,20 +842,23 @@ const numLen=n=>n<10?4:n<20?6:n<100?9:n<1000?14:18; // a number: about as many l
 function vUnits(t){return String(t||'').replace(/_/g,' ').replace(/\d+/g,m=>' '+'x'.repeat(numLen(+m))+' ').split(/[^\p{L}\p{N}]+/u).filter(Boolean).reduce((n,w)=>n+w.length+1.5,0);}
 const VLAT=.15; // s until the voice starts, about
 function vKey(lang){const v=window.speechSynthesis&&pickVoice(lang||undefined);return v?v.name:'default';}
-function vBody(t,lang){const k=vKey(lang),m=VFIT[k+'|'+t];if(m!=null)return m;const f=vFit(k);return f.a+f.s*vUnits(t);} // s to say t at rate 1, once started
+const rk=r=>String(+(+r||1).toFixed(2)); // a voice speed, as a key
+function vAt(k,t,rate){const R=VFR[k+'|'+t];return R?R[rk(rate)]:undefined;} // measured at this voice speed?
+function vBody(t,lang,rate=SV().rate){const k=vKey(lang),r=vAt(k,t,rate);if(r!=null)return r;const m=VFIT[k+'|'+t];if(m!=null)return m;const f=vFit(k);return f.a+f.s*vUnits(t);} // s to say t at rate 1, once started
 let VFC={}; // vFit per voice, until it learns more
 function vFit(k){if(VFC[k])return VFC[k];const p=k+'|',P=[];for(const q in VFIT)if(q.startsWith(p))P.push([vUnits(q.slice(p.length)),VFIT[q]]);
   const n=P.length;let f=null;if(n>=5){const mx=P.reduce((a,x)=>a+x[0],0)/n,my=P.reduce((a,x)=>a+x[1],0)/n;let sxx=0,sxy=0;P.forEach(([x,y])=>{sxx+=(x-mx)**2;sxy+=(x-mx)*(y-my);});
     const s=sxy/sxx,a=my-s*mx;if(sxx>n*16&&s>=.02&&s<=.2&&a>=0&&a<=1.5)f={a,s,fit:true};} // enough phrases of different lengths, and a sensible line
   return VFC[k]={...(f||{a:0,s:.062*(VFIT[k]||1)}),n};} // else: its average speed · n: phrases heard
-function voiceSec(t,rate=SV().rate,lang){return vUnits(t)?VLAT+vBody(t,lang)/Math.max(.1,rate||1):0;}
+function voiceSec(t,rate=SV().rate,lang){return vUnits(t)?VLAT+vBody(t,lang,rate)/Math.max(.1,rate||1):0;}
 function vLearn(u,sec){const t=u.text,n=vUnits(t);if(document.hidden||n<4||!(sec>.1&&sec<20))return;VFC={};const k=u.voice?u.voice.name:'default',b=Math.max(.05,sec-VLAT)*(u.rate||1),pk=k+'|'+t,o=VFIT[pk];
   delete VFIT[pk];VFIT[pk]=+(o!=null?(o+b)/2:b).toFixed(3); // this phrase (newest last)
   const r=Math.min(2.5,Math.max(.4,b/(.062*n)));VFIT[k]=+(VFIT[k]?VFIT[k]*.8+r*.2:r).toFixed(3); // this voice
-  const ps=Object.keys(VFIT).filter(x=>x.includes('|'));if(ps.length>400)delete VFIT[ps[0]];
-  try{localStorage.setItem('rf2_vfit',JSON.stringify(VFIT));}catch(e){}}
+  const R=VFR[pk]||{},q=rk(u.rate),w=R[q];delete R[q];R[q]=+(w!=null?(w+b)/2:b).toFixed(3);const rs=Object.keys(R);if(rs.length>4)delete R[rs[0]];VFR[pk]=R; // this phrase at this voice speed
+  const ps=Object.keys(VFIT).filter(x=>x.includes('|'));if(ps.length>400){delete VFIT[ps[0]];delete VFR[ps[0]];}
+  try{localStorage.setItem('rf2_vfit',JSON.stringify(VFIT));localStorage.setItem('rf2_vfr',JSON.stringify(VFR));}catch(e){}}
 // Voice, tones when too fast: the voice rate that fits a phrase in the time it has (s): your voice speed, faster (up to 1.5×), or 0 = too long to say
-function fitRate(t,avail,lang){const r=SV().rate||1,b=vBody(t,lang),room=avail-VLAT-.05;if(!b)return r;if(room<=0)return 0;
+function fitRate(t,avail,lang){const r=SV().rate||1,b=vBody(t,lang,r),room=avail-VLAT-.05;if(!b)return r;if(room<=0)return 0;
   const need=b/room;return need<=r?r:need<=r*1.5?Math.min(r*1.5,need*1.03):0;}
 const vSlow=(v,time)=>v>time+.2; // noticeably longer to say than the time it gets
 const vEd=()=>SV().voice&&!!window.speechSynthesis; // the editor checks the voice only when it is on
@@ -882,7 +886,7 @@ function sndForm(o,k,extra=''){const ls=voiceLangs();if(!ls.includes(o.lang))ls.
 function vTimeInfo(o,k){const v=window.speechSynthesis&&pickVoice(o.lang,o),f=vFit(v?v.name:'default'),n=f.n;
   const st=!n?'not learned yet':f.fit?`learned (${n} phrases)`:`learning (${n} phrase${n>1?'s':''})`;
   const tip=!n?'To start, do a test run, or press Measure under a voice warning in the editor.':f.fit?'Nothing to do: it keeps learning as you train.':'A few more workouts or test runs, with phrases of different lengths, make it precise.';
-  return info('vtime'+k,`Voice timing on this device: ${st}`,`<p style="margin:0 0 6px">While the voice speaks in a workout or test, the app times it. That's how the editor knows when a step, count or combo is too short to say. Phrases it has said are measured; new ones are estimated from how fast this voice speaks, more precisely the more it has heard.</p><p style="margin:0">${tip} Kept on this device, per voice.</p>`);}
+  return info('vtime'+k,`Voice timing on this device: ${st}`,`<p style="margin:0 0 6px">While the voice speaks in a workout or test, the app times it. That's how the editor knows when a step, count or combo is too short to say. Phrases it has said are measured; new ones are estimated from how fast this voice speaks, more precisely the more it has heard. Measured is per voice speed: after a change, phrases are estimated again until the voice has said them at the new speed.</p><p style="margin:0">${tip} Kept on this device, per voice.</p>`);}
 const sndVal=(c,v)=>'· '+(c==='volume'?Math.round(v*100)+'%':(+v).toFixed(2).replace(/\.?0+$/,'')+(c==='rate'?'×':'')); // a slider's value next to its name
 function sndSet(k,c,v){const o=k==='R'?cur&&cur.snd:S;if(!o)return;o[c]=v;if(c==='lang')o.voiceURI=''; // another language: its best voice
   if(k==='S'){persist();if(c==='lang')openSettings();return;}
@@ -1103,11 +1107,13 @@ function tone(i,d,at,force){if(!force&&(muted||silentHere()))return; /* move ton
 // a combo as tones from audio time at (s): one per move, cl s apart; moves already past are skipped
 function comboTones(c,cl,tm,at,force){const a=ac(),t0=at??a.currentTime;moveTones(c,tm).forEach((i,j)=>{const t=t0+j*cl;if(t>=a.currentTime-.01)tone(i,cl*.85,t,force);});}
 function playCombo(id,n){const b=cur&&cur.blocks.find(x=>x.id===id),l=b&&(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean)[n];
-  if(l)withSnd(cur,()=>comboTones(l,b.tempo>0?b.tempo:(cur.sec||1),toneMap(cur.blocks),ac().currentTime+.05,true));} // editor ▶ (plays even when muted)
+  if(l)withSnd(cur,()=>{const cl=b.tempo>0?b.tempo:(cur.sec||1),tx=callTxt(l),m=b.vfit;let r=0;
+    if(vEd()&&!muted&&!silentHere()&&m!=='tones'){r=SV().rate||1;if(m==='pace'){const s={combos:(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean),cl,minGap:b.minGap},k=fitRate(tx,moves(l)*cl+Math.max(0,+b.minGap||0));r=k&&Math.max(k,boxRate(s));}}
+    if(r){say(tx,true,false,{call:true,rate:r,force:true});beep(1500,.05,'square',.4);}else comboTones(l,cl,toneMap(cur.blocks),ac().currentTime+.05,true);});} // editor ▶: as set under Calls (voice, faster voice or tones; plays even when muted)
 function poolPreview(id){return withSnd(cur,()=>poolPreview0(id));} // with this routine's sound & voice
 function poolPreview0(id){const b=cur&&cur.blocks.find(x=>x.id===id);if(!b)return '';const cl=b.tempo>0?b.tempo:(cur.sec||1),vo=vEd()&&b.vfit!=='tones',g=Math.max(0,+b.minGap||0),tm=toneMap(cur.blocks);
   const L=(b.combos||'').split('\n').map(x=>x.trim()).filter(Boolean);if(!L.length)return '';
-  return L.map((l,n)=>{const m=movesOf(l),v=vo?voiceSec(callTxt(l),SV().rate,SV().lang):0,sl=vo&&vSlow(v,moves(l)*cl+g);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px"><button class="ghost pvp" onclick="playCombo('${id}',${n})" title="Play as tones" aria-label="Play as tones">${svgi('play',14)}</button>${m.map(t=>{const T=TONES[tm.get(mkey(t))];return `<span class="tag"${T?` style="background:${T[0]}2e;color:${T[0]}"`:''}>${esc(spoken(t))}</span>`;}).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra${vo?` · <span style="color:${sl?'var(--orange)':'inherit'}">voice ~${+v.toFixed(1)} s</span>`:''}</span></div>`;}).join('');}
+  return L.map((l,n)=>{const m=movesOf(l),v=vo?voiceSec(callTxt(l),SV().rate,SV().lang):0,sl=vo&&vSlow(v,moves(l)*cl+g);return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px"><button class="ghost pvp" onclick="playCombo('${id}',${n})" title="${vo?'Play as in the workout':'Play as tones'}" aria-label="${vo?'Play as in the workout':'Play as tones'}">${svgi('play',14)}</button>${m.map(t=>{const T=TONES[tm.get(mkey(t))];return `<span class="tag"${T?` style="background:${T[0]}2e;color:${T[0]}"`:''}>${esc(spoken(t))}</span>`;}).join('')}<span class="muted" style="font-size:13px">= ${m.length} move${m.length!==1?'s':''} · ${+(m.length*cl).toFixed(2)} s + extra${vo?` · <span style="color:${sl?'var(--orange)':'inherit'}">voice ~${+v.toFixed(1)} s</span>`:''}</span></div>`;}).join('');}
 const OPEN=new Set();
 function info(k,title,body){return `<details class="info" ${OPEN.has(k)?'open':''} ontoggle="this.open?OPEN.add('${k}'):OPEN.delete('${k}')"><summary>${title}</summary><div class="body">${body}</div></details>`;}
 function pvUpd(id){if(cur)cur.blocks.forEach(x=>{const e=x.type==='boxing'&&document.getElementById('pv-'+x.id);if(e)e.innerHTML=poolPreview(x.id);}); // all: a routine's moves share their tones
