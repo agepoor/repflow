@@ -70,7 +70,7 @@ h2{font:italic 800 22px/1.25 var(--disp);margin:0}
 .rcard .undo{padding:4px 8px;font-size:12px;flex:none;white-space:nowrap}.rcard.skipped .dot,.rcard.skipped b{opacity:.6}
 .rcard.today{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
 .rcard.done{opacity:.6}
-.sech.part{font-size:12px;margin:12px 0 6px;opacity:.85}.sech.part::before{opacity:.5}.sech.part.now{opacity:1}.sech.part.now::before{opacity:1}.sech.part .pn{color:var(--acc)}.sech+.sech.part{margin-top:0}
+.sech.part{font-size:12px;margin:12px 0 6px;opacity:.85}.sech.part::before{opacity:.5}.sech.part.now{opacity:1}.sech.part.now::before{opacity:1}.sech.part .pn{color:var(--acc)}.sech.part .pt{font-weight:500;font-style:normal;text-transform:none;letter-spacing:0;opacity:.8}.sech+.sech.part{margin-top:0}
 .days.whens button{max-width:none;border-radius:20px;font-size:13px}
 .rcard .ok{display:inline-flex;vertical-align:-3px;margin-left:6px;color:var(--green)}
 .rcard.mini{padding:8px 12px;margin-bottom:6px;gap:10px}
@@ -323,6 +323,12 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     <div id="vdiag" hidden class="muted" style="font-size:12px;line-height:1.5;margin-top:8px;word-break:break-word"></div>
     <p class="muted" style="margin:10px 0 0;font-size:13px">Reset restores beeps, voice coach, language, voice, speed, pitch, volume, spoken counts and countdown beeps. Vibrate, Keep screen on and routines with their own sound &amp; voice stay as they are.</p>
   </div>
+  <div class="card">
+    <h2 style="margin-bottom:8px">Parts of the day</h2>
+    <p class="muted" style="margin:0 0 12px">Groups Today by Morning, Midday, Evening and Anytime, marks the current part “now” and offers what's left as Next after a workout. Set a routine's part in the editor (Part of day). Synced across your devices.</p>
+    <div class="settings" id="partForm"></div>
+    <p class="muted" id="partSum" style="margin:10px 0 0;font-size:13px"></p>
+  </div>
   <div class="card" id="syncCard"></div>
   <div class="card">
     <h2 style="margin-bottom:8px">Backup</h2>
@@ -552,7 +558,22 @@ function durStep(btn){const el=btn.parentNode.querySelector('input');const min=+
 function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`}
 /* part of the day: r.when = 'am' | 'mid' | 'pm'; none = anytime. Today is grouped by it; the clock only decides which part is current */
 const WHEN={am:'Morning',mid:'Midday',pm:'Evening'},PARTS=['am','mid','pm'],partOf=r=>WHEN[r.when]?r.when:'';
-function partNow(t=new Date()){const h=t.getHours();return h<12?'am':h<17?'mid':'pm';}
+/* when the parts start: META.parts = {mid, eve} in minutes after midnight (default 12:00 and 17:00) + ts; synced, the newest change wins.
+   META.parts.off = the guidance is switched off: Today is one list again, no "now", no Next on the done screen; routines keep their part */
+const partsOn=()=>!(META.parts&&META.parts.off);
+function partT(){const p=META.parts||{},m=+p.mid,e=+p.eve;return m>0&&e>m&&e<1440?{mid:m,eve:e}:{mid:720,eve:1020};}
+const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function partTxt(w){const t=partT();return w==='am'?'until '+hhmm(t.mid):w==='mid'?hhmm(t.mid)+'–'+hhmm(t.eve):w==='pm'?'from '+hhmm(t.eve):'';}
+function partNow(d=new Date()){const t=partT(),n=d.getHours()*60+d.getMinutes();return n<t.mid?'am':n<t.eve?'mid':'pm';}
+function renderParts(){const el=document.getElementById('partForm');if(!el)return;const t=partT(),on=partsOn(),d=on?'':' disabled';
+  el.innerHTML=`<div class="tg"><label class="chk"><input type="checkbox" ${on?'checked':''} onchange="setGuide(this.checked)"> Guide me through the day</label></div>
+  <div${on?'':' style="opacity:.5"'}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" onchange="setPart()"${d}></div><div${on?'':' style="opacity:.5"'}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" onchange="setPart()"${d}></div>`;partSum();}
+function setGuide(on){META.parts={...partT(),ts:Date.now(),...(on?{}:{off:true})};saveRaw();scheduleSync();renderParts();}
+function partSum(bad){const el=document.getElementById('partSum');if(!el)return;el.style.color=bad?'var(--red)':'';
+  el.textContent=bad||(partsOn()?`Morning ${partTxt('am')} · Midday ${partTxt('mid')} · Evening ${partTxt('pm')}`:'Off: Today is one list in your own order, and the done screen has no Next.');}
+function setPart(){const v=id=>{const m=/^(\d\d):(\d\d)/.exec(document.getElementById(id).value||'');return m?+m[1]*60+ +m[2]:NaN;},m=v('pMid'),e=v('pEve');
+  if(!(m>0))return partSum('Midday has to start after 00:00.');if(!(e>m))return partSum('Evening has to start after midday.');
+  const t=partT();if(t.mid===m&&t.eve===e)return partSum();META.parts={mid:m,eve:e,ts:Date.now(),...(partsOn()?{}:{off:true})};saveRaw();scheduleSync();partSum();}
 function inToday(r){const now=new Date(),wd=now.getDay(),tk=dk(now.getTime());return !r.archived&&((rDays(r).includes(wd)&&!onDay(r,'skip',tk))||(onDay(r,'add',tk)&&!rDays(r).includes(wd)));}
 const doneToday=r=>{const tk=dk(Date.now());return H.some(h=>h.rid===r.id&&dk(h.ts)===tk);};
 const rTot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
@@ -583,7 +604,7 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
    ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:flat?'':`<button class="ghost skip" onclick="addToday('${r.id}',true)" title="Add to today (this time only)" aria-label="Add to today">${svgi('plus',16)}</button>`}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
-  const parts=a=>!a.some(partOf)?grp(a,full):[...PARTS,''].map(w=>{const l=a.filter(r=>partOf(r)===w);return l.length?`<div class="sech part${w&&w===partNow()?' now':''}">${w?WHEN[w]:'Anytime'}${w&&w===partNow()?'<span class="pn"> · now</span>':''}</div>`+grp(l,full):'';}).join(''); // Today grouped by part of the day, once any of them has one; the current part is marked "now": a guide, any order is fine
+  const parts=a=>!partsOn()||!a.some(partOf)?grp(a,full):[...PARTS,''].map(w=>{const l=a.filter(r=>partOf(r)===w);return l.length?`<div class="sech part${w&&w===partNow()?' now':''}">${w?WHEN[w]:'Anytime'}${w?`<span class="pt"> · ${partTxt(w)}</span>`:''}${w&&w===partNow()?'<span class="pn"> · now</span>':''}</div>`+grp(l,full):'';}).join(''); // Today grouped by part of the day, once any of them has one; the current part is marked "now": a guide, any order is fine
   if(flat&&act.length){document.getElementById('list').innerHTML=`<div class="sech shead"><span class="sht">All routines · in order</span><button class="ghost sbtn on" onclick="setSort(false)">${svgi('check',14,2.5)}Done</button></div>${grp(act,mini)}`;}
   /* home: Today on top (or a quiet note when nothing is left for today), then the other routines; without any days
      planned it is one list. New routine sits at the end; Reorder (under the list) opens the order view, the only place to reorder. */
@@ -657,9 +678,9 @@ function renderWeek(){const today=dk(Date.now()),ws=weekStart(today),act=R.filte
 function renderDays(){const d=rDays(cur);eDays.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
   eDays.innerHTML=DOW.map(x=>`<button type="button" class="${d.includes(x)?'on':''}" aria-pressed="${d.includes(x)}" title="${DN[x]}" onclick="toggleDay(${x})">${DN[x][0]}</button>`).join('');
   eDaysHint.textContent=d.length?'· in Today on '+(d.length===7?'every day':d.length===1?DN[d[0]]:d.length+' days'):'· none = anytime';renderWhen();}
-function renderWhen(){const w=partOf(cur);eWhen.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
-  eWhen.innerHTML=['',...PARTS].map(x=>`<button type="button" class="${w===x?'on':''}" aria-pressed="${w===x}" onclick="setWhen('${x}')">${x?WHEN[x]:'Anytime'}</button>`).join('');
-  eWhenHint.textContent=w?'· grouped under '+WHEN[w]+' in Today':'· shown under Anytime';}
+function renderWhen(){const w=partOf(cur);eWhen.parentNode.hidden=!partsOn();eWhen.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
+  eWhen.innerHTML=['',...PARTS].map(x=>`<button type="button" class="${w===x?'on':''}" aria-pressed="${w===x}" title="${x?WHEN[x]+' · '+partTxt(x):'Anytime · no fixed moment'}" onclick="setWhen('${x}')">${x?WHEN[x]:'Anytime'}</button>`).join('');
+  eWhenHint.textContent=w?'· '+partTxt(w):'· no fixed moment';}
 function setWhen(x){if(x&&partOf(cur)!==x)cur.when=x;else delete cur.when;renderWhen();queueAutosave();}
 function toggleDay(x){const d=rDays(cur);const n=d.includes(x)?d.filter(y=>y!==x):[...d,x];if(n.length)cur.days=DOW.filter(y=>n.includes(y));else delete cur.days;renderDays();queueAutosave();}
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
@@ -779,7 +800,7 @@ function openSettings(){setTimeout(vdShow);
   setForm.innerHTML=sndForm(S,'S',`
   <label class="chk"><input type="checkbox" ${S.vibrate?'checked':''} onchange="S.vibrate=this.checked;persist()"> Vibrate (Android)</label>
   <label class="chk"><input type="checkbox" ${S.wake?'checked':''} onchange="S.wake=this.checked;persist()"> Keep screen on</label>`);
-  cloud();document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
+  renderParts();cloud();document.getElementById('syncCard').innerHTML=syncCard();setSync(syncState);
   show('set');
 }
 speechSynthesis.onvoiceschanged=()=>{vdShow();if(editOn()&&cur){renderSnd();vfAll();}if(document.getElementById('set').classList.contains('on'))openSettings();};
@@ -1075,7 +1096,7 @@ function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   const mr=MINI&&shown(document.getElementById('mcard')); // finished while minimized: the done screen grows out of the card
   LAST={r,entry,ask,min:MINI,L:r.nolog||ask?null:logWorkout(entry)};MINI=false;miniUI();updHistBtn();showDone();
   run.classList.add('on','fin');banner();if(mr)morph(true,mr);}
-function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur,nx=r.test?null:upNext(); // nx: what's left for today, one tap away
+function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur,nx=r.test||!partsOn()?null:upNext(); // nx: what's left for today, one tap away
   const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
   doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--acc);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}${r.test?'Test run · not logged':'Not logged'}</div>`:(H.find(h=>h.id===entry.id)||entry).streak===false?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Logged · not counted for streak</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
@@ -1308,7 +1329,7 @@ function setSync(st){syncState=st;const el=document.getElementById('syncDot'),sb
   if(sb){const t=show?'Settings · '+lbl:'Settings';sb.title=t;sb.setAttribute('aria-label',t);}
   const sl=document.getElementById('syncStatus');if(sl)sl.textContent=st==='err'?'Sync failed'+(syncErr?` — ${syncWhy(syncErr)}`:''):lbl;
   const rb=document.getElementById('syncRetry');if(rb)rb.hidden=st!=='err';}
-function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs},history:H,hdel:HDEL};}
+function localDoc(){return {app:'repflow',v:1,routines:R,deleted:META.deleted,order:{ids:R.map(r=>r.id),ts:META.orderTs},history:H,hdel:HDEL,parts:META.parts};}
 function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{}).forEach(([k,v])=>{if(!(del[k]>=v))del[k]=v;});
   const by={};[...canon(Rm.routines||[]),...canon(L.routines||[])].forEach(r=>{const o=by[r.id];if(!o||(r.upd||0)>(o.upd||0))by[r.id]=r;});
   let list=Object.values(by).filter(r=>!(del[r.id]>=(r.upd||0)));
@@ -1323,9 +1344,10 @@ function merge(L,Rm){const del={...(Rm.deleted||{})};Object.entries(L.deleted||{
   // a workout followed on two devices is logged on both under the same id: the stored copy wins, so devices agree
   const hm={};[...(L.history||[]),...(Rm.history||[])].forEach(h=>{if(h&&h.id)hm[h.id]=h;});
   const history=Object.values(hm).filter(h=>!hd[h.id]).sort((a,b)=>(a.ts-b.ts)||(a.id<b.id?-1:a.id>b.id?1:0));
-  return {app:'repflow',v:1,routines:list,deleted:del,order:{ids:list.map(r=>r.id),ts:Math.max(lo.ts||0,ro.ts||0)},history,hdel:hd};}
+  const lp=L.parts,rp=Rm.parts,parts=lp&&rp?((lp.ts||0)>=(rp.ts||0)?lp:rp):lp||rp; // parts of the day: the newest change wins
+  return {app:'repflow',v:1,routines:list,deleted:del,order:{ids:list.map(r=>r.id),ts:Math.max(lo.ts||0,ro.ts||0)},history,hdel:hd,...(parts?{parts}:{})};}
 function applyRemote(txt){let remote={};try{remote=JSON.parse(txt||'{}')||{};}catch(e){}const m=merge(localDoc(),remote);
-  R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;H=m.history;HDEL=m.hdel;saveH();SNAP=snapOf();saveRaw();renderList();if(document.getElementById('hist').classList.contains('on'))renderHist();
+  R=m.routines;META.deleted=m.deleted;META.orderTs=m.order.ts;if(m.parts)META.parts=m.parts;H=m.history;HDEL=m.hdel;saveH();SNAP=snapOf();saveRaw();renderList();if(document.getElementById('set').classList.contains('on')&&!document.activeElement.closest('#partForm'))renderParts();if(document.getElementById('hist').classList.contains('on'))renderHist();
   if(LAST&&LAST.ask&&H.some(h=>h.id===LAST.entry.id)){LAST.ask=false;LAST.L={...streaks(),newBest:false};updHistBtn();if(run.classList.contains('fin'))showDone();} // already logged on another device
   return JSON.stringify(m);}
 function onDoc(txt){if(!CU)return;if(SWITCH){const first=PEND===undefined;PEND=txt;if(first)askSwitch();return;}
