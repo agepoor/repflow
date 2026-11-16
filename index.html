@@ -70,6 +70,8 @@ h2{font:italic 800 22px/1.25 var(--disp);margin:0}
 .rcard .undo{padding:4px 8px;font-size:12px;flex:none;white-space:nowrap}.rcard.skipped .dot,.rcard.skipped b{opacity:.6}
 .rcard.today{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
 .rcard.done{opacity:.6}
+.rcard.today.soft{border-color:color-mix(in srgb,var(--c) 40%,var(--bd));box-shadow:none} /* with a suggestion: the other routines left for today get a quieter outline */
+.rcard .nxt{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:6px;background:var(--c);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;vertical-align:2px}
 .sech.part{font-size:12px;margin:12px 0 6px;opacity:.85}.sech.part::before{opacity:.5}.sech.part.now{opacity:1}.sech.part.now::before{opacity:1}.sech.part .pn{color:var(--acc)}.sech.part .pt{font-weight:500;font-style:normal;text-transform:none;letter-spacing:0;opacity:.8}.sech+.sech.part{margin-top:0}
 .days.whens button{max-width:none;border-radius:20px;font-size:13px}
 .rcard .ok{display:inline-flex;vertical-align:-3px;margin-left:6px;color:var(--green)}
@@ -325,7 +327,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   </div>
   <div class="card">
     <h2 style="margin-bottom:8px">Parts of the day</h2>
-    <p class="muted" style="margin:0 0 12px">Groups Today by Morning, Midday, Evening and Anytime, marks the current part “now” and offers what's left as Next after a workout. Set a routine's part in the editor (Part of day). Synced across your devices.</p>
+    <p class="muted" style="margin:0 0 12px">Groups Today by Morning, Midday, Evening and Anytime, marks the current part “now”, labels one routine Up next and offers it as Next after a workout. Set a routine's part in the editor (Part of day). Synced across your devices.</p>
     <div class="settings" id="partForm"></div>
     <p class="muted" id="partSum" style="margin:10px 0 0;font-size:13px"></p>
   </div>
@@ -559,7 +561,7 @@ function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><l
 /* part of the day: r.when = 'am' | 'mid' | 'pm'; none = anytime. Today is grouped by it; the clock only decides which part is current */
 const WHEN={am:'Morning',mid:'Midday',pm:'Evening'},PARTS=['am','mid','pm'],partOf=r=>WHEN[r.when]?r.when:'';
 /* when the parts start: META.parts = {mid, eve} in minutes after midnight (default 12:00 and 17:00) + ts; synced, the newest change wins.
-   META.parts.off = the guidance is switched off: Today is one list again, no "now", no Next on the done screen; routines keep their part */
+   META.parts.off = the guidance is switched off: Today is one list again, no "now", no Up next, no Next on the done screen; routines keep their part */
 const partsOn=()=>!(META.parts&&META.parts.off);
 function partT(){const p=META.parts||{},m=+p.mid,e=+p.eve;return m>0&&e>m&&e<1440?{mid:m,eve:e}:{mid:720,eve:1020};}
 const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
@@ -570,14 +572,14 @@ function renderParts(){const el=document.getElementById('partForm');if(!el)retur
   <div${on?'':' style="opacity:.5"'}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" onchange="setPart()"${d}></div><div${on?'':' style="opacity:.5"'}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" onchange="setPart()"${d}></div>`;partSum();}
 function setGuide(on){META.parts={...partT(),ts:Date.now(),...(on?{}:{off:true})};saveRaw();scheduleSync();renderParts();}
 function partSum(bad){const el=document.getElementById('partSum');if(!el)return;el.style.color=bad?'var(--red)':'';
-  el.textContent=bad||(partsOn()?`Morning ${partTxt('am')} · Midday ${partTxt('mid')} · Evening ${partTxt('pm')}`:'Off: Today is one list in your own order, and the done screen has no Next.');}
+  el.textContent=bad||(partsOn()?`Morning ${partTxt('am')} · Midday ${partTxt('mid')} · Evening ${partTxt('pm')}`:'Off: Today is one list in your own order, without Up next or Next.');}
 function setPart(){const v=id=>{const m=/^(\d\d):(\d\d)/.exec(document.getElementById(id).value||'');return m?+m[1]*60+ +m[2]:NaN;},m=v('pMid'),e=v('pEve');
   if(!(m>0))return partSum('Midday has to start after 00:00.');if(!(e>m))return partSum('Evening has to start after midday.');
   const t=partT();if(t.mid===m&&t.eve===e)return partSum();META.parts={mid:m,eve:e,ts:Date.now(),...(partsOn()?{}:{off:true})};saveRaw();scheduleSync();partSum();}
 function inToday(r){const now=new Date(),wd=now.getDay(),tk=dk(now.getTime());return !r.archived&&((rDays(r).includes(wd)&&!onDay(r,'skip',tk))||(onDay(r,'add',tk)&&!rDays(r).includes(wd)));}
 const doneToday=r=>{const tk=dk(Date.now());return H.some(h=>h.rid===r.id&&dk(h.ts)===tk);};
 const rTot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
-/* next (offered on the done screen): the first routine left for today (in your order) from the current part of the day, then Anytime, then earlier parts (missed), then later ones.
+/* up next (label on the home screen, Next on the done screen): the first routine left for today (in your order) from the current part of the day, then Anytime, then earlier parts (missed), then later ones.
    Routines with No logging are never marked done, so they are left out */
 function upNext(){const c=PARTS.indexOf(partNow()),rk=r=>{const w=partOf(r);if(!w)return 1;const i=PARTS.indexOf(w);return i===c?0:i<c?2:3;};
   const l=R.filter(r=>inToday(r)&&!r.nolog&&!doneToday(r));return l.map((r,i)=>[rk(r),i,r]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[2])[0]||null;}
@@ -595,15 +597,16 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
   const go=(r,sz)=>`<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',sz)}</button>`;
   const tot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
   // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
-  const full=r=>{if(r.id===LV)return liveCard();const st=build(r),t=tot(r),ok=done(r);
-   return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}${added(r)?' · added for today':''}</div></div>
+  const full=r=>{if(r.id===LV)return liveCard();const st=build(r),t=tot(r),ok=done(r),nx=NX&&NX.id===r.id;
+   return `<div class="card rcard ${ok?'done':NX&&!nx?'today soft':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${nx?'<span class="nxt">Up next</span>':''}${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}${added(r)?' · added for today':''}</div></div>
    ${ok?'':added(r)?`<button class="ghost skip" onclick="addToday('${r.id}',false)" title="Remove from today" aria-label="Remove from today">${svgi('x',16)}</button>`:`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
   // other routines: one compact row; a skipped one says so and can be brought back, the others can be added to today (+)
   const mini=r=>{if(r.id===LV)return liveCard();const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
    ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:flat?'':`<button class="ghost skip" onclick="addToday('${r.id}',true)" title="Add to today (this time only)" aria-label="Add to today">${svgi('plus',16)}</button>`}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
+  const NX=flat||!partsOn()?null:upNext(); // the suggestion (same one the done screen offers as Next): an Up next label, the others a quieter outline; a guide, any order is fine
   const parts=a=>!partsOn()||!a.some(partOf)?grp(a,full):[...PARTS,''].map(w=>{const l=a.filter(r=>partOf(r)===w);return l.length?`<div class="sech part${w&&w===partNow()?' now':''}">${w?WHEN[w]:'Anytime'}${w?`<span class="pt"> · ${partTxt(w)}</span>`:''}${w&&w===partNow()?'<span class="pn"> · now</span>':''}</div>`+grp(l,full):'';}).join(''); // Today grouped by part of the day, once any of them has one; the current part is marked "now": a guide, any order is fine
   if(flat&&act.length){document.getElementById('list').innerHTML=`<div class="sech shead"><span class="sht">All routines · in order</span><button class="ghost sbtn on" onclick="setSort(false)">${svgi('check',14,2.5)}Done</button></div>${grp(act,mini)}`;}
   /* home: Today on top (or a quiet note when nothing is left for today), then the other routines; without any days
