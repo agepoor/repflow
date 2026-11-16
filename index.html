@@ -17,7 +17,7 @@
 /* PunchPace brand: ink, warm off-white, punch orange; Saira (SIL OFL 1.1) for display type */
 @font-face{font-family:Saira;src:url(saira.woff2) format('woff2');font-weight:500 800;font-style:normal;font-display:swap}
 @font-face{font-family:Saira;src:url(saira-italic.woff2) format('woff2');font-weight:500 800;font-style:italic;font-display:swap}
-:root{--bg:#171717;--surf:#21201f;--raise:#33312e;--tx:#F2EFE3;--tx2:rgba(242,239,227,.62);--bd:rgba(242,239,227,.15);
+:root{color-scheme:dark;--bg:#171717;--surf:#21201f;--raise:#33312e;--tx:#F2EFE3;--tx2:rgba(242,239,227,.62);--bd:rgba(242,239,227,.15);
 --acc:#FF4B16;--acc2:#FF6838;--ink:#171717;--disp:Saira,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 --blue:#4D94FF;--green:#3DDC84;--orange:#FF4B16;--red:#FF4D5E;--yellow:#FFC93C;--purple:#A97BFF;accent-color:var(--acc)}
 ::selection{background:rgba(255,75,22,.4)}
@@ -564,8 +564,9 @@ const WHEN={am:'Morning',mid:'Midday',pm:'Evening'},PARTS=['am','mid','pm'],part
    META.parts.off = the guidance is switched off: Today is one list again, no "now", no Up next, no Next on the done screen; routines keep their part */
 const partsOn=()=>!(META.parts&&META.parts.off);
 function partT(){const p=META.parts||{},m=+p.mid,e=+p.eve;return m>0&&e>m&&e<1440?{mid:m,eve:e}:{mid:720,eve:1020};}
-const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
-function partTxt(w){const t=partT();return w==='am'?'until '+hhmm(t.mid):w==='mid'?hhmm(t.mid)+'–'+hhmm(t.eve):w==='pm'?'from '+hhmm(t.eve):'';}
+const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0'); // field value
+const clk=n=>new Date(2000,0,1,Math.floor(n/60),n%60).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); // shown: the device's clock format, like the time fields
+function partTxt(w){const t=partT();return w==='am'?'until '+clk(t.mid):w==='mid'?clk(t.mid)+'–'+clk(t.eve):w==='pm'?'from '+clk(t.eve):'';}
 function partNow(d=new Date()){const t=partT(),n=d.getHours()*60+d.getMinutes();return n<t.mid?'am':n<t.eve?'mid':'pm';}
 function renderParts(){const el=document.getElementById('partForm');if(!el)return;const t=partT(),on=partsOn(),d=on?'':' disabled';
   el.innerHTML=`<div class="tg"><label class="chk"><input type="checkbox" ${on?'checked':''} onchange="setGuide(this.checked)"> Guide me through the day</label></div>
@@ -574,7 +575,7 @@ function setGuide(on){META.parts={...partT(),ts:Date.now(),...(on?{}:{off:true})
 function partSum(bad){const el=document.getElementById('partSum');if(!el)return;el.style.color=bad?'var(--red)':'';
   el.textContent=bad||(partsOn()?`Morning ${partTxt('am')} · Midday ${partTxt('mid')} · Evening ${partTxt('pm')}`:'Off: Today is one list in your own order, without Up next or Next.');}
 function setPart(){const v=id=>{const m=/^(\d\d):(\d\d)/.exec(document.getElementById(id).value||'');return m?+m[1]*60+ +m[2]:NaN;},m=v('pMid'),e=v('pEve');
-  if(!(m>0))return partSum('Midday has to start after 00:00.');if(!(e>m))return partSum('Evening has to start after midday.');
+  if(!(m>0))return partSum('Midday has to start after midnight.');if(!(e>m))return partSum('Evening has to start after midday.');
   const t=partT();if(t.mid===m&&t.eve===e)return partSum();META.parts={mid:m,eve:e,ts:Date.now(),...(partsOn()?{}:{off:true})};saveRaw();scheduleSync();partSum();}
 function inToday(r){const now=new Date(),wd=now.getDay(),tk=dk(now.getTime());return !r.archived&&((rDays(r).includes(wd)&&!onDay(r,'skip',tk))||(onDay(r,'add',tk)&&!rDays(r).includes(wd)));}
 const doneToday=r=>{const tk=dk(Date.now());return H.some(h=>h.rid===r.id&&dk(h.ts)===tk);};
