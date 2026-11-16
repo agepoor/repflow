@@ -70,6 +70,9 @@ h2{font:italic 800 22px/1.25 var(--disp);margin:0}
 .rcard .undo{padding:4px 8px;font-size:12px;flex:none;white-space:nowrap}.rcard.skipped .dot,.rcard.skipped b{opacity:.6}
 .rcard.today{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
 .rcard.done{opacity:.6}
+.rcard.next{border-color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}.rcard .nxt{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:6px;background:var(--c);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;vertical-align:2px}
+.sech.part{font-size:12px;margin:12px 0 6px;opacity:.85}.sech.part::before{opacity:.5}.sech+.sech.part{margin-top:0}
+.days.whens button{max-width:none;border-radius:20px;font-size:13px}
 .rcard .ok{display:inline-flex;vertical-align:-3px;margin-left:6px;color:var(--green)}
 .rcard.mini{padding:8px 12px;margin-bottom:6px;gap:10px}
 .rcard.mini .handle{padding:8px 4px;margin:-8px 0 -8px -6px}
@@ -187,6 +190,7 @@ header{flex-wrap:nowrap}
 #doneView .stat b{display:block;font-family:var(--disp);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
 #doneView .stat span{font-size:13px;color:var(--tx2)}
 #doneView .acts{display:flex;gap:10px;width:100%;margin-top:10px}
+#doneView .nextb{width:100%;height:56px;font-size:17px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;min-width:0}#doneView .nextb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#doneView .nextb+.acts{margin-top:0}
 #doneView .acts button{flex:1;height:48px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 /* home actions: same visual gap between the icons and up to + Routine (icon padding = half the gap) */
 #lib header{gap:16px}#lib header .row{gap:4px}#lib header .row button.ghost{min-width:44px;height:44px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center}
@@ -287,6 +291,7 @@ dialog.ask .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
       <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05"></div>
       <div><label for="eSnd">Sound &amp; voice</label><select id="eSnd" title="Settings: this routine uses the sound &amp; voice from Settings · Own: its own beeps, voice, language, speed and more"><option value="">Settings</option><option value="own">Own</option></select></div>
       <div class="wide"><label>Days <span class="dh" id="eDaysHint"></span></label><div class="days" id="eDays" role="group" aria-label="Days"></div></div>
+      <div class="wide"><label>Part of day <span class="dh" id="eWhenHint"></span></label><div class="days whens" id="eWhen" role="group" aria-label="Part of day"></div></div>
       <div class="wm"><label for="eLog">Logging</label><select id="eLog" title="Log and count for streak · Log only (in history, not in streaks) · Off (not logged)"><option value="streak">Log + streak</option><option value="log">Log only</option><option value="off">Off</option></select></div>
     </div>
     <div id="eSndBox" class="settings" hidden style="margin-top:12px;border:1px solid var(--bd);border-radius:12px;padding:12px"></div>
@@ -546,6 +551,16 @@ function durStep(btn){const el=btn.parentNode.querySelector('input');const min=+
     const rep=(ms)=>{tm=setTimeout(()=>{durStep(b);rep(Math.max(60,ms*.85));},ms);};rep(450);});
   ['pointerup','pointercancel','pointerleave','blur'].forEach(ev=>(ev==='blur'?window:document).addEventListener(ev,stop,true));})();
 function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" oninput="durIn(this,s=>setB('${id}','${k}',s))" onblur="durOut(this)"><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`}
+/* part of the day: r.when = 'am' | 'mid' | 'pm'; none = anytime. Today is grouped by it; the clock only decides which part is current */
+const WHEN={am:'Morning',mid:'Midday',pm:'Evening'},PARTS=['am','mid','pm'],partOf=r=>WHEN[r.when]?r.when:'';
+function partNow(t=new Date()){const h=t.getHours();return h<12?'am':h<17?'mid':'pm';}
+function inToday(r){const now=new Date(),wd=now.getDay(),tk=dk(now.getTime());return !r.archived&&((rDays(r).includes(wd)&&!onDay(r,'skip',tk))||(onDay(r,'add',tk)&&!rDays(r).includes(wd)));}
+const doneToday=r=>{const tk=dk(Date.now());return H.some(h=>h.rid===r.id&&dk(h.ts)===tk);};
+const rTot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
+/* up next: the first routine left for today (in your order) from the current part of the day, then Anytime, then earlier parts (missed), then later ones.
+   Routines with No logging are never marked done, so they are left out */
+function upNext(){const c=PARTS.indexOf(partNow()),rk=r=>{const w=partOf(r);if(!w)return 1;const i=PARTS.indexOf(w);return i===c?0:i<c?2:3;};
+  const l=R.filter(r=>inToday(r)&&!r.nolog&&!doneToday(r));return l.map((r,i)=>[rk(r),i,r]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[2])[0]||null;}
 let SORT=false; // order view, opened with the Order button: all routines in their real order, drag to reorder, until Done
 function setSort(v){SORT=v;renderList();if(v)document.getElementById('list').scrollIntoView({block:'nearest'});}
 function renderList(){updHistBtn();const flat=SORT; // order view: all routines in one list, in their real order
@@ -560,15 +575,17 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
   const go=(r,sz)=>`<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play',sz)}</button>`;
   const tot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
   // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
-  const full=r=>{if(r.id===LV)return liveCard();const st=build(r),t=tot(r),ok=done(r);
-   return `<div class="card rcard ${ok?'done':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}${added(r)?' · added for today':''}</div></div>
+  const full=r=>{if(r.id===LV)return liveCard();const st=build(r),t=tot(r),ok=done(r),nx=NX&&NX.id===r.id;
+   return `<div class="card rcard ${ok?'done':nx?'next':NX?'':'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,22)}
+   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${nx?'<span class="nxt">Up next</span>':''}${ok?`<span class="ok" title="Done today">${svgi('check',16,3)}</span>`:''}<div class="muted">${r.rounds} round${r.rounds>1?'s':''} · ${r.blocks.length} block${r.blocks.length!==1?'s':''} · ~${fmt(t)} ${st.some(s=>s.mode==='tap'||s.type==='wait')?'+ tap':''}${(r.sec||1)!==1?` · count ${r.sec} s`:''}${r.nolog?' · '+nsTag('not logged','Not logged'):r.streak===false?' · '+nsTag('log only','Logged, not counted for streak'):''}${added(r)?' · added for today':''}</div></div>
    ${ok?'':added(r)?`<button class="ghost skip" onclick="addToday('${r.id}',false)" title="Remove from today" aria-label="Remove from today">${svgi('x',16)}</button>`:`<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x',16)}</button>`}${go(r,22)}</div>`;};
   // other routines: one compact row; a skipped one says so and can be brought back, the others can be added to today (+)
   const mini=r=>{if(r.id===LV)return liveCard();const dt=daysTxt(r),sk=skip(r);return `<div class="card rcard mini${sk?' skipped':''}${flat&&tod.includes(r)?' tod':''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r,18)}
    <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt?' · '+dt:''}</span></div>
    ${sk?`<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>`:flat?'':`<button class="ghost skip" onclick="addToday('${r.id}',true)" title="Add to today (this time only)" aria-label="Add to today">${svgi('plus',16)}</button>`}${go(r,18)}</div>`;};
   const grp=(a,f)=>`<div class="grp">${a.map(f).join('')}</div>`;
+  const NX=flat?null:upNext(); // only Up next is highlighted; without one (all done) the others keep their highlight
+  const parts=a=>!a.some(partOf)?grp(a,full):[...PARTS,''].map(w=>{const l=a.filter(r=>partOf(r)===w);return l.length?`<div class="sech part">${w?WHEN[w]:'Anytime'}</div>`+grp(l,full):'';}).join(''); // Today grouped by part of the day, once any of them has one
   if(flat&&act.length){document.getElementById('list').innerHTML=`<div class="sech shead"><span class="sht">All routines · in order</span><button class="ghost sbtn on" onclick="setSort(false)">${svgi('check',14,2.5)}Done</button></div>${grp(act,mini)}`;}
   /* home: Today on top (or a quiet note when nothing is left for today), then the other routines; without any days
      planned it is one list. New routine sits at the end; Reorder (under the list) opens the order view, the only place to reorder. */
@@ -576,7 +593,7 @@ function renderList(){updHistBtn();const flat=SORT; // order view: all routines 
    const head=t=>`<div class="sech">${t}</div>`;
    const none=`<div class="card noday">${svgi('moon',18)}<span>${act.some(r=>rDays(r).includes(wd))?'Nothing left for today':'Nothing planned for today'}<span class="muted"> · + on a routine adds it to today</span></span></div>`;
    document.getElementById('list').innerHTML=!act.length?`<p class="muted">${arc.length?'All routines are archived.':'No routines yet.'}</p>${add}`:
-    !planned?head('Routines')+grp(oth,mini)+add:head(`Today · ${DN[wd]}`)+(tod.length?grp(tod,full):none)+(oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:'')+add;}
+    !planned?head('Routines')+grp(oth,mini)+add:head(`Today · ${DN[wd]}`)+(tod.length?parts(tod):none)+(oth.length?`<div class="sech">Other routines</div>${grp(oth,mini)}`:'')+add;}
   const ro=!flat&&act.length>1?`<button class="ghost" onclick="setSort(true)" title="See all routines in their real order and reorder them">${svgi('sort',16)}Reorder</button>`:'',
    ab=arc.length?`<button class="ghost" onclick="archOpen=!archOpen;renderList()" aria-expanded="${archOpen}">Archived (${arc.length})<span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen?90:0}deg)">${svgi('right',16)}</span></button>`:'';
   document.getElementById('arch').innerHTML=(ro||ab?`<div class="lfoot">${ro||'<span></span>'}${ab}</div>`:'')+
@@ -641,7 +658,11 @@ function renderWeek(){const today=dk(Date.now()),ws=weekStart(today),act=R.filte
     `<div class="wkey">${key}</div><p class="muted wleg"><b>Planned</b>: estimated length of the scheduled and added routines, done or not. Skipped ones don't count.<br><b>Done</b>: actual time of the workouts logged that day, extras included.${nl?' Routines with No logging are never marked done.':''}<br>Dashed = not on its usual days: added once, or done as an extra. Tap a routine to change its days.</p>`;}
 function renderDays(){const d=rDays(cur);eDays.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
   eDays.innerHTML=DOW.map(x=>`<button type="button" class="${d.includes(x)?'on':''}" aria-pressed="${d.includes(x)}" title="${DN[x]}" onclick="toggleDay(${x})">${DN[x][0]}</button>`).join('');
-  eDaysHint.textContent=d.length?'· highlighted on '+(d.length===7?'every day':d.length===1?DN[d[0]]:d.length+' days'):'· none = anytime';}
+  eDaysHint.textContent=d.length?'· in Today on '+(d.length===7?'every day':d.length===1?DN[d[0]]:d.length+' days'):'· none = anytime';renderWhen();}
+function renderWhen(){const w=partOf(cur);eWhen.style.setProperty('--c',COLORS[cur.color]||COLORS.orange);
+  eWhen.innerHTML=['',...PARTS].map(x=>`<button type="button" class="${w===x?'on':''}" aria-pressed="${w===x}" onclick="setWhen('${x}')">${x?WHEN[x]:'Anytime'}</button>`).join('');
+  eWhenHint.textContent=w?'· grouped under '+WHEN[w]+' in Today':'· shown under Anytime';}
+function setWhen(x){if(x&&partOf(cur)!==x)cur.when=x;else delete cur.when;renderWhen();queueAutosave();}
 function toggleDay(x){const d=rDays(cur);const n=d.includes(x)?d.filter(y=>y!==x):[...d,x];if(n.length)cur.days=DOW.filter(y=>n.includes(y));else delete cur.days;renderDays();queueAutosave();}
 function renderIconPick(){queueAutosave();const k=iconKey(cur),c=COLORS[cur.color]||COLORS.orange;eIconBtn.innerHTML=svgi(k,24);eIconBtn.style.color=c;
   iconGrid.innerHTML=ROUTINE_ICONS.map(n=>`<button class="${n===k?'on':''}" style="${n===k?`color:${c};border-color:${c}`:''}" onclick="cur.icon='${n}';iconGrid.hidden=true;renderIconPick()">${svgi(n,22)}</button>`).join('');}
@@ -1056,11 +1077,12 @@ function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   const mr=MINI&&shown(document.getElementById('mcard')); // finished while minimized: the done screen grows out of the card
   LAST={r,entry,ask,min:MINI,L:r.nolog||ask?null:logWorkout(entry)};MINI=false;miniUI();updHistBtn();showDone();
   run.classList.add('on','fin');banner();if(mr)morph(true,mr);}
-function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur;
+function showDone(){if(!LAST)return;const {r,entry,ask,L}=LAST,e=entry.dur,nx=r.test?null:upNext(); // nx: what's left for today, one tap away
   const st=[[`${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`,'Time'],[r.rounds,r.rounds===1?'Round':'Rounds']];if(entry.reps)st.push([entry.reps,'Reps']);if(entry.calls)st.push([entry.calls,'Combos']);
   doneView.innerHTML=`<div class="badge">${svgi('check',48,3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r),16)}<span>${esc(r.name)}</span></div>${ask?`<div class="streak" style="color:var(--tx2)">Ended while the app was closed · <button class="ghost" style="padding:2px 4px;color:var(--acc);font-weight:700" onclick="logLate()">Log it</button></div>`:!L?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}${r.test?'Test run · not logged':'Not logged'}</div>`:(H.find(h=>h.id===entry.id)||entry).streak===false?`<div class="streak" style="color:var(--tx2)">${svgi('nolog',16)}Logged · not counted for streak</div>`:L.cur?`<div class="streak">${svgi('flame',16)}${L.cur}-day streak${L.newBest?' · new best!':''}</div>`:''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
-    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="primary" style="background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}" onclick="startRun('${r.id}',${!!r.test})">${svgi('play',18)}Again</button></div>`;}
+    ${nx?`<button class="primary nextb" style="background:${COLORS[nx.color]||''};border-color:${COLORS[nx.color]||''}" onclick="startRun('${nx.id}')">${svgi('play',20)}<span>Next: ${esc(nx.name)} · ~${fmt(rTot(nx))}</span></button>`:''}
+    <div class="acts"><button onclick="stopRun()">${svgi('x',18)}Close</button><button class="${nx?'':'primary'}" style="${nx?'':`background:${COLORS[r.color]||''};border-color:${COLORS[r.color]||''}`}" onclick="startRun('${r.id}',${!!r.test})">${svgi('play',18)}Again</button></div>`;}
 function logLate(){if(!LAST||!LAST.ask)return;LAST.ask=false;LAST.L=logWorkout(LAST.entry);updHistBtn();showDone();}
 function loop(){if(!X||!X.steps){LOOP=false;return;}
   if(X.p==null)catchUp(NOW());
@@ -1408,6 +1430,7 @@ function banner(){const el=document.getElementById('liveBar');if(!el)return;cons
   if(h!==BAN){BAN=h;el.innerHTML=h;if(MINI)miniTx();}}
 function openLive(){if(CR&&runActive(CR)&&adopt(CR))banner();}
 setInterval(()=>{if(CR)banner();},5000);
+let PNOW=partNow();setInterval(()=>{const p=partNow();if(p===PNOW)return;PNOW=p;if(document.getElementById('lib').classList.contains('on'))renderList();},60000); // a new part of the day: Up next moves along
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(300);banner();if(document.getElementById('lib').classList.contains('on'))renderList();}});
 addEventListener('online',()=>{if(!cloudP&&localStorage.getItem('rf2_acct'))cloud();});
 

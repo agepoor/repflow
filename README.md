@@ -6,7 +6,7 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 
 - Blocks: reps/counts (guided tempo or tap), timed, sequence (steps in a fixed order, e.g. kata, flows or breathing; each step gets the block's time, its own time `@6` or waits for a tap `@tap`), boxing combo call-outs, rest
 - Rounds, rest between rounds (auto-start, or wait for a tap before each round or each block), first-round-only warm-ups, last-round-only finishers
-- Days per routine: today's routines on top (highlighted until done, skip for today only), the rest as compact rows (+ adds one to today, this time only); a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
+- Days and part of day per routine: today's routines on top, grouped by Morning / Midday / Evening / Anytime once any routine has a part of day; the one to do now is marked *Up next* (current part of the day first, then Anytime, then missed earlier parts), and the done screen offers it as *Next*; skip for today only, the rest as compact rows (+ adds one to today, this time only); a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
 - Week view: this week's schedule per day with done, added, skipped and not-done routines (also workouts done on other days), planned and done time per day, and a key; Schedule shows the usual week from the days set in each routine only; tap a routine to change its days
 - Per-block display: cue + number / cue only / number only
 - Beeps, voice coach (any browser language; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on. A routine can have its own sound & voice (beeps, voice, language, speed…) instead of Settings
