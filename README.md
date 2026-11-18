@@ -30,4 +30,12 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 
 Firebase setup: create a project → Realtime Database (locked mode) → paste `database.rules.json` into Rules → Authentication: enable Google, and GitHub with a GitHub OAuth app (callback `https://<project-id>.firebaseapp.com/__/auth/handler`) → Authentication → Settings → Authorized domains: add `agepoor.github.io` → Project settings → add a Web app and copy its config (it must include `databaseURL`).
 
+### Code
+
+Plain ES modules, no bundler: `index.html` holds the page and styles and loads `ui/main.js`.
+
+- `core/`: the app's logic without any DOM or browser UI, so it can be tested on its own: the routine model and migrations (`routine.js`), days, parts of the day and streaks (`schedule.js`), the step list a routine plays and combo tones (`steps.js`), the timer engine and its cues (`engine.js`), voice timing and spoken phrases (`voice.js`), sync merging (`merge.js`), durations and dates (`time.js`). Core modules only import each other.
+- `ui/`: everything on screen and on the device: storage, sound & voice, views, editor, run screen, settings, history, sync. UI modules call into `core/`, never the other way round. Functions called from the page's `onclick="…"` handlers are put on `window` in `ui/main.js`.
+- Storage keys stay `rf2_*` (renaming them would lose people's data). A new module file goes into `FILES` in `sw.js` (with a new `CACHE` name) so the app keeps working offline.
+
 Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages workflow runs on every push to `main`. The former `/v2/` preview forwards to the live app.
