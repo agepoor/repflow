@@ -562,12 +562,15 @@ function dur(id,k,v,lbl,min=0){v=Math.max(min,Math.round(+v||0));return `<div><l
 const WHEN={am:'Morning',mid:'Midday',pm:'Evening'},PARTS=['am','mid','pm'],partOf=r=>WHEN[r.when]?r.when:'';
 /* when the parts start: META.parts = {mid, eve} in minutes after midnight (default 12:00 and 17:00) + ts; synced, the newest change wins.
    META.parts.off = the guidance is switched off: Today is one list again, no "now", no Up next, no Next on the done screen; routines keep their part */
-const partsOn=()=>!(META.parts&&META.parts.off);
-function partT(){const p=META.parts||{},m=+p.mid,e=+p.eve;return m>0&&e>m&&e<1440?{mid:m,eve:e}:{mid:720,eve:1020};}
+const partsOnIn=parts=>!(parts&&parts.off);
+function partTimes(parts){const p=parts||{},m=+p.mid,e=+p.eve;return m>0&&e>m&&e<1440?{mid:m,eve:e}:{mid:720,eve:1020};}
+function partAt(parts,d=new Date()){const t=partTimes(parts),n=d.getHours()*60+d.getMinutes();return n<t.mid?'am':n<t.eve?'mid':'pm';}
+const partsOn=()=>partsOnIn(META.parts);
+function partT(){return partTimes(META.parts);}
 const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0'); // field value
 const clk=n=>new Date(2000,0,1,Math.floor(n/60),n%60).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); // shown: the device's clock format, like the time fields
 function partTxt(w){const t=partT();return w==='am'?'until '+clk(t.mid):w==='mid'?clk(t.mid)+'–'+clk(t.eve):w==='pm'?'from '+clk(t.eve):'';}
-function partNow(d=new Date()){const t=partT(),n=d.getHours()*60+d.getMinutes();return n<t.mid?'am':n<t.eve?'mid':'pm';}
+function partNow(d=new Date()){return partAt(META.parts,d);}
 function renderParts(){const el=document.getElementById('partForm');if(!el)return;const t=partT(),on=partsOn(),d=on?'':' disabled';
   el.innerHTML=`<div class="tg"><label class="chk"><input type="checkbox" ${on?'checked':''} onchange="setGuide(this.checked)"> Guide me through the day</label></div>
   <div${on?'':' style="opacity:.5"'}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" onchange="setPart()"${d}></div><div${on?'':' style="opacity:.5"'}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" onchange="setPart()"${d}></div>`;partSum();}
@@ -578,12 +581,14 @@ function setPart(){const v=id=>{const m=/^(\d\d):(\d\d)/.exec(document.getElemen
   if(!(m>0))return partSum('Midday has to start after midnight.');if(!(e>m))return partSum('Evening has to start after midday.');
   const t=partT();if(t.mid===m&&t.eve===e)return partSum();META.parts={mid:m,eve:e,ts:Date.now(),...(partsOn()?{}:{off:true})};saveRaw();scheduleSync();partSum();}
 function inToday(r){const now=new Date(),wd=now.getDay(),tk=dk(now.getTime());return !r.archived&&((rDays(r).includes(wd)&&!onDay(r,'skip',tk))||(onDay(r,'add',tk)&&!rDays(r).includes(wd)));}
-const doneToday=r=>{const tk=dk(Date.now());return H.some(h=>h.rid===r.id&&dk(h.ts)===tk);};
+const doneOnDay=(r,hist,tk=dk(Date.now()))=>hist.some(h=>h.rid===r.id&&dk(h.ts)===tk);
+const doneToday=r=>doneOnDay(r,H);
 const rTot=r=>build(r).reduce((a,s)=>a+(s.dur||0),0);
 /* up next (label on the home screen, Next on the done screen): the first routine left for today (in your order) from the current part of the day, then Anytime, then earlier parts (missed), then later ones.
    Routines with No logging are never marked done, so they are left out */
-function upNext(){const c=PARTS.indexOf(partNow()),rk=r=>{const w=partOf(r);if(!w)return 1;const i=PARTS.indexOf(w);return i===c?0:i<c?2:3;};
-  const l=R.filter(r=>inToday(r)&&!r.nolog&&!doneToday(r));return l.map((r,i)=>[rk(r),i,r]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[2])[0]||null;}
+function nextUp(list,hist,parts,d=new Date()){const c=PARTS.indexOf(partAt(parts,d)),rk=r=>{const w=partOf(r);if(!w)return 1;const i=PARTS.indexOf(w);return i===c?0:i<c?2:3;};
+  const l=list.filter(r=>inToday(r)&&!r.nolog&&!doneOnDay(r,hist));return l.map((r,i)=>[rk(r),i,r]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[2])[0]||null;}
+function upNext(){return nextUp(R,H,META.parts);}
 let SORT=false; // order view, opened with the Order button: all routines in their real order, drag to reorder, until Done
 function setSort(v){SORT=v;renderList();if(v)document.getElementById('list').scrollIntoView({block:'nearest'});}
 function renderList(){updHistBtn();const flat=SORT; // order view: all routines in one list, in their real order
@@ -825,21 +830,28 @@ function bell(){if(silentHere())return;[0,.18,.36].forEach(t=>setTimeout(()=>bee
 let BG=[],BGT=0;
 function bgOff(){if(!BG.length)return;BG.forEach(o=>{try{o.stop();}catch(e){}});BG=[];BGT=NOW();}
 function bgOn(){bgOff();if(!document.hidden||!X||!X.steps||X.p!=null||!mine()||!AC||AC.state!=='running'||muted)return; // Beeps off: only Tones only calls are queued
-  const c=AC,now=NOW(),base=c.currentTime;let end=0,s0=X.s0;
+  const c=AC,now=NOW(),base=c.currentTime;let end=0;
   const add=(ms,f,d,type='sine',vol=1)=>{if(ms<now||BG.length>=3000)return;const o=beep(f,d,type,vol,base+(ms-now)/1000);if(o){BG.push(o);end=Math.max(end,ms);}};
   const addT=(ms,i,d)=>{if(ms<now||BG.length>=3000)return;const o=tone(i,d,base+(ms-now)/1000);if(o){BG.push(o);end=Math.max(end,ms);}};
-  const bellAt=ms=>[0,180,360].forEach(d=>add(ms+d,1320,.35,'triangle'));
   const keep=()=>{if(!BG.length)return;const o=c.createOscillator(),g=c.createGain();o.frequency.value=50;g.gain.value=.001;o.connect(g).connect(c.destination);o.start();o.stop(base+(end-now)/1000+1);BG.push(o);};
-  for(let i=X.i;i<X.steps.length;i++){const s=X.steps[i],L=stepLen(s);if(s0-now>3600e3)return keep(); // up to an hour ahead
-    if(i>X.i){if(s.type==='wait')add(s0,784,.2);else if(s.kind==='work')add(s0,1046,.25,'square',.6);else if(s.kind==='rest')bellAt(s0);} // same as enter()
-    if(!isFinite(L))return keep(); // waits for a tap
-    if(s.type==='time')for(let k=Math.min(cdn(s),Math.ceil(s.dur));k>0;k--)add(s0+Math.max(0,s.dur-k)*1000,k===1?880:660,.12); // same as tick()
-    else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;for(let r=0;r<s.reps;r++)for(let k=0;k<s.counts;k++){const t=s0+(r*per+k*s.tempo)*1000;if(k)add(t,740,.06,'sine',.5);else add(t,1175,.12,'square',.7);}} // same as countFx()
-    if(s.boxing&&s.vfit==='tones'&&s.combos.length){const q=X.bq||(X.bq=[]),cl=s.cl||1,put=e=>{e.a=s0+e.t*1000;moveTones(e.c,s.tm).forEach((k,j)=>addT(e.a+j*cl*1000,k,cl*.85));};
-      let t=i===X.i?Math.max(X.nc,(now-s0)/1000+.1):1.5;q.forEach(e=>{if(e.i===i){put(e);t=e.n;}}); // queued before: again, then more
-      while(s.dur-t>1.5&&BG.length<3000){const c=nextCombo(s),e={i,t,c,n:t+callGap(s,c),u:X.box[s.bid].num};q.push(e);put(e);t=e.n;}} // same timing as boxCall
+  for(const e of cuePlan(X.steps,X.i,X.s0,now,cdn)){if(!e.box){add(e.ms,e.f,e.d,e.type,e.vol);continue;}
+    const {i,s0}=e,s=X.steps[i]; // Tones only combo calls
+    const q=X.bq||(X.bq=[]),cl=s.cl||1,put=e=>{e.a=s0+e.t*1000;moveTones(e.c,s.tm).forEach((k,j)=>addT(e.a+j*cl*1000,k,cl*.85));};
+    let t=i===X.i?Math.max(X.nc,(now-s0)/1000+.1):1.5;q.forEach(e=>{if(e.i===i){put(e);t=e.n;}}); // queued before: again, then more
+    while(s.dur-t>1.5&&BG.length<3000){const c=nextCombo(s),e={i,t,c,n:t+callGap(s,c),u:X.box[s.bid].num};q.push(e);put(e);t=e.n;}} // same timing as boxCall
+  keep();}
+/* the beeps of a workout from step i0 (started at s0, ms) on, as they will sound: {ms, f (Hz), d (s), type, vol}, in order, up to an hour
+   ahead of now and until a step that waits for a tap, or to the end bell. {box, i, s0}: Tones only combo calls of step i (drawn by the caller).
+   cd(s): countdown beeps (last s) of step s */
+function cuePlan(steps,i0,s0,now,cd){const ev=[],at=(ms,f,d,type='sine',vol=1)=>ev.push({ms,f,d,type,vol}),bellAt=ms=>[0,180,360].forEach(d=>at(ms+d,1320,.35,'triangle'));
+  for(let i=i0;i<steps.length;i++){const s=steps[i],L=stepLen(s);if(s0-now>3600e3)return ev; // up to an hour ahead
+    if(i>i0){if(s.type==='wait')at(s0,784,.2);else if(s.kind==='work')at(s0,1046,.25,'square',.6);else if(s.kind==='rest')bellAt(s0);} // same as enter()
+    if(!isFinite(L))return ev; // waits for a tap
+    if(s.type==='time')for(let k=Math.min(cd(s),Math.ceil(s.dur));k>0;k--)at(s0+Math.max(0,s.dur-k)*1000,k===1?880:660,.12); // same as tick()
+    else if(s.mode==='guided'){const per=s.counts*s.tempo+s.repPause;for(let r=0;r<s.reps;r++)for(let k=0;k<s.counts;k++){const t=s0+(r*per+k*s.tempo)*1000;if(k)at(t,740,.06,'sine',.5);else at(t,1175,.12,'square',.7);}} // same as countFx()
+    if(s.boxing&&s.vfit==='tones'&&s.combos.length)ev.push({box:true,i,s0});
     s0+=L*1000;}
-  bellAt(s0);keep();} // done
+  bellAt(s0);return ev;} // done
 // back in view: Tones only calls that played in the background count as done (before catchUp, which may finish the workout); the one
 // still playing is shown and the rest of its tones queued again (bgOff stopped them); the loop goes on from the plan
 function bqPlayed(now){const q=X.bq,p=[];while(q&&q.length&&q[0].a<=now)p.push(q.shift());X.calls=(X.calls||0)+p.length;return p;}
@@ -887,23 +899,31 @@ function vUnits(t){return String(t||'').replace(/_/g,' ').replace(/\d+/g,m=>' '+
 const VLAT=.15; // s until the voice starts, about
 function vKey(lang){const v=window.speechSynthesis&&pickVoice(lang||undefined);return v?v.name:'default';}
 const rk=r=>String(+(+r||1).toFixed(2)); // a voice speed, as a key
-function vAt(k,t,rate){const R=VFR[k+'|'+t];return R?R[rk(rate)]:undefined;} // measured at this voice speed?
-function vBody(t,lang,rate=SV().rate){const k=vKey(lang),r=vAt(k,t,rate);if(r!=null)return r;const m=VFIT[k+'|'+t];if(m!=null)return m;const f=vFit(k);return f.a+f.s*vUnits(t);} // s to say t at rate 1, once started
-let VFC={}; // vFit per voice, until it learns more
-function vFit(k){if(VFC[k])return VFC[k];const p=k+'|',P=[];for(const q in VFIT)if(q.startsWith(p))P.push([vUnits(q.slice(p.length)),VFIT[q]]);
+/* the timing model works on two stores (VFIT: per voice and per phrase at rate 1; VFR: per phrase per voice speed), passed in */
+function measuredAt(VFR,k,t,rate){const R=VFR[k+'|'+t];return R?R[rk(rate)]:undefined;} // measured at this voice speed?
+function phraseBody(VFIT,VFR,k,t,rate,fitOf){const r=measuredAt(VFR,k,t,rate);if(r!=null)return r;const m=VFIT[k+'|'+t];if(m!=null)return m;const f=fitOf(k);return f.a+f.s*vUnits(t);} // s to say t at rate 1, once started
+function fitVoice(VFIT,k){const p=k+'|',P=[];for(const q in VFIT)if(q.startsWith(p))P.push([vUnits(q.slice(p.length)),VFIT[q]]);
   const n=P.length;let f=null;if(n>=5){const mx=P.reduce((a,x)=>a+x[0],0)/n,my=P.reduce((a,x)=>a+x[1],0)/n;let sxx=0,sxy=0;P.forEach(([x,y])=>{sxx+=(x-mx)**2;sxy+=(x-mx)*(y-my);});
     const s=sxy/sxx,a=my-s*mx;if(sxx>n*16&&s>=.02&&s<=.2&&a>=0&&a<=1.5)f={a,s,fit:true};} // enough phrases of different lengths, and a sensible line
-  return VFC[k]={...(f||{a:0,s:.062*(VFIT[k]||1)}),n};} // else: its average speed · n: phrases heard
-function voiceSec(t,rate=SV().rate,lang){return vUnits(t)?VLAT+vBody(t,lang,rate)/Math.max(.1,rate||1):0;}
-function vLearn(u,sec){const t=u.text,n=vUnits(t);if(document.hidden||n<4||!(sec>.1&&sec<20))return;VFC={};const k=u.voice?u.voice.name:'default',b=Math.max(.05,sec-VLAT)*(u.rate||1),pk=k+'|'+t,o=VFIT[pk];
+  return {...(f||{a:0,s:.062*(VFIT[k]||1)}),n};} // else: its average speed · n: phrases heard
+const voiceSecOf=(t,rate,body)=>vUnits(t)?VLAT+body(t,rate)/Math.max(.1,rate||1):0; // body(t, rate): s to say t at rate 1
+/* the voice k said phrase t at this rate in sec s: learn from it (false: too short or implausible, nothing learned) */
+function learnVoice(VFIT,VFR,k,t,sec,rate){const n=vUnits(t);if(n<4||!(sec>.1&&sec<20))return false;const b=Math.max(.05,sec-VLAT)*(rate||1),pk=k+'|'+t,o=VFIT[pk];
   delete VFIT[pk];VFIT[pk]=+(o!=null?(o+b)/2:b).toFixed(3); // this phrase (newest last)
   const r=Math.min(2.5,Math.max(.4,b/(.062*n)));VFIT[k]=+(VFIT[k]?VFIT[k]*.8+r*.2:r).toFixed(3); // this voice
-  const R=VFR[pk]||{},q=rk(u.rate),w=R[q];delete R[q];R[q]=+(w!=null?(w+b)/2:b).toFixed(3);const rs=Object.keys(R);if(rs.length>4)delete R[rs[0]];VFR[pk]=R; // this phrase at this voice speed
-  const ps=Object.keys(VFIT).filter(x=>x.includes('|'));if(ps.length>400){delete VFIT[ps[0]];delete VFR[ps[0]];}
-  try{localStorage.setItem('rf2_vfit',JSON.stringify(VFIT));localStorage.setItem('rf2_vfr',JSON.stringify(VFR));}catch(e){}}
-// Voice, tones when too fast: the voice rate that fits a phrase in the time it has (s): your voice speed, faster (up to 1.5×), or 0 = too long to say
-function fitRate(t,avail,lang){const r=SV().rate||1,b=vBody(t,lang,r),room=avail-VLAT-.05;if(!b)return r;if(room<=0)return 0;
+  const R=VFR[pk]||{},q=rk(rate),w=R[q];delete R[q];R[q]=+(w!=null?(w+b)/2:b).toFixed(3);const rs=Object.keys(R);if(rs.length>4)delete R[rs[0]];VFR[pk]=R; // this phrase at this voice speed
+  const ps=Object.keys(VFIT).filter(x=>x.includes('|'));if(ps.length>400){delete VFIT[ps[0]];delete VFR[ps[0]];}return true;}
+// Voice, tones when too fast: the voice rate r that fits a phrase that takes b s (at rate 1) in the time it has (s): r, faster (up to 1.5×), or 0 = too long to say
+function rateToFit(b,r,avail){const room=avail-VLAT-.05;if(!b)return r;if(room<=0)return 0;
   const need=b/room;return need<=r?r:need<=r*1.5?Math.min(r*1.5,need*1.03):0;}
+function vAt(k,t,rate){return measuredAt(VFR,k,t,rate);}
+function vBody(t,lang,rate=SV().rate){return phraseBody(VFIT,VFR,vKey(lang),t,rate,vFit);}
+let VFC={}; // vFit per voice, until it learns more
+function vFit(k){return VFC[k]||(VFC[k]=fitVoice(VFIT,k));}
+function voiceSec(t,rate=SV().rate,lang){return voiceSecOf(t,rate,(x,r)=>vBody(x,lang,r));}
+function vLearn(u,sec){if(document.hidden||!learnVoice(VFIT,VFR,u.voice?u.voice.name:'default',u.text,sec,u.rate))return;VFC={};
+  try{localStorage.setItem('rf2_vfit',JSON.stringify(VFIT));localStorage.setItem('rf2_vfr',JSON.stringify(VFR));}catch(e){}}
+function fitRate(t,avail,lang){const r=SV().rate||1;return rateToFit(vBody(t,lang,r),r,avail);}
 const vSlow=(v,time)=>v>time+.2; // noticeably longer to say than the time it gets
 const vEd=()=>SV().voice&&!!window.speechSynthesis; // the editor checks the voice only when it is on
 const lnorm=l=>(l||'').toLowerCase().replace('_','-');
@@ -944,8 +964,10 @@ const VPH={
   es:{'Get ready':'Prepárate','Next round':'Siguiente ronda','Next block':'Siguiente bloque',tapgo:'Toca cuando estés listo','Rest':'Descanso','Round rest':'Descanso entre rondas',reps:'repeticiones',fight:'¡A pelear!',halfway:'Mitad',ten:'Diez segundos',done:'Terminado. ¡Buen trabajo!',sec:'segundos',min1:'minuto',min:'minutos'},
   de:{'Get ready':'Mach dich bereit','Next round':'Nächste Runde','Next block':'Nächster Block',tapgo:'Tippe, wenn du bereit bist','Rest':'Pause','Round rest':'Rundenpause',reps:'Wiederholungen',fight:'Kämpfen!',halfway:'Halbzeit',ten:'Zehn Sekunden',done:'Fertig. Gut gemacht!',sec:'Sekunden',min1:'Minute',min:'Minuten'},
   fr:{'Get ready':'Prépare-toi','Next round':'Round suivant','Next block':'Bloc suivant',tapgo:'Touche quand tu es prêt','Rest':'Repos','Round rest':'Repos entre les rounds',reps:'répétitions',fight:'Combat !',halfway:'Mi-parcours',ten:'Dix secondes',done:'Terminé. Bon travail !',sec:'secondes',min1:'minute',min:'minutes'}};
-function ph(k){const t=VPH[lnorm(voiceLang()).split("-")[0]]||VPH.en;return t[k]??VPH.en[k]??k;}
-function sayDur(d){d=Math.max(0,Math.round(d));const m=Math.floor(d/60),x=d%60;return m?`${m} ${ph(m===1?'min1':'min')}${x?' '+x:''}`:`${x} ${ph('sec')}`;}
+function phraseIn(lang,k){const t=VPH[lnorm(lang).split("-")[0]]||VPH.en;return t[k]??VPH.en[k]??k;}
+function sayDurIn(d,lang){d=Math.max(0,Math.round(d));const m=Math.floor(d/60),x=d%60;return m?`${m} ${phraseIn(lang,m===1?'min1':'min')}${x?' '+x:''}`:`${x} ${phraseIn(lang,'sec')}`;}
+function ph(k){return phraseIn(voiceLang(),k);}
+function sayDur(d){return sayDurIn(d,voiceLang());}
 function testVoice(k){withSnd(k==='R'?cur:null,()=>{const L=SV().lang,nl=L.startsWith('nl'),es=L.startsWith('es');say(nl?'Klaar? Jab, cross, hoek. Rust.':es?'¿Listo? Jab, cross, gancho. Descanso.':'Ready? Jab, cross, hook. Rest.',true,false,{force:true});});} // k 'R': this routine's own
 function buzz(p){if(S.vibrate&&navigator.vibrate&&!silentHere())navigator.vibrate(p);}
 function resetAudio(){if(!confirm('Reset all sound & voice settings to their defaults?'))return;
@@ -981,8 +1003,10 @@ function build(r){const st=[];const P=(s)=>st.push(s);const hm=holdMode(r),tm=to
   if(hm==='blocks'){out=[];let pr=0; // hold before every work step but the first (after any rest); in a sequence, only before its first step
     st.forEach(s=>{if(s.kind==='work'){if(pr&&!(s.si>0))out.push({type:'wait',kind:'prep',label:s.round!==pr?'Next round':'Next block',round:s.round});pr=s.round;}out.push(s);});}
   return out.filter((s,i)=>!(s.type==='wait'&&!s.seq&&out[i+1]&&out[i+1].type==='wait'));} // right before a sequence's own tap step: one tap
-const waitTx=s=>s.seq?(s.label?s.label+'. ':'')+ph('tapgo'):`${ph(s.label)}. ${ph('tapgo')}`;
-const cdn=s=>s.seq&&s.dur<10?0:SV().countdown|0; // countdown beeps (last s): none on short sequence steps
+const waitText=(s,lang)=>s.seq?(s.label?s.label+'. ':'')+phraseIn(lang,'tapgo'):`${phraseIn(lang,s.label)}. ${phraseIn(lang,'tapgo')}`;
+const countdownOf=(s,countdown)=>s.seq&&s.dur<10?0:countdown|0; // countdown beeps (last s): none on short sequence steps
+const waitTx=s=>waitText(s,voiceLang());
+const cdn=s=>countdownOf(s,SV().countdown);
 
 /* ---------- runner ---------- */
 /* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
@@ -1082,12 +1106,15 @@ function enter(i,at,quiet){setStep(i,at);stepUI();const s=X.steps[i],bg=at<BGT; 
   if(mine())pushRun();render();}
 /* steps that ended while the app was in the background or closed: move on to where the workout is now. Back more than
    2 s late: no step announcements, only a beep and the name of the current step, so you know where you are */
-function catchUp(now){let moved=false,late=0;
-  for(let n=0;n<1e4;n++){const end=X.s0+stepLen(X.steps[X.i])*1000;if(!(now>=end))break;late=now-end;
-    if(X.i+1>=X.steps.length){if(!mine()&&late<3000)break; // a following device gives the playing one a moment to finish first
-      return finish(end,late);}
-    setStep(X.i+1,end);moved=true;}
-  if(moved){const q=late>2000;enter(X.i,X.s0,q);if(q&&UNLOCKED&&mine())back();}}
+/* where a workout is at time now (ms), from step i that started at s0: the step it is in and when that started (moved: not i any more),
+   or done (the last step ended at end). late: ms since the last step change. wait: a following device gives the playing one a moment to finish first */
+function advance(steps,i,s0,now,wait){let moved=false,late=0;
+  for(let n=0;n<1e4;n++){const end=s0+stepLen(steps[i])*1000;if(!(now>=end))break;late=now-end;
+    if(i+1>=steps.length){if(wait&&late<3000)break;return {i,s0,moved,late,end,done:true};}
+    i++;s0=end;moved=true;}
+  return {i,s0,moved,late,done:false};}
+function catchUp(now){const a=advance(X.steps,X.i,X.s0,now,!mine());if(a.moved)setStep(a.i,a.s0);if(a.done)return finish(a.end,a.late);
+  if(a.moved){const q=a.late>2000;enter(X.i,X.s0,q);if(q&&UNLOCKED&&mine())back();}}
 function back(){const s=X.steps[X.i];beep(1046,.12,'sine',.5);say(s.type==='wait'?waitTx(s):s.kind==='work'?(s.q?'':s.label):ph(s.label));}
 function finish(end,late=0,remote){end=Math.round(end??NOW());const r=X.r;
   if(mine()&&!remote){X.fin=end;pushRun('done');}
@@ -1164,8 +1191,10 @@ function info(k,title,body){return `<details class="info" ${OPEN.has(k)?'open':'
 function pvUpd(id){if(cur)cur.blocks.forEach(x=>{const e=x.type==='boxing'&&document.getElementById('pv-'+x.id);if(e)e.innerHTML=poolPreview(x.id);}); // all: a routine's moves share their tones
   const n=document.getElementById('vf-'+id),b=cur&&cur.blocks.find(x=>x.id===id);if(n&&b)n.innerHTML=vfNote(b);const q=b&&b.type==='seq'&&document.getElementById('sq-'+id);if(q)q.innerHTML=seqInfo(b);}
 function vfAll(){if(!cur)return;pvUpd();cur.blocks.forEach(b=>{const n=document.getElementById('vf-'+b.id);if(n)n.innerHTML=vfNote(b);});} // every block's voice note and combo preview
-function nextCombo(s){const L=s.combos,n=L.length;if(!n)return '';
-  const B=X.box[s.bid]||(X.box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
+function nextCombo(s){return drawCombo(s,X.box);}
+/* the next call of boxing step s; box: the draw state per block (which combos were called, the shuffle bag, repeats left) */
+function drawCombo(s,box){const L=s.combos,n=L.length;if(!n)return '';
+  const B=box[s.bid]||(box[s.bid]={i:-1,left:0,bag:[],last:-1,num:0,seen:new Set()});
   B.poolDone=false;
   if(B.left>0){B.left--;poolChk(B,n);return L[B.last];} // repeat same combo
   let k;
@@ -1192,7 +1221,8 @@ function boxCall(s,t){const v=vOn(),busy=v&&vBusy(),byCall=busy&&!!(UTT&&UTT.cal
   else if(m==='pace'&&v){const k=busy?0:fitRate(tx,X.nc-t);if(k){const r=Math.max(k,boxRate(s));say(tx,false,false,{call:true,rate:r});said=true;if(r>SV().rate*1.1)vnSet('fast');}else if(!busy||byCall)vnSet('beep');} // busy with something else (Ten seconds): just this call as tones
   if(said)beep(1500,.05,'square',.4);else comboTones(c,s.cl||1,s.tm);
   pushRun();}
-const callGap=(s,c)=>moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&X.box[s.bid]&&X.box[s.bid].poolDone)?s.poolPause:0); // until the next call, right after nextCombo drew c
+const comboGap=(s,c,box)=>moves(c)*(s.cl||1)+s.minGap+Math.random()*Math.max(0,s.maxGap-s.minGap)+((s.poolPause>0&&box[s.bid]&&box[s.bid].poolDone)?s.poolPause:0); // until the next call, right after drawCombo drew c
+const callGap=(s,c)=>comboGap(s,c,X.box);
 function boxRate(s){const k=String(SV().rate);if(s.vrk!==k){s.vrk=k;s.vr=Math.max(SV().rate,...s.combos.map(c=>fitRate(callTxt(c),moves(c)*(s.cl||1)+(+s.minGap||0))));}return s.vr;} // one steady (faster) voice speed per block
 const VN={wait:'Paced by voice: calls wait until it finishes',fast:'Keeping the pace: voice sped up',beep:'Too fast to speak: tones + call on screen'};
 function vnTxt(s){if(!s||!mine()||!SV().voice)return '';if(s.boxing)return VN[X.vn]||'';
@@ -1201,17 +1231,21 @@ function vnSet(k){if(X.vn===k||X.vn==='beep')return;X.vn=k;tapHint.textContent=v
 function tick(){const s=X.steps[X.i],t=X.t=(NOW()-X.s0)/1000;if(t>=stepLen(s))return;
   if(s.type==='time'){
     const left=s.dur-t;const sec=Math.ceil(left);
-    if(sec!==X.lastSec){X.lastSec=sec;
-      if(sec<=cdn(s)&&sec>0){beep(sec===1?880:660,.12);if(s.kind!=='work'&&sec<=3)say(String(sec),true,true);}
-      if(s.kind==='work'&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20)say(ph('halfway'),false);
-      if(s.kind==='work'&&sec===10&&s.dur>=30){say(ph('ten'),false);}}
+    if(sec!==X.lastSec){X.lastSec=sec;const q=secondCues(s,sec,cdn(s));
+      if(q.beep){beep(q.beep,.12);if(q.count)say(String(sec),true,true);}
+      if(q.halfway)say(ph('halfway'),false);
+      if(q.ten){say(ph('ten'),false);}}
     if(s.boxing&&mine()&&t>=X.nc&&left>1.5)boxCall(s,t);
   } else if(s.mode==='guided'){
-    const per=s.counts*s.tempo+s.repPause;const rep=Math.floor(t/per);const inRep=t-rep*per;
-    const c=inRep<s.counts*s.tempo?Math.floor(inRep/s.tempo):-2; // -2 = breather
+    const {rep,c}=guidedAt(s,t);
     const key=rep*1000+c;
     if(key!==X.lastCount&&c>=0){X.lastCount=key;countFx(rep,c,s);}
   }}
+/* a timed step at a new whole second left (sec): beep = countdown beep pitch (0: none), count: also say the number, halfway / ten: say so. cd: countdown beeps (last s) */
+function secondCues(s,sec,cd){const b=sec<=cd&&sec>0,w=s.kind==='work';
+  return {beep:b?(sec===1?880:660):0,count:b&&!w&&sec<=3,halfway:w&&!s.boxing&&sec===Math.floor(s.dur/2)&&s.dur>=20,ten:w&&sec===10&&s.dur>=30};}
+/* a guided reps step at t s: rep (0-based) and count c (0-based; -2 = breather) */
+function guidedAt(s,t){const per=s.counts*s.tempo+s.repPause,rep=Math.floor(t/per),inRep=t-rep*per;return {rep,c:inRep<s.counts*s.tempo?Math.floor(inRep/s.tempo):-2};}
 function countFx(rep,c,s){ // rep 0-based, c 0-based
   const first=c===0;beep(first?1175:740,first?.12:.06,first?'square':'sine',first?.7:.5);if(first)buzz(40);
   const lbl=s.cues[c],sp=s.mode==='guided'?cSay(s):SV().speakCounts;
@@ -1220,8 +1254,10 @@ function countFx(rep,c,s){ // rep 0-based, c 0-based
   big.classList.remove('flash');void big.offsetWidth;big.classList.add('flash');}
 /* guided counts are only spoken when each fits its count (said before the next one starts); otherwise only the rep number (at the
    first count), otherwise beeps only. s: a reps step, or the editor's view of a block. w: the phrase that fits worst */
-function countPlan(s,lang){const per=s.counts*s.tempo+s.repPause;let say=SV().speakCounts,w=null;
-  const fits=(t,slot)=>{const v=voiceSec(t,SV().rate,lang);if(v<=slot+.05)return true;if(!w||v-slot>w.v-w.slot)w={t,v,slot};return false;};
+function countPlan(s,lang){return planCounts(s,SV().speakCounts,t=>voiceSec(t,SV().rate,lang));}
+/* speakCounts: as set; secOf(t): s the voice needs to say t */
+function planCounts(s,speakCounts,secOf){const per=s.counts*s.tempo+s.repPause;let say=speakCounts,w=null;
+  const fits=(t,slot)=>{const v=secOf(t);if(v<=slot+.05)return true;if(!w||v-slot>w.v-w.slot)w={t,v,slot};return false;};
   if(say==='every'){let ok=true;if(s.counts>1){for(let k=0;k<s.counts;k++)if(!fits(s.cues[k]||String(k+1),s.tempo+(k===s.counts-1?s.repPause:0)))ok=false;}
     else ok=fits(String(s.reps),s.tempo+s.repPause);
     if(!ok)say=s.counts>1?'reps':'off';}
@@ -1275,7 +1311,8 @@ const mmss=e=>{e=Math.round(e||0);const h=Math.floor(e/3600),m=Math.floor(e%3600
 /* logging per routine: nolog = No logging; streak:false = Log only (the workout is logged with streak:false: in history, not in streaks); neither = Log and count for streak */
 function logMode(r){return r.nolog?'off':r.streak===false?'log':'streak';}
 function nsTag(t,title,s=13){return `<span class="nst" title="${title}">${svgi('nolog',s)}${t}</span>`;}
-function streaks(list=H){const days=new Set(list.filter(h=>h.streak!==false).map(h=>dk(h.ts))),today=dk(Date.now());
+function streaks(list=H){return streakOf(list);}
+function streakOf(list){const days=new Set(list.filter(h=>h.streak!==false).map(h=>dk(h.ts))),today=dk(Date.now());
   let cur=0,k=days.has(today)?today:dayAdd(today,-1);while(days.has(k)){cur++;k=dayAdd(k,-1);}
   let best=0,run=0,prev=null;[...days].sort().forEach(d=>{run=prev&&dayAdd(prev,1)===d?run+1:1;best=Math.max(best,run);prev=d;});
   return {cur,best,today:days.has(today)};}
@@ -1444,8 +1481,10 @@ function applySame(v){X.bq=null;const was=mine(),st=(v.i|0)!==X.i||+v.s0!==X.s0;
   ppIcon();liveUI();render();}
 function remoteEnd(v){if(v.end==='done'){X.by=v.by;X.dn=v.dn||'';X.t0=+v.t0||X.t0;X.calls=v.calls|0;const f=+v.fin||NOW();finish(f,Math.max(0,NOW()-f),true);}
   else{if(!closeRun())show('lib');toast(`Workout stopped on ${v.dn||'another device'}`,true);}}
-function runActive(v){if(!v||v.end||NOW()-(+v.u||0)>12*3600e3)return false;let st;try{st=build(norm(mig(JSON.parse(v.r))));}catch(e){return false;}
-  if(v.p!=null)return true;let t=+v.s0;for(let i=v.i|0;i<st.length;i++){const l=stepLen(st[i]);if(!isFinite(l))return true;t+=l*1000;}return NOW()<t+3000;}
+/* a stored workout (v) that is still going at time now (ms) */
+function runLive(v,now){if(!v||v.end||now-(+v.u||0)>12*3600e3)return false;let st;try{st=build(norm(mig(JSON.parse(v.r))));}catch(e){return false;}
+  if(v.p!=null)return true;let t=+v.s0;for(let i=v.i|0;i<st.length;i++){const l=stepLen(st[i]);if(!isFinite(l))return true;t+=l*1000;}return now<t+3000;}
+function runActive(v){return runLive(v,NOW());}
 let BAN='';
 function banner(){const el=document.getElementById('liveBar');if(!el)return;const v=CR;let h='';
   if(MINI&&X&&X.steps){if(!SORT&&!liveIn())h=liveCard();} // the Order view shows only the order
