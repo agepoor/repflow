@@ -31,14 +31,14 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`.
 - `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time.
 - `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.
-- `sw.js`: offline cache. `build.sh`: build script. `.github/workflows/deploy.yml`: runs `npm run check` on pull requests and on `main`, and deploys `main` to GitHub Pages only when it passes.
+- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` on pull requests and on `main`, and deploys `main` to GitHub Pages only when it passes.
 
 ## Rules
 
 - **Pushing to `main` deploys to the live app.** Work on a branch and open a PR; don't push to `main` unless asked.
 - `core/` only imports from `core/`. `ui/` calls into `core/`, never the other way round. Pass state into core functions instead of reading globals.
 - Functions called from inline `onclick="…"` handlers in `index.html` must be added to the `Object.assign(window, …)` list in `ui/main.js`.
-- New or renamed module file: add it to `FILES` in `sw.js` **and** bump `CACHE` (`pacer-live-N`), or the app breaks offline. Also bump `CACHE` when changing cached files you want users to get right away.
+- New or renamed file the app loads: add it to `FILES` in `sw.js`, or the app breaks offline. Don't edit `CACHE`: `build.sh` names it after the commit, so every deploy refreshes the offline cache.
 - Never rename storage keys (`rf2_*`) or synced paths (`users/<uid>/doc`, `users/<uid>/run`): it would lose people's data.
 - Changing the routine data shape: migrate older data in `core/routine.js` and keep old routines, exports and other synced devices working. Sync merges across devices (`core/merge.js`), so new fields need a sensible merge.
 - Use the theme variables (`--bg`, `--surf`, `--tx`, `--acc`, …) instead of hard-coded colors. A light theme is planned, so don't assume dark.

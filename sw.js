@@ -1,4 +1,7 @@
-const CACHE = 'pacer-live-10';
+/* Offline cache: every file in FILES is cached on install; requests go to the network first and fall back to the cache.
+   build.sh replaces the -dev in the cache name with the commit, so each deploy changes this file: the browser then installs the
+   new worker, which caches the new files and drops the old cache. */
+const CACHE = 'pacer-live-dev';
 const FILES = [
   './',
   'index.html',

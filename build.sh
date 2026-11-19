@@ -3,8 +3,13 @@
 set -euo pipefail
 out="${1:?usage: build.sh <output-dir>}"
 mkdir -p "$out/v2"
-cp index.html styles.css cloud.js manifest.webmanifest sw.js icon.svg "$out"/
+cp index.html styles.css cloud.js manifest.webmanifest icon.svg "$out"/
 cp -r core ui "$out"/
+# Name the offline cache after the commit (plus a timestamp for uncommitted changes), so every deploy refreshes it
+ver=$(git rev-parse --short HEAD 2>/dev/null || date +%s)
+if [ -n "$(git status --porcelain 2>/dev/null)" ]; then ver="$ver-$(date +%s)"; fi
+sed "s/'pacer-live-dev'/'pacer-live-$ver'/" sw.js > "$out/sw.js" # not sed -i: it differs on macOS
+grep -q "'pacer-live-$ver'" "$out/sw.js" || { echo "build.sh: cache name placeholder not found in sw.js" >&2; exit 1; }
 for f in icons/*.b64 fonts/*.b64; do base64 -d "$f" > "$out/$(basename "$f" .b64)"; done
 # The v2 preview (/v2/) was merged into the live app: old links forward, and its offline worker removes itself
 cat > "$out/v2/index.html" <<'HTML'
