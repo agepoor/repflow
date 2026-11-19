@@ -3,7 +3,7 @@ import { iconKey, logMode, mig, norm, uid } from '../core/routine.js';
 import { DN, onDay, rDays, streakOf } from '../core/schedule.js';
 import { build } from '../core/steps.js';
 import { dayAdd, dk, kd, mmss, weekStart } from '../core/time.js';
-import { COLORS, esc, nsTag, svgi } from './html.js';
+import { COLORS, esc, nsTag, svgi, tint } from './html.js';
 import { H, HDEL, R, S, persist, saveH, setH, setS } from './storage.js';
 import { scheduleSync } from './sync.js';
 import { renderList, show } from './views.js';
@@ -36,7 +36,7 @@ function renderWeek() {
   const any = act.filter((r) => !rDays(r).length),
     pm = WKM === 'plan',
     anyH = any.length
-      ? `<div class="sech" style="margin-top:20px">Anytime</div><div class="wl">${any.map((r) => chip(r, '', !pm && logMode(r) === 'off' ? svgi('nolog', 14) : '')).join('')}</div>`
+      ? `<div class="sech" style="margin-top:var(--space-5)">Anytime</div><div class="wl">${any.map((r) => chip(r, '', !pm && logMode(r) === 'off' ? svgi('nolog', 14) : '')).join('')}</div>`
       : '',
     seg = `<div class="wseg">${[
       ['week', 'This week'],
@@ -199,11 +199,11 @@ function renderHist() {
     <div class="hstat"><b>${st.best}</b><span>best streak</span></div>
     <div class="hstat"><b>${week}</b><span>this week</span></div>
     <div class="hstat"><b>${H.length}</b><span>workouts</span></div></div>
-  <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><b>Last ${W} weeks</b><span class="muted" style="font-size:13px">${mins} min total</span></div>
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-3)"><b>Last ${W} weeks</b><span class="muted fs-sm">${mins} min total</span></div>
     <div class="heatwrap"><div class="heatdays">${['M', '', 'W', '', 'F', '', 'S'].map((d) => `<span>${d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
-    <div class="legend">Less <i style="background:rgba(255,255,255,.06)"></i><i style="background:rgba(255,75,22,.38)"></i><i style="background:rgba(255,75,22,.68)"></i><i style="background:#FF4B16"></i> More${nLo ? `<i style="background:rgba(255,255,255,.28);margin-left:10px"></i> Log only` : ''}</div></div>`;
+    <div class="legend">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i> More${nLo ? `<i class="lo"></i> Log only` : ''}</div></div>`;
   if (!H.length)
-    html += `<p class="muted" style="text-align:center;margin-top:24px">No workouts yet. Finish a routine and it shows up here.</p>`;
+    html += `<p class="muted" style="text-align:center;margin-top:var(--space-6)">No workouts yet. Finish a routine and it shows up here.</p>`;
   const yest = dayAdd(today, -1);
   let last = '';
   [...H]
@@ -224,7 +224,7 @@ function renderHist() {
       if (h.reps) bits.push(`${h.reps} reps`);
       if (h.calls) bits.push(`${h.calls} combos`);
       if (h.streak === false) bits.push(nsTag('log only', 'Logged, not counted for streak', 12));
-      html += `<div class="hitem"><div class="dot" style="background:${c}26;color:${c}">${svgi(h.icon || 'activity', 18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:6px;color:var(--tx2)">${svgi('trash', 16)}</button></div>`;
+      html += `<div class="hitem"><div class="dot" style="background:${tint(c, 15)};color:${c}">${svgi(h.icon || 'activity', 18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:var(--space-2);color:var(--text-muted)">${svgi('trash', 16)}</button></div>`;
     });
   histBody.innerHTML = html;
 }

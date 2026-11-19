@@ -18,7 +18,7 @@ import { build } from '../core/steps.js';
 import { dk, fmt, hhmm } from '../core/time.js';
 import { autoT, autosave, cur, fillEditor, openEditor, readHead, saveRoutine, setCur, vfAll } from './editor.js';
 import { openHist, openWeek, renderWeek, updHistBtn } from './history.js';
-import { COLORS, esc, nsTag, svgi } from './html.js';
+import { COLORS, esc, nsTag, svgi, tint } from './html.js';
 import { MINI, X, liveCard, liveIn, minRun, miniTx, stopRun } from './runner.js';
 import { openSettings } from './settings.js';
 import { buzz } from './sound.js';
@@ -142,7 +142,7 @@ function renderParts() {
     on = partsOn(),
     d = on ? '' : ' disabled';
   el.innerHTML = `<div class="tg"><label class="chk"><input type="checkbox" ${on ? 'checked' : ''} onchange="setGuide(this.checked)"> Guide me through the day</label></div>
-  <div${on ? '' : ' style="opacity:.5"'}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" onchange="setPart()"${d}></div><div${on ? '' : ' style="opacity:.5"'}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" onchange="setPart()"${d}></div>`;
+  <div class="dim"${on ? '' : ''}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" onchange="setPart()"${d}></div><div class="dim"${on ? '' : ''}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" onchange="setPart()"${d}></div>`;
   partSum();
 }
 function setGuide(on) {
@@ -154,7 +154,7 @@ function setGuide(on) {
 function partSum(bad) {
   const el = document.getElementById('partSum');
   if (!el) return;
-  el.style.color = bad ? 'var(--red)' : '';
+  el.style.color = bad ? 'var(--danger-text)' : '';
   el.textContent =
     bad ||
     (partsOn()
@@ -205,7 +205,7 @@ function renderList() {
   const handle = `<span class="handle" title="Drag to reorder"><svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="11" r="1.8"/><circle cx="10" cy="11" r="1.8"/><circle cx="4" cy="17" r="1.8"/><circle cx="10" cy="17" r="1.8"/></svg></span>`;
   const hd = () => (flat && act.length > 1 ? handle : ''); // drag handles only in the order view
   const dot = (r, sz) =>
-    `<div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r), sz)}</div>`;
+    `<div class="dot" style="background:${tint(COLORS[r.color], 13)};color:${COLORS[r.color]}">${svgi(iconKey(r), sz)}</div>`;
   const go = (r, sz) =>
     `<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play', sz)}</button>`;
   const tot = (r) => build(r).reduce((a, s) => a + (s.dur || 0), 0);
@@ -217,7 +217,7 @@ function renderList() {
       ok = done(r),
       nx = NX && NX.id === r.id;
     return `<div class="card rcard ${ok ? 'done' : NX && !nx ? 'today soft' : 'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r, 22)}
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b>${nx ? '<span class="nxt">Up next</span>' : ''}${ok ? `<span class="ok" title="Done today">${svgi('check', 16, 3)}</span>` : ''}<div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''} · ~${fmt(t)} ${st.some((s) => s.mode === 'tap' || s.type === 'wait') ? '+ tap' : ''}${(r.sec || 1) !== 1 ? ` · count ${r.sec} s` : ''}${r.nolog ? ' · ' + nsTag('not logged', 'Not logged') : r.streak === false ? ' · ' + nsTag('log only', 'Logged, not counted for streak') : ''}${added(r) ? ' · added for today' : ''}</div></div>
+   <div class="info tap" onclick="openEditor('${r.id}')"><b>${esc(r.name)}</b>${nx ? '<span class="nxt">Up next</span>' : ''}${ok ? `<span class="ok" title="Done today">${svgi('check', 16, 3)}</span>` : ''}<div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''} · ~${fmt(t)} ${st.some((s) => s.mode === 'tap' || s.type === 'wait') ? '+ tap' : ''}${(r.sec || 1) !== 1 ? ` · count ${r.sec} s` : ''}${r.nolog ? ' · ' + nsTag('not logged', 'Not logged') : r.streak === false ? ' · ' + nsTag('log only', 'Logged, not counted for streak') : ''}${added(r) ? ' · added for today' : ''}</div></div>
    ${ok ? '' : added(r) ? `<button class="ghost skip" onclick="addToday('${r.id}',false)" title="Remove from today" aria-label="Remove from today">${svgi('x', 16)}</button>` : `<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x', 16)}</button>`}${go(r, 22)}</div>`;
   };
   // other routines: one compact row; a skipped one says so and can be brought back, the others can be added to today (+)
@@ -226,7 +226,7 @@ function renderList() {
     const dt = daysTxt(r),
       sk = skip(r);
     return `<div class="card rcard mini${sk ? ' skipped' : ''}${flat && tod.includes(r) ? ' tod' : ''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r, 18)}
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt ? ' · ' + dt : ''}</span></div>
+   <div class="info tap" onclick="openEditor('${r.id}')"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt ? ' · ' + dt : ''}</span></div>
    ${sk ? `<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>` : flat ? '' : `<button class="ghost skip" onclick="addToday('${r.id}',true)" title="Add to today (this time only)" aria-label="Add to today">${svgi('plus', 16)}</button>`}${go(r, 18)}</div>`;
   };
   const grp = (a, f) => `<div class="grp">${a.map(f).join('')}</div>`;
@@ -277,8 +277,8 @@ function renderList() {
           .map(
             (
               r,
-            ) => `<div class="card rcard arch"><div class="dot" style="background:${COLORS[r.color]}22;color:${COLORS[r.color]}">${svgi(iconKey(r), 22)}</div>
-   <div class="info" onclick="openEditor('${r.id}')" style="cursor:pointer"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''}</div></div>
+            ) => `<div class="card rcard arch"><div class="dot" style="background:${tint(COLORS[r.color], 13)};color:${COLORS[r.color]}">${svgi(iconKey(r), 22)}</div>
+   <div class="info tap" onclick="openEditor('${r.id}')"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''}</div></div>
    <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`,
           )
           .join('')

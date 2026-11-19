@@ -13,11 +13,11 @@ import {
   uid,
 } from '../core/routine.js';
 import { DN, DOW, PARTS, WHEN, partOf, rDays } from '../core/schedule.js';
-import { TONES, build, callTxt, mkey, moves, movesOf, spoken, toneMap } from '../core/steps.js';
+import { build, callTxt, mkey, moves, movesOf, spoken, toneMap } from '../core/steps.js';
 import { durStepSize, durWords, fmt, fmtDur, mmss, parseDur } from '../core/time.js';
 import { rk, vSlow } from '../core/voice.js';
 import { openWeek } from './history.js';
-import { COLORS, esc, info, svgi } from './html.js';
+import { COLORS, esc, info, svgi, toneColor } from './html.js';
 import { boxRate, startRun } from './runner.js';
 import {
   SAYB,
@@ -262,17 +262,17 @@ function renderBlocks() {
         f = `<div class="grid">${num(b.id, 'reps', b.reps, 'Reps')}${num(b.id, 'counts', b.counts, 'Counts per rep', 1, 1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode === 'guided' ? 'selected' : ''}>Guided tempo</option><option value="tap" ${b.mode === 'tap' ? 'selected' : ''}>Tap to count</option></select></div>
      <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo > 0 ? b.tempo : ''}" data-rsec placeholder="Routine (${cur.sec || 1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id, 'repPause', b.repPause, 'Breather (s)', 0.5)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <div class="grid" style="margin-top:12px"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[
+     <div class="grid mt-3"><div><label>Display</label><select onchange="setB('${b.id}','display',this.value)">${[
        ['both', 'Cue + number'],
        ['cue', 'Cue only'],
        ['number', 'Number only'],
      ]
        .map(([v, l]) => `<option value="${v}" ${(b.display || 'both') === v ? 'selected' : ''}>${l}</option>`)
        .join('')}</select></div></div>
-     <label style="margin-top:12px">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>`;
+     <label class="mt-3">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" oninput="setB('${b.id}','cues',this.value)"><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>`;
       if (b.type === 'timed')
         f = `<div class="grid">${dur(b.id, 'work', b.work, 'Work', 1)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <label style="margin-top:12px">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
+     <label class="mt-3">Spoken cue at start</label><input value="${esc(b.cue)}" oninput="setB('${b.id}','cue',this.value)">`;
       if (b.type === 'boxing')
         f = `<div class="grid">${dur(b.id, 'work', b.work, 'Duration', 1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo > 0 ? b.tempo : ''}" data-rsec placeholder="Routine (${cur.sec || 1} s)" oninput="setB('${b.id}','tempo',+this.value||0);pvUpd('${b.id}')"></div>${num(b.id, 'minGap', b.minGap, 'Extra s (min)', 0.5, 0)}${num(b.id, 'maxGap', b.maxGap, 'Extra s (max)', 0.5, 0)}<div><label>Order</label><select onchange="setB('${b.id}','order',this.value)">${[
           ['random', 'Random'],
@@ -283,8 +283,8 @@ function renderBlocks() {
           .join(
             '',
           )}</select></div>${num(b.id, 'repeat', b.repeat || 1, 'Repeat each call ×', 1, 1)}${num(b.id, 'poolPause', b.poolPause || 0, 'Pause after full pool (s)', 0.5)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <label style="margin-top:12px">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea><div id="vf-${b.id}">${vfNote(b)}</div>
-     <div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label for="vs-${b.id}">Calls</label><select id="vs-${b.id}" style="width:auto;max-width:100%;align-self:flex-start" onchange="setB('${b.id}','vfit',this.value)">${[
+     <label class="mt-3">Combo pool — one per line</label><textarea rows="5" oninput="setB('${b.id}','combos',this.value);pvUpd('${b.id}')">${esc(b.combos)}</textarea><div id="vf-${b.id}">${vfNote(b)}</div>
+     <div class="grid mt-3"><div class="span-all"><label for="vs-${b.id}">Calls</label><select class="w-auto" id="vs-${b.id}" onchange="setB('${b.id}','vfit',this.value)">${[
        ['wait', 'Voice'],
        ['pace', 'Voice, tones when too fast'],
        ['tones', 'Tones only'],
@@ -295,17 +295,17 @@ function renderBlocks() {
        )
        .join('')}</select></div></div>
      ${info(b.id + '-pv', 'Show moves per combo', `<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
-     ${info(b.id + '-how', 'How timing works', `<p><b style="color:var(--tx)">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b style="color:var(--tx)">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it.</p><p><b style="color:var(--tx)">Calls:</b> <b style="color:var(--tx)">Voice</b> says every call in full (when it's too slow, calls wait for it). <b style="color:var(--tx)">Voice, tones when too fast</b> keeps calls on time: said faster (up to 1.5×), or played as tones when even that doesn't fit. <b style="color:var(--tx)">Tones only</b>: exact timing, and on Android they keep playing with the screen off.</p><p><b style="color:var(--tx)">Tones:</b> one per move, in rhythm at the count length, the same in every routine. Jab (1) and cross (2) steady, hooks (3, 4) fall, uppercuts (5, 6) rise; lead hand low, rear hand high. Slip, duck and roll: a soft whoosh. Other moves get the next free tone (up to 8 different sounds per routine), then a tick. They are calls, so they play with Beeps off too. ▶ under <i>Show moves per combo</i> plays a combo.</p><p><b style="color:var(--tx)">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the full Duration.</p>`)}`;
+     ${info(b.id + '-how', 'How timing works', `<p><b class="text">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b class="text">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it.</p><p><b class="text">Calls:</b> <b class="text">Voice</b> says every call in full (when it's too slow, calls wait for it). <b class="text">Voice, tones when too fast</b> keeps calls on time: said faster (up to 1.5×), or played as tones when even that doesn't fit. <b class="text">Tones only</b>: exact timing, and on Android they keep playing with the screen off.</p><p><b class="text">Tones:</b> one per move, in rhythm at the count length, the same in every routine. Jab (1) and cross (2) steady, hooks (3, 4) fall, uppercuts (5, 6) rise; lead hand low, rear hand high. Slip, duck and roll: a soft whoosh. Other moves get the next free tone (up to 8 different sounds per routine), then a tick. They are calls, so they play with Beeps off too. ▶ under <i>Show moves per combo</i> plays a combo.</p><p><b class="text">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p class="m-0"><b class="text">Rest after block:</b> starts after the full Duration.</p>`)}`;
       if (b.type === 'seq')
         f = `<div class="grid"><div><label>Time per step (s)</label><input type="number" step="0.5" min="0.1" value="${+b.work > 0 ? b.work : ''}" placeholder="3" oninput="setB('${b.id}','work',+this.value||0)"></div>${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <label style="margin-top:12px">Steps — one per line</label><textarea rows="6" placeholder="Ready @tap&#10;Step one&#10;Hold @10" oninput="setB('${b.id}','steps',this.value)">${esc(b.steps)}</textarea><div class="cuecount" id="sq-${b.id}">${seqInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>
-     ${info(b.id + '-how', 'How it works', `<p><b style="color:var(--tx)">Steps</b> run once, top to bottom; each is spoken and shown as you type it. The block lasts as long as its steps together.</p><p><b style="color:var(--tx)">Own time:</b> end a line with <code>@6</code> (6 s), <code>@1.5</code> (1.5 s), <code>@1:30</code> (1 min 30 s) or <code>@tap</code> (waits for a tap). Other lines get the Time per step. A line with only a time (<code>@2</code>) is a silent pause.</p><p><b style="color:var(--tx)">Beeps:</b> one at the start of each step; countdown beeps only on steps of 10 s or longer.</p><p style="margin:0"><b style="color:var(--tx)">Rest after block:</b> starts after the last step.</p>`)}`;
+     <label class="mt-3">Steps — one per line</label><textarea rows="6" placeholder="Ready @tap&#10;Step one&#10;Hold @10" oninput="setB('${b.id}','steps',this.value)">${esc(b.steps)}</textarea><div class="cuecount" id="sq-${b.id}">${seqInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>
+     ${info(b.id + '-how', 'How it works', `<p><b class="text">Steps</b> run once, top to bottom; each is spoken and shown as you type it. The block lasts as long as its steps together.</p><p><b class="text">Own time:</b> end a line with <code>@6</code> (6 s), <code>@1.5</code> (1.5 s), <code>@1:30</code> (1 min 30 s) or <code>@tap</code> (waits for a tap). Other lines get the Time per step. A line with only a time (<code>@2</code>) is a silent pause.</p><p><b class="text">Beeps:</b> one at the start of each step; countdown beeps only on steps of 10 s or longer.</p><p class="m-0"><b class="text">Rest after block:</b> starts after the last step.</p>`)}`;
       if (b.type === 'rest') f = `<div class="grid">${dur(b.id, 'work', b.work, 'Rest', 1)}</div>`;
       return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
     <input value="${esc(b.name)}" oninput="setB('${b.id}','name',this.value)">
     <button class="icon ghost" onclick="mv(${i},-1)" title="Move up">${svgi('up', 18)}</button><button class="icon ghost" onclick="mv(${i},1)" title="Move down">${svgi('down', 18)}</button>
     <button class="icon ghost" onclick="dup(${i})" title="Duplicate">${svgi('copy', 17)}</button><button class="icon ghost danger" onclick="rm(${i})" title="Remove">${svgi('x', 18)}</button></div>
-    ${f}<div class="grid" style="margin-top:12px"><div style="grid-column:1/-1"><label>Runs in</label><select style="width:auto;max-width:100%;align-self:flex-start" onchange="setRun('${b.id}',this.value)">${[
+    ${f}<div class="grid mt-3"><div class="span-all"><label>Runs in</label><select class="w-auto" onchange="setRun('${b.id}',this.value)">${[
       ['all', 'Every round'],
       ['first', 'First round only (warm-up)'],
       ['last', 'Last round only (finisher)'],
@@ -444,7 +444,7 @@ function seqInfo(b) {
   if (!L.length) return '';
   const tp = L.filter((x) => x.tap).length,
     bad = L.filter((x) => x.bad);
-  return `<span class="muted">${L.length} step${L.length !== 1 ? 's' : ''} · ${mmss(bDur(b))}${tp ? ` + ${tp} tap${tp > 1 ? 's' : ''}` : ''}</span>${bad.length ? `<br><span style="color:var(--orange)">${svgi('alert', 14, 2.5)} Not understood: ${bad.map((x) => `“@${esc(x.v)}”`).join(', ')} · use @6, @1.5, @1:30 or @tap</span>` : ''}`;
+  return `<span class="muted">${L.length} step${L.length !== 1 ? 's' : ''} · ${mmss(bDur(b))}${tp ? ` + ${tp} tap${tp > 1 ? 's' : ''}` : ''}</span>${bad.length ? `<br><span style="color:var(--warning)">${svgi('alert', 14, 2.5)} Not understood: ${bad.map((x) => `“@${esc(x.v)}”`).join(', ')} · use @6, @1.5, @1:30 or @tap</span>` : ''}`;
 }
 function cueInfo(b) {
   const n = (b.cues || '')
@@ -454,7 +454,7 @@ function cueInfo(b) {
     c = Math.max(1, b.counts | 0);
   if (!n) return '';
   const ok = n === c;
-  const col = ok ? 'var(--green)' : 'var(--orange)';
+  const col = ok ? 'var(--success)' : 'var(--warning)';
   const msg = ok
     ? 'matches counts per rep'
     : n < c
@@ -540,7 +540,7 @@ function renderStruct() {
   const r = cur,
     bl = r.blocks || [];
   if (!bl.length) {
-    el.innerHTML = `<b>Structure</b><p class="muted" style="margin:6px 0 0;font-size:13px">Add a block below. One round = all blocks once, top to bottom.</p>`;
+    el.innerHTML = `<b>Structure</b><p class="muted" style="margin:var(--space-2) 0 0;font-size:var(--fs-sm)">Add a block below. One round = all blocks once, top to bottom.</p>`;
     return;
   }
   const chip = (txt, kind, ic, c) =>
@@ -572,7 +572,7 @@ function renderStruct() {
       })
       .join(ar);
   const n = Math.max(1, r.rounds | 0);
-  let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b>Structure</b><span class="muted" style="font-size:13px">one round = all blocks, top to bottom</span></div><div class="sflow">`;
+  let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)"><b>Structure</b><span class="muted fs-sm">one round = all blocks, top to bottom</span></div><div class="sflow">`;
   if (r.prep > 0) html += chip(`Get ready ${mmss(r.prep)}`, 'prep');
   const at = (k) => bl.filter((b) => inRound(b, k === 1, k === n)),
     box = (lbl, k) =>
@@ -582,8 +582,8 @@ function renderStruct() {
     if (n > 2) html += box(n > 3 ? `Rounds 2–${n - 1}` : 'Round 2', 2);
   } else if (n > 1) html += box(n > 2 ? `Rounds 1–${n - 1}` : 'Round 1', 1);
   html += `<div class="sround last"><div class="sl">${n > 1 ? `Round ${n} (last)` : 'Round 1 (only)'}</div><div class="sflow">${one(at(n), true)}${chip('Done', 'done', 'check')}</div></div></div>`;
-  html += `<p class="muted" style="margin:8px 0 0;font-size:13px">${n} round${n !== 1 ? 's' : ''}${warm.length ? ` · ${warm.map((b) => esc(b.name)).join(', ')} only in the first round` : ''}${fin.length ? ` · ${fin.map((b) => esc(b.name)).join(', ')} only in the last round` : ''}${r.rest > 0 && n > 1 ? ` · no round rest after the last round` : ''}${hm === 'blocks' ? ` · each next block starts when you tap` : hm && n > 1 ? ` · each next round starts when you tap` : ''}</p>`;
-  html += `<p id="eSummary" style="margin:10px 0 0;font-size:14px;font-weight:600;color:var(--tx)"></p>`;
+  html += `<p class="muted" style="margin:var(--space-2) 0 0;font-size:var(--fs-sm)">${n} round${n !== 1 ? 's' : ''}${warm.length ? ` · ${warm.map((b) => esc(b.name)).join(', ')} only in the first round` : ''}${fin.length ? ` · ${fin.map((b) => esc(b.name)).join(', ')} only in the last round` : ''}${r.rest > 0 && n > 1 ? ` · no round rest after the last round` : ''}${hm === 'blocks' ? ` · each next block starts when you tap` : hm && n > 1 ? ` · each next round starts when you tap` : ''}</p>`;
+  html += `<p id="eSummary" style="margin:var(--space-3) 0 0;font-size:var(--fs-sm);font-weight:600;color:var(--text)"></p>`;
   el.innerHTML = html;
 }
 function summary() {
@@ -626,7 +626,7 @@ function renderSnd() {
   eSnd.value = o ? 'own' : '';
   eSndBox.hidden = !o;
   eSndBox.innerHTML = o
-    ? `<div class="muted" style="grid-column:1/-1;font-size:13px">This routine uses these instead of Settings. Vibrate and Keep screen on follow Settings.</div>` +
+    ? `<div class="muted" style="grid-column:1/-1;font-size:var(--fs-sm)">This routine uses these instead of Settings. Vibrate and Keep screen on follow Settings.</div>` +
       sndForm(o, 'R')
     : '';
 }
@@ -684,14 +684,14 @@ function poolPreview0(id) {
     const m = movesOf(l),
       v = vo ? voiceSec(callTxt(l), SV().rate, SV().lang) : 0,
       sl = vo && vSlow(v, moves(l) * cl + g);
-    return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0;font-size:13px"><button class="ghost pvp" onclick="playCombo('${id}',${n})" title="${vo ? 'Play as in the workout' : 'Play as tones'}" aria-label="${vo ? 'Play as in the workout' : 'Play as tones'}">${svgi('play', 14)}</button>${m
+    return `<div style="display:flex;flex-wrap:wrap;gap:var(--space-1);align-items:center;margin:var(--space-1) 0;font-size:var(--fs-sm)"><button class="ghost pvp" onclick="playCombo('${id}',${n})" title="${vo ? 'Play as in the workout' : 'Play as tones'}" aria-label="${vo ? 'Play as in the workout' : 'Play as tones'}">${svgi('play', 14)}</button>${m
       .map((t) => {
-        const T = TONES[tm.get(mkey(t))];
-        return `<span class="tag"${T ? ` style="background:${T[0]}2e;color:${T[0]}"` : ''}>${esc(spoken(t))}</span>`;
+        const i = tm.get(mkey(t));
+        return `<span class="tag${i >= 0 ? ` t" style="--t:${toneColor(i)}` : ''}">${esc(spoken(t))}</span>`;
       })
       .join(
         '',
-      )}<span class="muted" style="font-size:13px">= ${m.length} move${m.length !== 1 ? 's' : ''} · ${+(m.length * cl).toFixed(2)} s + extra${vo ? ` · <span style="color:${sl ? 'var(--orange)' : 'inherit'}">voice ~${+v.toFixed(1)} s</span>` : ''}</span></div>`;
+      )}<span class="muted fs-sm">= ${m.length} move${m.length !== 1 ? 's' : ''} · ${+(m.length * cl).toFixed(2)} s + extra${vo ? ` · <span style="color:${sl ? 'var(--warning)' : 'inherit'}">voice ~${+v.toFixed(1)} s</span>` : ''}</span></div>`;
   }).join('');
 }
 function pvUpd(id) {

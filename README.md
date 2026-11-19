@@ -32,7 +32,7 @@ Firebase setup: create a project → Realtime Database (locked mode) → paste `
 
 ### Code
 
-Plain ES modules, no bundler: `index.html` holds the page, `styles.css` the styles, and it loads `ui/main.js`.
+Plain ES modules, no bundler: `index.html` holds the page, `styles.css` the styles, and it loads `ui/main.js`. Colours, spacing, type sizes, radii and durations are design tokens in [`design/tokens.json`](design/tokens.json) (`npm run tokens` writes `tokens.css` from it); the rules for using them are in [`design/README.md`](design/README.md).
 
 - `core/`: the app's logic without any DOM or browser UI, so it can be tested on its own: the routine model and migrations (`routine.js`), days, parts of the day and streaks (`schedule.js`), the step list a routine plays, boxing moves and combo tones (`steps.js`), the timer engine and its cues (`engine.js`), voice timing and spoken phrases (`voice.js`), sync merging (`merge.js`), durations and dates (`time.js`). Core modules only import each other.
 - `ui/`: everything on screen and on the device: storage, sound & voice, views, editor, run screen, settings, history, sync. UI modules call into `core/`, never the other way round. Functions called from the page's `onclick="…"` handlers are put on `window` in `ui/main.js`.

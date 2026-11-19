@@ -26,5 +26,5 @@ export default [
   { files: ['core/**/*.js'], languageOptions: { globals: { ...globals['shared-node-browser'] } } },
   { files: ['ui/**/*.js', 'cloud.js'], languageOptions: { globals: { ...globals.browser, ...elementIds } } },
   { files: ['sw.js'], languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } } },
-  { files: ['test/**/*.js', '*.config.js'], languageOptions: { globals: { ...globals.node } } },
+  { files: ['test/**/*.js', 'design/**/*.js', '*.config.js'], languageOptions: { globals: { ...globals.node } } },
 ];
