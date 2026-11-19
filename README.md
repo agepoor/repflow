@@ -39,3 +39,7 @@ Plain ES modules, no bundler: `index.html` holds the page and styles and loads `
 - Storage keys stay `rf2_*` (renaming them would lose people's data). A new module file goes into `FILES` in `sw.js` (with a new `CACHE` name) so the app keeps working offline.
 
 Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages workflow runs on every push to `main`. The former `/v2/` preview forwards to the live app.
+
+### Checks
+
+Node 22.12 or newer. `npm install` once, then `npm run check` runs everything: ESLint (`npm run lint`), Prettier (`npm run format:check`; `npm run format` fixes it) and the Vitest tests for `core/` (`npm test`, or `npm run test:watch` while working). The app itself needs no install or build step. Prettier covers new files (tests, configs) for now; the existing app code keeps its compact style (see `.prettierignore`).

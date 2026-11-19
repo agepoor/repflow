@@ -1,0 +1,9 @@
+# The existing app code keeps its compact style for now; new files (tests, configs) are formatted.
+# Formatting the app too touches every line, so that's its own change: remove these lines and run npm run format.
+index.html
+cloud.js
+sw.js
+core/
+ui/
+README.md
+package-lock.json
