@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agepoor.github.io/repflow/schema/routine.schema.json",
+  "title": "PunchPace routine",
+  "description": "One routine as the app stores, syncs and exports it (export files hold them in \"routines\"). cv is the format version: core/routine.js migrates older routines up to it. Durations are in seconds.",
+  "type": "object",
+  "required": ["id", "name", "rounds", "rest", "prep", "blocks", "cv"],
+  "additionalProperties": false,
+  "properties": {
+    "cv": { "description": "Format version.", "const": 3 },
+    "id": { "type": "string", "minLength": 1, "description": "Unique per account. Presets use p-<name>." },
+    "name": { "type": "string", "minLength": 1 },
+    "icon": {
+      "description": "Icon name; anything else shows the default icon.",
+      "enum": [
+        "activity",
+        "wind",
+        "zap",
+        "flame",
+        "glove",
+        "dumbbell",
+        "timer",
+        "heart",
+        "target",
+        "trending",
+        "mountain",
+        "repeat",
+        "star",
+        "basketball",
+        "soccer",
+        "volleyball",
+        "tennis",
+        "medball",
+        "juggle",
+        "bounce"
+      ]
+    },
+    "color": { "enum": ["orange", "red", "blue", "green", "purple", "yellow", "teal", "pink"] },
+    "notes": { "type": "string" },
+    "rounds": { "type": "integer", "minimum": 1 },
+    "rest": { "type": "number", "minimum": 0, "description": "Rest between rounds." },
+    "prep": { "type": "number", "minimum": 0, "description": "Get ready time before the first round." },
+    "sec": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Count length: seconds per count of a reps block, and per move of a boxing call, unless the block sets its own tempo."
+    },
+    "hold": {
+      "enum": ["rounds", "blocks"],
+      "description": "Wait for a tap before each next round or each next block. Absent: start automatically."
+    },
+    "days": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0, "maximum": 6 },
+      "description": "Weekdays it is planned on, 0 = Sunday … 6 = Saturday. Absent: any day."
+    },
+    "when": { "enum": ["am", "mid", "pm"], "description": "Part of the day. Absent: anytime." },
+    "skip": { "$ref": "#/$defs/dates", "description": "Days it was skipped (kept for 14 days)." },
+    "add": { "$ref": "#/$defs/dates", "description": "Days it was added to today (kept for 14 days)." },
+    "archived": { "type": "boolean" },
+    "nolog": { "type": "boolean", "description": "true: workouts are not logged." },
+    "streak": { "const": false, "description": "false: logged, but not counted for streaks." },
+    "snd": { "$ref": "#/$defs/sound" },
+    "upd": { "type": "number", "description": "Last change (ms since 1970); sync keeps the newest copy." },
+    "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+  },
+  "$defs": {
+    "dates": { "type": "array", "items": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" } },
+    "sound": {
+      "description": "The routine's own sound & voice, used instead of Settings.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "beeps": { "type": "boolean" },
+        "voice": { "type": "boolean" },
+        "lang": { "type": "string", "description": "Voice language, e.g. en-GB." },
+        "voiceURI": { "type": "string", "description": "A device voice; empty: the language's default." },
+        "speakCounts": { "enum": ["every", "reps", "off"] },
+        "countdown": { "type": "number", "minimum": 0 },
+        "volume": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rate": { "type": "number", "exclusiveMinimum": 0 },
+        "pitch": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "block": {
+      "description": "One part of a round. Fields of another type can stay behind when a block's type is changed; they are ignored.",
+      "type": "object",
+      "required": ["id", "type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Unique within the routine." },
+        "type": {
+          "enum": ["reps", "timed", "boxing", "seq", "rest"],
+          "description": "reps: counted repetitions · timed: work for a time · boxing: called combos · seq: steps in order · rest."
+        },
+        "name": { "type": "string" },
+        "firstOnly": { "type": "boolean", "description": "Only in the first round (warm-up)." },
+        "lastOnly": { "type": "boolean", "description": "Only in the last round (finisher)." },
+        "restAfter": { "type": "number", "minimum": 0 },
+        "work": {
+          "type": "number",
+          "minimum": 0,
+          "description": "timed, boxing, rest: duration · seq: time per step."
+        },
+        "tempo": {
+          "type": "number",
+          "minimum": 0,
+          "description": "reps, boxing: own count length in seconds; 0 or absent: the routine's sec."
+        },
+        "reps": { "type": "number", "minimum": 0 },
+        "counts": { "type": "number", "minimum": 0, "description": "Counts per rep." },
+        "mode": { "enum": ["guided", "tap"], "description": "guided: the app counts · tap: tap for each rep." },
+        "repPause": { "type": "number", "minimum": 0, "description": "Breather between reps." },
+        "cues": { "type": "string", "description": "Comma-separated, said instead of the count numbers." },
+        "display": { "enum": ["both", "cue", "number"] },
+        "cue": { "type": "string", "description": "timed: said at the start." },
+        "combos": {
+          "type": "string",
+          "description": "One combo per line; moves split by spaces or dashes (1-2 slip). Known moves get a stable id (core/steps.js MOVES)."
+        },
+        "minGap": { "type": "number", "minimum": 0 },
+        "maxGap": { "type": "number", "minimum": 0 },
+        "order": { "enum": ["random", "shuffle"] },
+        "repeat": { "type": "number", "minimum": 0 },
+        "poolPause": { "type": "number", "minimum": 0 },
+        "vfit": {
+          "enum": ["", "wait", "pace", "tones"],
+          "description": "Calls: '' or wait = the voice, waiting when it is slow · pace = said faster, tones when too fast · tones = tones only."
+        },
+        "steps": {
+          "type": "string",
+          "description": "seq: one step per line; @6, @1:30 or @tap at the end gives a step its own time or waits for a tap."
+        }
+      }
+    }
+  }
+}

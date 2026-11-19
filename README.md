@@ -32,10 +32,11 @@ Firebase setup: create a project → Realtime Database (locked mode) → paste `
 
 ### Code
 
-Plain ES modules, no bundler: `index.html` holds the page and styles and loads `ui/main.js`.
+Plain ES modules, no bundler: `index.html` holds the page, `styles.css` the styles, and it loads `ui/main.js`.
 
-- `core/`: the app's logic without any DOM or browser UI, so it can be tested on its own: the routine model and migrations (`routine.js`), days, parts of the day and streaks (`schedule.js`), the step list a routine plays and combo tones (`steps.js`), the timer engine and its cues (`engine.js`), voice timing and spoken phrases (`voice.js`), sync merging (`merge.js`), durations and dates (`time.js`). Core modules only import each other.
+- `core/`: the app's logic without any DOM or browser UI, so it can be tested on its own: the routine model and migrations (`routine.js`), days, parts of the day and streaks (`schedule.js`), the step list a routine plays, boxing moves and combo tones (`steps.js`), the timer engine and its cues (`engine.js`), voice timing and spoken phrases (`voice.js`), sync merging (`merge.js`), durations and dates (`time.js`). Core modules only import each other.
 - `ui/`: everything on screen and on the device: storage, sound & voice, views, editor, run screen, settings, history, sync. UI modules call into `core/`, never the other way round. Functions called from the page's `onclick="…"` handlers are put on `window` in `ui/main.js`.
+- Routines follow [`schema/routine.schema.json`](schema/routine.schema.json) (JSON Schema). Its `cv` is the format version: when the format changes, `core/routine.js` gets a migration step so older routines keep working. Known boxing moves have stable ids (`jab`, `cross`, `lead_hook`, … in `core/steps.js`), derived from the combo text.
 - Storage keys stay `rf2_*` (renaming them would lose people's data). A new module file goes into `FILES` in `sw.js` so the app keeps working offline; `build.sh` names the cache after the commit, so each deploy refreshes it.
 
 Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages workflow runs on every push to `main`. The former `/v2/` preview forwards to the live app.

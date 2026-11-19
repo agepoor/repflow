@@ -6,10 +6,10 @@ import {
   iconKey,
   inRound,
   logMode,
+  CV,
   mig,
   norm,
   seqSteps,
-  sndCopy,
   uid,
 } from '../core/routine.js';
 import { DN, DOW, PARTS, WHEN, partOf, rDays } from '../core/schedule.js';
@@ -31,7 +31,6 @@ import {
   say,
   silentHere,
   sndForm,
-  sndOf,
   vAt,
   vEd,
   vKey,
@@ -248,11 +247,7 @@ function fillEditor() {
   eColor.value = cur.color in COLORS ? cur.color : 'orange';
   renderSwatches();
   renderDays();
-  if (cur.lang) {
-    cur.snd = sndCopy(sndOf(cur));
-    delete cur.lang;
-  }
-  renderSnd(); // an older routine's voice language: its own sound & voice
+  renderSnd();
   renderBlocks();
 }
 function num(id, k, v, lbl, step = 1, min = 0) {
@@ -535,10 +530,9 @@ function readHead() {
   if (lg === 'log') cur.streak = false;
   else if (cur.streak === false) delete cur.streak;
   if (eSnd.value !== 'own') delete cur.snd;
-  delete cur.lang;
   if (eHold.value) cur.hold = eHold.value;
   else delete cur.hold;
-  cur.cv = 2;
+  cur.cv = CV;
 }
 function renderStruct() {
   const el = document.getElementById('eStruct');

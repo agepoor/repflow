@@ -46,8 +46,8 @@ function nextUp(list, hist, parts, d = new Date()) {
       .map((x) => x[2])[0] || null
   );
 }
-/* r.skip / r.add hold a list of date keys (older data: one key), so every skip and add of the week stays visible in the week view; kept for 14 days */
-const dlist = (v) => (Array.isArray(v) ? v : v ? [v] : []),
+/* r.skip / r.add hold a list of date keys, so every skip and add of the week stays visible in the week view; kept for 14 days */
+const dlist = (v) => (Array.isArray(v) ? v : []),
   onDay = (r, f, k) => dlist(r[f]).includes(k);
 function setDay(r, f, on) {
   const tk = dk(Date.now()),
