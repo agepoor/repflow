@@ -43,9 +43,9 @@ const EMOJI2IC = {
   '⚾': 'tennis',
   '🤹': 'juggle',
 };
-const iconKey = (r) => (ROUTINE_ICONS.includes(r && r.icon) ? r.icon : EMOJI2IC[r && r.icon] || 'activity');
+const iconKey = (r) => (ROUTINE_ICONS.includes(r && r.icon) ? r.icon : 'activity');
 const uid = () => Math.random().toString(36).slice(2, 10);
-const PRESETS = () => PRESETS0().map(mig);
+const PRESETS = () => PRESETS0().map((p) => ({ ...p, cv: CV, sec: 1 }));
 const PRESETS0 = () => [
   {
     id: 'p-burpees12',
@@ -64,7 +64,6 @@ const PRESETS0 = () => [
         name: 'A · Reps',
         reps: 8,
         counts: 12,
-        tempo: 1,
         mode: 'guided',
         repPause: 2,
         cues: '',
@@ -102,7 +101,6 @@ const PRESETS0 = () => [
         name: 'Burpees',
         reps: 6,
         counts: 12,
-        tempo: 1,
         mode: 'guided',
         repPause: 2,
         cues: '',
@@ -194,7 +192,7 @@ const DEF_SET = {
   rate: 1.1,
   wake: true,
 };
-/* sound & voice: Settings, or a routine's own (r.snd: all of SND; older routines only had a voice language, r.lang) */
+/* sound & voice: Settings, or a routine's own (r.snd: all of SND) */
 const SND = ['beeps', 'voice', 'lang', 'voiceURI', 'speakCounts', 'countdown', 'volume', 'rate', 'pitch'];
 const sndCopy = (o) => Object.fromEntries(SND.map((k) => [k, o[k]]));
 const PRESET_IDS = () => {
@@ -202,26 +200,33 @@ const PRESET_IDS = () => {
   PRESETS().forEach((p) => (m[p.name] = p.id));
   return m;
 };
-/* v2: routine count length is absolute seconds; block tempo is an optional override (empty = routine) */
+/* The routine format has a version, cv (schema/routine.schema.json). A change to the format adds a step to MIGRATIONS that
+   brings a routine from the version before up to its own, and bumps CV. mig runs the steps a routine still needs; every
+   place routines come in (storage, sync, import, a running workout) goes through it. Routines without cv are read as v2,
+   the format before the schema; v1 (pre-October 2026, relative count lengths) is no longer read. */
+const CV = 3;
+const MIGRATIONS = {
+  // v3: older forms the app used to translate on every read are stored in their current form
+  3: (r) => {
+    const x = { ...r };
+    if (x.hold === true) x.hold = 'rounds';
+    else if (x.hold !== 'rounds' && x.hold !== 'blocks') delete x.hold;
+    if (x.icon in EMOJI2IC) x.icon = EMOJI2IC[x.icon];
+    if (x.lang) {
+      if (!x.snd) x.snd = { ...sndCopy(DEF_SET), lang: x.lang }; // a voice language only: its own sound & voice
+      delete x.lang;
+    }
+    ['skip', 'add'].forEach((k) => {
+      if (typeof x[k] === 'string') x[k] = [x[k]];
+    });
+    return x;
+  },
+};
 function mig(r) {
-  if (r.cv >= 2) return r;
-  const rs = r.sec || 1;
-  return {
-    ...r,
-    cv: 2,
-    sec: rs,
-    blocks: (r.blocks || []).map((b) => {
-      if (b.type !== 'reps') {
-        const { sec, ...x } = b;
-        return x;
-      }
-      const { sec, ...x } = b;
-      const eff = Math.round((b.tempo || 1) * (sec > 0 ? sec : rs) * 1000) / 1000;
-      if (Math.abs(eff - rs) < 1e-9) delete x.tempo;
-      else x.tempo = eff;
-      return x;
-    }),
-  };
+  if (!r || typeof r !== 'object' || r.cv >= CV) return r;
+  let x = r;
+  for (let v = Math.max(2, r.cv | 0) + 1; v <= CV; v++) x = MIGRATIONS[v](x);
+  return { ...x, cv: CV };
 }
 /* repair blocks: every block needs a unique id (inputs edit blocks by id) and its type's defaults */
 const BDEF = {
@@ -258,8 +263,8 @@ function norm(r) {
       return x;
     });
   const out = { ...r, blocks };
-  if (!(+out.rounds >= 1)) {
-    out.rounds = 1;
+  if (!Number.isInteger(out.rounds) || out.rounds < 1) {
+    out.rounds = Math.max(1, Math.round(+out.rounds) || 1);
     fixed = true;
   }
   if (typeof out.rest !== 'number') {
@@ -334,9 +339,9 @@ function bDur(b, r) {
 function inRound(b, first, last) {
   return b.firstOnly ? first : b.lastOnly ? last : true;
 }
-/* Continue: '' = auto-start; 'rounds' = wait for a tap before each next round; 'blocks' = before each next block (hold:true from before = rounds) */
+/* Continue: '' = auto-start; 'rounds' = wait for a tap before each next round; 'blocks' = before each next block */
 function holdMode(r) {
-  return r.hold === 'blocks' ? 'blocks' : r.hold ? 'rounds' : '';
+  return r.hold === 'blocks' || r.hold === 'rounds' ? r.hold : '';
 }
 /* logging per routine: nolog = No logging; streak:false = Log only (the workout is logged with streak:false: in history, not in streaks); neither = Log and count for streak */
 function logMode(r) {
@@ -344,6 +349,7 @@ function logMode(r) {
 }
 export {
   ROUTINE_ICONS,
+  CV,
   iconKey,
   uid,
   PRESETS,

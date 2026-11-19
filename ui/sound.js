@@ -20,12 +20,7 @@ import { esc, info, svgi, toast } from './html.js';
 import { DEV, NOW, X, callGap, mine, nextCombo, showCall } from './runner.js';
 import { openSettings } from './settings.js';
 import { S, persist } from './storage.js';
-const sndOf = (r) =>
-  r && r.snd
-    ? { ...S, ...r.snd }
-    : r && r.lang
-      ? { ...S, lang: r.lang, voiceURI: lnorm(r.lang) === lnorm(S.lang) ? S.voiceURI : '' }
-      : S;
+const sndOf = (r) => (r && r.snd ? { ...S, ...r.snd } : S);
 let SNDR; // whose apply: undefined = the running workout's routine, null = Settings, a routine = that one (editor)
 function SV() {
   return sndOf(SNDR === undefined ? X && X.r : SNDR);

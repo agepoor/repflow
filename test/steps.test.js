@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { build, moveTones, moves, movesOf, rTot, stepLen, toneMap } from '../core/steps.js';
+import { MOVES, build, moveId, moveTones, moves, movesOf, rTot, stepLen, toneMap } from '../core/steps.js';
 
 const timed = (name, work, extra = {}) => ({ id: name, type: 'timed', name, work, ...extra });
 const routine = (blocks, extra = {}) => ({ id: 'r', name: 'R', rounds: 1, rest: 0, prep: 0, blocks, ...extra });
@@ -78,16 +78,6 @@ describe('build: the steps a routine plays', () => {
         'B@3',
       ]);
       expect(st[3].round).toBe(2);
-    });
-
-    it('hold: true from older data means rounds', () => {
-      expect(labels(build(routine(blocks, { rounds: 2, hold: true })))).toEqual([
-        'A@1',
-        'B@1',
-        '[Next round]',
-        'A@2',
-        'B@2',
-      ]);
     });
 
     it("'blocks' waits before every work step but the first", () => {
@@ -208,5 +198,27 @@ describe('boxing combos', () => {
     expect(moveTones('slip duck roll', tm)).toEqual([6, 7, 8]);
     expect(moveTones('spin', tm)).toEqual([9]);
     expect(moveTones('never-seen', tm)).toEqual([-1, -1]);
+  });
+
+  it('known moves have a stable id, however they are written', () => {
+    const ids = (c) => movesOf(c).map(moveId);
+    expect(ids('1-2-3-4-5-6')).toEqual(MOVES.slice(0, 6));
+    expect(ids('jab cross straight')).toEqual(['jab', 'cross', 'cross']);
+    expect(ids('Lead_hook rear_hook hook right_hook')).toEqual(['lead_hook', 'rear_hook', 'lead_hook', 'rear_hook']);
+    expect(ids('uppercut rear_uppercut')).toEqual(['lead_uppercut', 'rear_uppercut']);
+    expect(ids('slip duck roll bob weave')).toEqual(['slip', 'duck', 'roll', 'roll', 'roll']);
+    expect(ids('directe linkse_hoek rechtse_opstoot ontwijk bukken')).toEqual([
+      'cross',
+      'lead_hook',
+      'rear_uppercut',
+      'slip',
+      'duck',
+    ]);
+    expect(ids('Forward faint spin 12')).toEqual([null, null, null, null]);
+  });
+
+  it("a move's tone is its place in MOVES", () => {
+    const tm = toneMap([{ type: 'boxing', combos: MOVES.join(' ') }]);
+    expect(moveTones(MOVES.join(' '), tm)).toEqual(MOVES.map((m, i) => i));
   });
 });

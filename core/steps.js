@@ -135,30 +135,22 @@ const TONES = [
   TICK = [null, 'noise', 5000, 5000, 0.03, 1.6],
   TFREE = 9;
 const mkey = (t) => t.toLowerCase().replace(/[^\p{L}\p{N}_]/gu, '');
-function knownMove(k) {
-  const n = k.match(/^[1-6](?![0-9])/),
+/* moves with a stable id: how a combo's words are recognised (numbers, English, Dutch, Spanish), so cues, tones and later
+   animations refer to the same move. Their order is their tone in TONES. Combos stay text; the ids are derived from it. */
+const MOVES = ['jab', 'cross', 'lead_hook', 'rear_hook', 'lead_uppercut', 'rear_uppercut', 'slip', 'duck', 'roll'];
+function moveId(t) {
+  const k = mkey(t),
+    n = k.match(/^[1-6](?![0-9])/),
     rear = /rear|right|back|rechts|achter|derech/.test(k);
-  return n
-    ? n[0] - 1
-    : /upper|opstoot/.test(k)
-      ? rear
-        ? 5
-        : 4
-      : /hook|hoek|gancho/.test(k)
-        ? rear
-          ? 3
-          : 2
-        : /cross|straight|direct|recht|recto|cruzado/.test(k)
-          ? 1
-          : /jab/.test(k)
-            ? 0
-            : /slip|ontwijk|esquiv/.test(k)
-              ? 6
-              : /duck|buk|duik|agach/.test(k)
-                ? 7
-                : /rol|bob|weave/.test(k)
-                  ? 8
-                  : -1;
+  if (n) return MOVES[n[0] - 1];
+  if (/upper|opstoot/.test(k)) return rear ? 'rear_uppercut' : 'lead_uppercut';
+  if (/hook|hoek|gancho/.test(k)) return rear ? 'rear_hook' : 'lead_hook';
+  if (/cross|straight|direct|recht|recto|cruzado/.test(k)) return 'cross';
+  if (/jab/.test(k)) return 'jab';
+  if (/slip|ontwijk|esquiv/.test(k)) return 'slip';
+  if (/duck|buk|duik|agach/.test(k)) return 'duck';
+  if (/rol|bob|weave/.test(k)) return 'roll';
+  return null;
 }
 function toneMap(bl) {
   const m = new Map(),
@@ -170,7 +162,7 @@ function toneMap(bl) {
         for (const t of movesOf(l)) {
           const k = mkey(t);
           if (!k || m.has(k)) continue;
-          let i = knownMove(k);
+          let i = MOVES.indexOf(moveId(k));
           if (i < 0 && used.size < 8 && f < TONES.length) i = f++;
           m.set(k, i);
           if (i >= 0) used.add(i);
@@ -183,4 +175,4 @@ const moveTones = (c, tm) =>
     return i == null ? -1 : i;
   });
 const callTxt = (c) => spoken(c).replace(/-/g, ' ');
-export { rTot, build, stepLen, movesOf, moves, spoken, TONES, TICK, mkey, toneMap, moveTones, callTxt };
+export { rTot, build, stepLen, movesOf, moves, spoken, TONES, TICK, mkey, MOVES, moveId, toneMap, moveTones, callTxt };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRESETS, bDur, canon, holdMode, inRound, logMode, mig, norm, seqSteps } from '../core/routine.js';
+import { CV, PRESETS, bDur, canon, holdMode, inRound, logMode, mig, norm, seqSteps } from '../core/routine.js';
 
 describe('norm: repairing blocks', () => {
   // norm compares blocks as JSON, so a block whose keys are in another order counts as repaired and comes back as a
@@ -101,27 +101,40 @@ describe('norm: repairing blocks', () => {
 });
 
 describe('mig: older data', () => {
-  it('v1 reps tempo (a multiple of the count length) becomes absolute seconds', () => {
-    const r = mig({
+  it('v2 → v3: older forms are stored as they are read now', () => {
+    const r = mig({ id: 'r', cv: 2, hold: true, icon: '🔥', skip: '2026-10-23', add: '2026-10-24', blocks: [] });
+    expect(r).toEqual({
       id: 'r',
-      sec: 2,
-      blocks: [
-        { type: 'reps', tempo: 1.5 },
-        { type: 'reps', tempo: 1 },
-        { type: 'reps', tempo: 1, sec: 0.5 },
-        { type: 'timed', sec: 3, work: 30 },
-      ],
+      cv: CV,
+      hold: 'rounds',
+      icon: 'flame',
+      skip: ['2026-10-23'],
+      add: ['2026-10-24'],
+      blocks: [],
     });
-    expect(r.cv).toBe(2);
-    expect(r.blocks[0].tempo).toBe(3);
-    expect('tempo' in r.blocks[1]).toBe(false); // same as the routine: no override
-    expect(r.blocks[2].tempo).toBe(0.5);
-    expect(r.blocks[3]).toEqual({ type: 'timed', work: 30 });
+    expect(mig({ cv: 2, hold: false, blocks: [] })).toEqual({ cv: CV, blocks: [] });
   });
 
-  it('leaves v2 alone', () => {
-    const r = { cv: 2, blocks: [{ type: 'reps', tempo: 1.5 }] };
+  it('v2 → v3: a voice language only becomes its own sound & voice', () => {
+    const r = mig({ cv: 2, lang: 'nl-NL', blocks: [] });
+    expect(r.lang).toBeUndefined();
+    expect(r.snd).toMatchObject({ lang: 'nl-NL', voice: true, beeps: true });
+    expect(mig({ cv: 2, lang: 'nl-NL', snd: { lang: 'en-GB' }, blocks: [] }).snd).toEqual({ lang: 'en-GB' });
+  });
+
+  it('a routine without a version is read as v2', () => {
+    expect(mig({ hold: true, blocks: [] })).toEqual({ cv: CV, hold: 'rounds', blocks: [] });
+  });
+
+  it('leaves the current version alone, and runs only the steps a routine still needs', () => {
+    const r = { cv: CV, hold: true, blocks: [] };
     expect(mig(r)).toBe(r);
+    expect(mig('x')).toBe('x');
+  });
+
+  it('keeps routines it changes otherwise the same', () => {
+    const r = { id: 'r', cv: 2, sec: 1.5, blocks: [{ id: 'a', type: 'reps', tempo: 2 }], upd: 5 };
+    expect(mig(r)).toEqual({ ...r, cv: CV });
   });
 });
 
@@ -131,7 +144,7 @@ describe('canon: routines from storage or the account', () => {
       { id: 'old123', name: 'Burpee Tabata', rounds: 8, rest: 10, prep: 10, blocks: [{ type: 'timed', work: 20 }] },
     ]);
     expect(r.id).toBe('p-tabata');
-    expect(r.cv).toBe(2);
+    expect(r.cv).toBe(CV);
     expect(r.blocks[0].id).toBeTruthy();
   });
 
@@ -186,12 +199,11 @@ describe("what a routine's settings mean", () => {
   });
 
   it('holdMode and logMode', () => {
-    expect([
-      holdMode({}),
-      holdMode({ hold: true }),
-      holdMode({ hold: 'rounds' }),
-      holdMode({ hold: 'blocks' }),
-    ]).toEqual(['', 'rounds', 'rounds', 'blocks']);
+    expect([holdMode({}), holdMode({ hold: 'rounds' }), holdMode({ hold: 'blocks' })]).toEqual([
+      '',
+      'rounds',
+      'blocks',
+    ]);
     expect([logMode({}), logMode({ streak: false }), logMode({ nolog: true })]).toEqual(['streak', 'log', 'off']);
   });
 });
