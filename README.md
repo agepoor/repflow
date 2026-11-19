@@ -42,4 +42,4 @@ Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages w
 
 ### Checks
 
-Node 22.12 or newer. `npm install` once, then `npm run check` runs everything: ESLint (`npm run lint`), Prettier (`npm run format:check`; `npm run format` fixes it) and the Vitest tests for `core/` (`npm test`, or `npm run test:watch` while working). The app itself needs no install or build step. Prettier covers new files (tests, configs) for now; the existing app code keeps its compact style (see `.prettierignore`).
+Node 22.12 or newer. `npm install` once, then `npm run check` runs everything: ESLint (`npm run lint`), Prettier (`npm run format:check`; `npm run format` fixes it) and the Vitest tests for `core/` (`npm test`, or `npm run test:watch` while working). The app itself needs no install or build step. Prettier formats all code; formatting-only commits are listed in `.git-blame-ignore-revs` so `git blame` skips them (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).

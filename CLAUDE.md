@@ -21,11 +21,11 @@ node -e "import('./core/schedule.js').then(m=>console.log(Object.keys(m)))"  # l
 
 Rebuild `_site` after every change; it is a build output, never commit it.
 
-Prettier covers new files only; the existing app code (listed in `.prettierignore`) keeps its compact style for now.
+Prettier formats all code (`npm run format`). Formatting-only commits go in `.git-blame-ignore-revs` so `git blame` skips them; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once locally.
 
 ## Layout
 
-- `index.html`: the page, all views and all CSS (theme tokens are the CSS variables in `:root`). Loads `ui/main.js`.
+- `index.html`: the page and all views. Loads `styles.css` (all CSS; theme tokens are the CSS variables in `:root`) and `ui/main.js`.
 - `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge (`merge.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`.
@@ -42,7 +42,7 @@ Prettier covers new files only; the existing app code (listed in `.prettierignor
 - Never rename storage keys (`rf2_*`) or synced paths (`users/<uid>/doc`, `users/<uid>/run`): it would lose people's data.
 - Changing the routine data shape: migrate older data in `core/routine.js` and keep old routines, exports and other synced devices working. Sync merges across devices (`core/merge.js`), so new fields need a sensible merge.
 - Use the theme variables (`--bg`, `--surf`, `--tx`, `--acc`, …) instead of hard-coded colors. A light theme is planned, so don't assume dark.
-- Follow the existing style: compact code, a short comment at the top of each module saying what it does, comments that explain _why_.
+- Follow the existing style: Prettier formatting, a short comment at the top of each module saying what it does, comments that explain _why_.
 - Update `README.md` when a user-facing feature changes.
 
 ## UX and copy
