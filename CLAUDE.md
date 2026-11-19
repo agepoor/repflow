@@ -6,9 +6,13 @@ Live: https://agepoor.github.io/repflow/ (the repo is still called `repflow`, th
 
 ## Commands
 
-There is no package.json, bundler, linter or test suite. Plain ES modules, served as static files.
+No bundler: plain ES modules, served as static files. `package.json` only holds the dev tools (ESLint, Prettier, Vitest; Node 22.12+).
 
 ```bash
+npm ci                                       # install the dev tools
+npm run check                                # lint, format check and tests: run before every commit
+npm test                                     # tests only (npm run test:watch while working)
+npm run format                               # apply Prettier
 bash build.sh _site                          # build the site (decodes icons/fonts from base64)
 python3 -m http.server 8000 -d _site         # run it at http://localhost:8000 (ES modules don't work over file://)
 for f in core/*.js ui/*.js cloud.js sw.js; do node --check "$f"; done   # syntax check
@@ -17,12 +21,16 @@ node -e "import('./core/schedule.js').then(m=>console.log(Object.keys(m)))"  # l
 
 Rebuild `_site` after every change; it is a build output, never commit it.
 
+Prettier covers new files only; the existing app code (listed in `.prettierignore`) keeps its compact style for now.
+
 ## Layout
 
 - `index.html`: the page, all views and all CSS (theme tokens are the CSS variables in `:root`). Loads `ui/main.js`.
 - `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge (`merge.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`.
+- `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time.
+- `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.
 - `sw.js`: offline cache. `build.sh`: build script. `.github/workflows/deploy.yml`: deploys to GitHub Pages.
 
 ## Rules
@@ -34,7 +42,7 @@ Rebuild `_site` after every change; it is a build output, never commit it.
 - Never rename storage keys (`rf2_*`) or synced paths (`users/<uid>/doc`, `users/<uid>/run`): it would lose people's data.
 - Changing the routine data shape: migrate older data in `core/routine.js` and keep old routines, exports and other synced devices working. Sync merges across devices (`core/merge.js`), so new fields need a sensible merge.
 - Use the theme variables (`--bg`, `--surf`, `--tx`, `--acc`, …) instead of hard-coded colors. A light theme is planned, so don't assume dark.
-- Follow the existing style: compact code, a short comment at the top of each module saying what it does, comments that explain *why*.
+- Follow the existing style: compact code, a short comment at the top of each module saying what it does, comments that explain _why_.
 - Update `README.md` when a user-facing feature changes.
 
 ## UX and copy
@@ -47,5 +55,6 @@ Rebuild `_site` after every change; it is a build output, never commit it.
 
 - Work comes from GitHub issues (template: What / Why / Notes, one type label + one timing label). Phases are milestones; each issue has one row on the PunchPace board in Notion.
 - One issue per session. For anything beyond a small fix, plan first and check the plan before coding.
-- Before finishing: build, run it, check the change in the browser (including offline if `sw.js` changed), run the syntax check.
+- Changing `core/`: add or update its tests in `test/`.
+- Before finishing: `npm run check`, build, run it, check the change in the browser (including offline if `sw.js` changed).
 - Commit subjects describe what changes for the user, in plain words, e.g. "Up next label back on the home screen, quieter outline for the other routines". Reference the issue (`#27`) in the PR.
