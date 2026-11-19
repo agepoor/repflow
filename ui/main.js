@@ -63,6 +63,10 @@ import {
   testAudio,
   testVoice,
   toggleMute,
+  setVolume,
+  volPanel,
+  volShow,
+  volTry,
   vdHide,
   vdShow,
 } from './sound.js';
@@ -164,6 +168,9 @@ Object.assign(window, {
   toggleArchiveCur,
   toggleDay,
   toggleMute,
+  setVolume,
+  volPanel,
+  volTry,
   togglePause,
   vMeasure,
   vdHide,
@@ -267,7 +274,7 @@ document.querySelectorAll('i[data-ic]').forEach((e) => (e.outerHTML = svgi(e.dat
 document.querySelector('.ctrl .sm').innerHTML = svgi('x', 22, 2.5);
 document.querySelectorAll('.ctrl .md')[0].innerHTML = svgi('prev', 24);
 document.querySelectorAll('.ctrl .md')[1].innerHTML = svgi('next', 24);
-muteBtn.innerHTML = svgi('vol', 22);
+volShow();
 pp.innerHTML = svgi('pause', 30);
 minBtn.innerHTML = svgi('down', 22, 2.5);
 renderList();

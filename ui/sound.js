@@ -20,7 +20,8 @@ import { esc, info, svgi, toast } from './html.js';
 import { DEV, NOW, X, callGap, mine, nextCombo, showCall } from './runner.js';
 import { openSettings } from './settings.js';
 import { S, persist } from './storage.js';
-const sndOf = (r) => (r && r.snd ? { ...S, ...r.snd } : S);
+// a routine's own sound & voice replaces Settings, except the volume: one per device, for the whole app
+const sndOf = (r) => (r && r.snd ? { ...S, ...r.snd, volume: S.volume } : S);
 let SNDR; // whose apply: undefined = the running workout's routine, null = Settings, a routine = that one (editor)
 function SV() {
   return sndOf(SNDR === undefined ? X && X.r : SNDR);
@@ -44,12 +45,19 @@ try {
 } catch (e) {} // per phrase: its time at each voice speed it was said at
 
 let AC = null,
+  OUT = null,
   muted = false;
 function ac() {
-  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    OUT = AC.createGain(); // the app volume: every sound goes through it, so a change reaches sounds already scheduled
+    OUT.gain.value = S.volume;
+    OUT.connect(AC.destination);
+  }
   if (AC.state === 'suspended') AC.resume();
   return AC;
 }
+const out = () => (ac(), OUT);
 const silentHere = () => !!(X && X.steps && X.by !== DEV.id); // another device plays this workout's sound
 function beep(f = 880, d = 0.08, type = 'sine', vol = 1, at) {
   if (!SV().beeps || muted || silentHere()) return;
@@ -60,9 +68,9 @@ function beep(f = 880, d = 0.08, type = 'sine', vol = 1, at) {
   o.type = type;
   o.frequency.value = f;
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(SV().volume * vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-  o.connect(g).connect(c.destination);
+  o.connect(g).connect(out());
   o.start(t);
   o.stop(t + d + 0.02);
   return o;
@@ -117,7 +125,7 @@ function bgOn() {
       g = c.createGain();
     o.frequency.value = 50;
     g.gain.value = 0.001;
-    o.connect(g).connect(c.destination);
+    o.connect(g).connect(out());
     o.start();
     o.stop(base + (end - now) / 1000 + 1);
     BG.push(o);
@@ -235,7 +243,7 @@ function say(t, interrupt = true, cue = false, o) {
           }
           u.rate = (o && o.rate) || so.rate;
           u.pitch = so.pitch || 1;
-          u.volume = so.volume;
+          u.volume = S.volume; // the app volume, read when the phrase starts
           u.cue = cue;
           u.call = !!(o && o.call);
           // ended without ever starting while still the newest phrase: the engine dropped it, so say it once more while still on time
@@ -463,7 +471,7 @@ function sndForm(o, k, extra = '') {
       .map(([v, l]) => `<option value="${v}" ${o.speakCounts === v ? 'selected' : ''}>${l}</option>`)
       .join('')}</select></div>
   <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" oninput="sndSet('${k}','countdown',+this.value)"></div>
-  ${rng('volume', 'Volume', '0', '1')}${rng('rate', 'Voice speed', '0.7', '1.8', 1)}${rng('pitch', 'Voice pitch', '0.5', '1.5', 1)}`
+  ${k === 'S' ? rng('volume', 'Volume', '0', '1') : ''}${rng('rate', 'Voice speed', '0.7', '1.8', 1)}${rng('pitch', 'Voice pitch', '0.5', '1.5', 1)}`
   );
 }
 /* how well this device knows the chosen voice's timing, in plain words */
@@ -492,6 +500,7 @@ function sndSet(k, c, v) {
   o[c] = v;
   if (c === 'lang') o.voiceURI = ''; // another language: its best voice
   if (k === 'S') {
+    if (c === 'volume') return setVolume(v, true);
     persist();
     if (c === 'lang') openSettings();
     return;
@@ -548,10 +557,40 @@ function testAudio() {
     400,
   );
 } // Settings, also during a workout
+/* the app volume (S.volume, per device): Settings and the run screen's volume panel change the same value */
+function setVolume(v, save) {
+  S.volume = Math.min(1, Math.max(0, +v || 0));
+  if (OUT) OUT.gain.setTargetAtTime(S.volume, AC.currentTime, 0.02); // smooth, no click
+  volShow();
+  if (save) persist();
+}
+function volShow() {
+  const off = muted || !(S.volume > 0);
+  muteBtn.innerHTML = svgi(off ? 'mute' : 'vol', 22);
+  muteBtn.setAttribute('aria-label', `Sound: ${muted ? 'muted' : Math.round(S.volume * 100) + '%'}`);
+  volRange.value = S.volume;
+  volPct.textContent = muted ? 'Muted' : Math.round(S.volume * 100) + '%';
+  volMute.innerHTML = svgi(muted ? 'mute' : 'vol', 20);
+  volMute.setAttribute('aria-pressed', String(muted));
+  volMute.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
+}
+// run screen: the speaker opens a panel with the volume and mute; a tap anywhere else closes it
+function volPanel(open = volPop.hidden) {
+  volPop.hidden = !open;
+  muteBtn.setAttribute('aria-expanded', String(open));
+  if (open) volShow();
+}
+document.addEventListener('pointerdown', (e) => {
+  if (!volPop.hidden && !e.target.closest('#volPop, #muteBtn')) volPanel(false);
+});
+function volTry() {
+  if (muted) toggleMute();
+  withSnd(null, () => beep(880, 0.08, 'sine', 1));
+} // hear the new level
 function toggleMute() {
   muted = !muted;
-  muteBtn.innerHTML = svgi(muted ? 'mute' : 'vol', 22);
   if (muted) hush();
+  volShow();
 }
 const waitTx = (s) => waitText(s, voiceLang());
 const cdn = (s) => countdownOf(s, SV().countdown);
@@ -587,9 +626,9 @@ function tone(i, d, at, force) {
     o.connect(g);
   }
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, SV().volume * vol), t + (w === 'noise' ? e * 0.4 : 0.01));
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + (w === 'noise' ? e * 0.4 : 0.01));
   g.gain.exponentialRampToValueAtTime(0.0001, t + e);
-  g.connect(c.destination);
+  g.connect(out());
   o.start(t);
   o.stop(t + e + 0.02);
   return o;
@@ -653,6 +692,10 @@ export {
   resetAudio,
   testAudio,
   toggleMute,
+  setVolume,
+  volPanel,
+  volShow,
+  volTry,
   waitTx,
   cdn,
   comboTones,

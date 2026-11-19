@@ -77,7 +77,12 @@
         "voiceURI": { "type": "string", "description": "A device voice; empty: the language's default." },
         "speakCounts": { "enum": ["every", "reps", "off"] },
         "countdown": { "type": "number", "minimum": 0 },
-        "volume": { "type": "number", "minimum": 0, "maximum": 1 },
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Not used: the volume is one per device, for the whole app. Kept so older data stays valid."
+        },
         "rate": { "type": "number", "exclusiveMinimum": 0 },
         "pitch": { "type": "number", "exclusiveMinimum": 0 }
       }
