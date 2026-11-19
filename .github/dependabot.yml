@@ -1,0 +1,22 @@
+# Dependabot: weekly pull requests that update the dev tools (npm) and the workflow's actions, each group in one PR so
+# they're quick to review. CI checks them like any other PR. Security fixes come as soon as an advisory appears.
+# Not covered: the Firebase SDK, which cloud.js loads from gstatic by version number; update that by hand.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      dev-tools:
+        patterns: ['*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']
