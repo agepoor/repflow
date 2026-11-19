@@ -192,8 +192,9 @@ const DEF_SET = {
   rate: 1.1,
   wake: true,
 };
-/* sound & voice: Settings, or a routine's own (r.snd: all of SND) */
-const SND = ['beeps', 'voice', 'lang', 'voiceURI', 'speakCounts', 'countdown', 'volume', 'rate', 'pitch'];
+/* sound & voice: Settings, or a routine's own (r.snd: all of SND). Not the volume: that is one per device, for the whole app
+   (a volume older routines still have is kept, so exports and other devices keep working, but not used) */
+const SND = ['beeps', 'voice', 'lang', 'voiceURI', 'speakCounts', 'countdown', 'rate', 'pitch'];
 const sndCopy = (o) => Object.fromEntries(SND.map((k) => [k, o[k]]));
 const PRESET_IDS = () => {
   const m = {};

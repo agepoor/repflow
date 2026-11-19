@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { CV, PRESETS, bDur, canon, holdMode, inRound, logMode, mig, norm, seqSteps } from '../core/routine.js';
+import {
+  CV,
+  DEF_SET,
+  PRESETS,
+  bDur,
+  canon,
+  holdMode,
+  inRound,
+  logMode,
+  mig,
+  norm,
+  seqSteps,
+  sndCopy,
+} from '../core/routine.js';
 
 describe('norm: repairing blocks', () => {
   // norm compares blocks as JSON, so a block whose keys are in another order counts as repaired and comes back as a
@@ -120,6 +133,12 @@ describe('mig: older data', () => {
     expect(r.lang).toBeUndefined();
     expect(r.snd).toMatchObject({ lang: 'nl-NL', voice: true, beeps: true });
     expect(mig({ cv: 2, lang: 'nl-NL', snd: { lang: 'en-GB' }, blocks: [] }).snd).toEqual({ lang: 'en-GB' });
+  });
+
+  it("a routine's own sound & voice has no volume: that is one for the whole app", () => {
+    expect(sndCopy(DEF_SET)).not.toHaveProperty('volume');
+    expect(sndCopy(DEF_SET)).toMatchObject({ beeps: true, voice: true, rate: DEF_SET.rate });
+    expect(mig({ cv: 2, lang: 'nl-NL', blocks: [] }).snd).not.toHaveProperty('volume');
   });
 
   it('a routine without a version is read as v2', () => {
