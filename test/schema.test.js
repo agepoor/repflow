@@ -1,54 +1,20 @@
 import { readFileSync } from 'node:fs';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import { CV, PRESETS, ROUTINE_ICONS, canon, norm } from '../core/routine.js';
 import { build } from '../core/steps.js';
 
 const schema = JSON.parse(readFileSync(new URL('../schema/routine.schema.json', import.meta.url), 'utf8'));
 
-/* A small validator for the JSON Schema keywords the routine schema uses, so the tests need no extra dependency.
-   An unknown keyword fails loudly instead of being skipped, so the schema can't quietly use one this doesn't check. */
-const NOTES = new Set(['$schema', '$id', 'title', 'description', '$defs']);
-const TYPES = {
-  object: (v) => v !== null && typeof v === 'object' && !Array.isArray(v),
-  array: Array.isArray,
-  string: (v) => typeof v === 'string',
-  number: (v) => typeof v === 'number' && isFinite(v),
-  integer: Number.isInteger,
-  boolean: (v) => typeof v === 'boolean',
-};
-function check(s, v, path = '$', errs = []) {
-  if (s.$ref)
-    return check(
-      s.$ref
-        .split('/')
-        .slice(1)
-        .reduce((o, k) => o[k], schema),
-      v,
-      path,
-      errs,
-    );
-  const bad = (m) => errs.push(`${path}: ${m}`);
-  for (const [k, x] of Object.entries(s)) {
-    if (NOTES.has(k)) continue;
-    else if (k === 'type') TYPES[x](v) || bad(`not ${x}`);
-    else if (k === 'enum') x.includes(v) || bad(`${JSON.stringify(v)} not one of ${x.join(', ')}`);
-    else if (k === 'const') v === x || bad(`not ${JSON.stringify(x)}`);
-    else if (k === 'minimum') !(typeof v === 'number') || v >= x || bad(`< ${x}`);
-    else if (k === 'maximum') !(typeof v === 'number') || v <= x || bad(`> ${x}`);
-    else if (k === 'exclusiveMinimum') !(typeof v === 'number') || v > x || bad(`<= ${x}`);
-    else if (k === 'minLength') !(typeof v === 'string') || v.length >= x || bad('too short');
-    else if (k === 'pattern') !(typeof v === 'string') || new RegExp(x, 'u').test(v) || bad(`doesn't match ${x}`);
-    else if (k === 'required') TYPES.object(v) && x.forEach((p) => p in v || bad(`missing ${p}`));
-    else if (k === 'properties')
-      TYPES.object(v) && Object.entries(x).forEach(([p, ps]) => p in v && check(ps, v[p], `${path}.${p}`, errs));
-    else if (k === 'additionalProperties')
-      TYPES.object(v) && x === false && Object.keys(v).forEach((p) => p in s.properties || bad(`unknown field ${p}`));
-    else if (k === 'items') Array.isArray(v) && v.forEach((it, i) => check(x, it, `${path}[${i}]`, errs));
-    else throw new Error(`schema keyword ${k} is not checked by the test validator`);
-  }
-  return errs;
-}
-const valid = (r) => check(schema, r);
+/* strict: a keyword ajv doesn't know is an error instead of being ignored. valid(r) lists what is wrong ([] = valid). */
+const validate = new Ajv2020({ strict: true, allErrors: true }).compile(schema);
+const valid = (r) =>
+  validate(r)
+    ? []
+    : validate.errors.map(
+        (e) =>
+          `${e.instancePath || '/'} ${e.message}${e.params.additionalProperty ? ': ' + e.params.additionalProperty : ''}`,
+      );
 
 /* Shaped like real stored data (made-up content): every block type and routine setting in use before the schema, as v2 */
 const V2 = [
@@ -192,10 +158,12 @@ describe('schema/routine.schema.json', () => {
 
   it('the validator catches mistakes (so passing means something)', () => {
     const [r] = canon(structuredClone(V2));
-    expect(valid({ ...r, extra: 1 })).toEqual(['$: unknown field extra']);
-    expect(valid({ ...r, rounds: '2' })).toEqual(['$.rounds: not integer']);
-    expect(valid({ ...r, cv: 2 })).toEqual(['$.cv: not 3']);
-    expect(valid({ ...r, blocks: [{ ...r.blocks[0], type: 'run' }] })).toHaveLength(1);
+    expect(valid({ ...r, extra: 1 })).toEqual(['/ must NOT have additional properties: extra']);
+    expect(valid({ ...r, rounds: '2' })).toEqual(['/rounds must be integer']);
+    expect(valid({ ...r, cv: 2 })).toEqual(['/cv must be equal to constant']);
+    expect(valid({ ...r, blocks: [{ ...r.blocks[0], type: 'run' }] })).toEqual([
+      '/blocks/0/type must be equal to one of the allowed values',
+    ]);
   });
 
   it('every preset is valid', () => {
