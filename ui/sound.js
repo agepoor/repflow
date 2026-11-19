@@ -439,8 +439,8 @@ function voiceLangs() {
     .sort();
   return v.length ? v : ['en-US', 'en-GB', 'nl-NL', 'es-ES', 'de-DE', 'fr-FR'];
 }
-/* sound & voice form: Settings (k 'S': S) or a routine's own (k 'R': cur.snd) */
-function sndForm(o, k, extra = '') {
+/* sound & voice for routines: the defaults in Settings (k 'S': S) or a routine's own (k 'R': cur.snd), the same fields */
+function sndForm(o, k) {
   const ls = voiceLangs();
   if (!ls.includes(o.lang)) ls.unshift(o.lang);
   const chk = (c, l) =>
@@ -448,7 +448,7 @@ function sndForm(o, k, extra = '') {
     rng = (c, l, a, b, tst) =>
       `<div><label>${l} <span class="dh">${sndVal(c, o[c])}</span></label><input type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" oninput="sndSet('${k}','${c}',+this.value);this.previousElementSibling.lastChild.textContent=sndVal('${c}',this.value)"${tst ? ` onchange="testVoice('${k}')"` : ''}></div>`;
   return (
-    `<div class="tg">${chk('beeps', 'Beeps') + chk('voice', 'Voice coach') + extra}</div>` +
+    `<div class="tg">${chk('beeps', 'Beeps') + chk('voice', 'Voice coach')}</div>` +
     `
   <div><label>Voice language</label><select onchange="sndSet('${k}','lang',this.value)">${ls.map((l) => `<option ${l === o.lang ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
   <div><label>Voice</label><div style="display:flex;gap:var(--space-2)"><select style="flex:1;min-width:0" onchange="sndSet('${k}','voiceURI',this.value);testVoice('${k}')"><option value="">Default for ${esc(o.lang)}</option>${langVoices(
@@ -471,7 +471,7 @@ function sndForm(o, k, extra = '') {
       .map(([v, l]) => `<option value="${v}" ${o.speakCounts === v ? 'selected' : ''}>${l}</option>`)
       .join('')}</select></div>
   <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" oninput="sndSet('${k}','countdown',+this.value)"></div>
-  ${k === 'S' ? rng('volume', 'Volume', '0', '1') : ''}${rng('rate', 'Voice speed', '0.7', '1.8', 1)}${rng('pitch', 'Voice pitch', '0.5', '1.5', 1)}`
+  ${rng('rate', 'Voice speed', '0.7', '1.8', 1)}${rng('pitch', 'Voice pitch', '0.5', '1.5', 1)}`
   );
 }
 /* how well this device knows the chosen voice's timing, in plain words */
@@ -500,7 +500,6 @@ function sndSet(k, c, v) {
   o[c] = v;
   if (c === 'lang') o.voiceURI = ''; // another language: its best voice
   if (k === 'S') {
-    if (c === 'volume') return setVolume(v, true);
     persist();
     if (c === 'lang') openSettings();
     return;
@@ -536,8 +535,8 @@ function buzz(p) {
   if (S.vibrate && navigator.vibrate && !silentHere()) navigator.vibrate(p);
 }
 function resetAudio() {
-  if (!confirm('Reset all sound & voice settings to their defaults?')) return;
-  ['beeps', 'voice', 'lang', 'voiceURI', 'pitch', 'rate', 'volume', 'speakCounts', 'countdown'].forEach(
+  if (!confirm('Reset the sound & voice for routines to the defaults?')) return;
+  ['beeps', 'voice', 'lang', 'voiceURI', 'pitch', 'rate', 'speakCounts', 'countdown'].forEach(
     (k) => (S[k] = DEF_SET[k]),
   );
   persist();
@@ -557,31 +556,48 @@ function testAudio() {
     400,
   );
 } // Settings, also during a workout
-/* the app volume (S.volume, per device): Settings and the run screen's volume panel change the same value */
+/* the app volume (S.volume, per device) and mute (until the app closes): the same everywhere they can be changed */
 function setVolume(v, save) {
   S.volume = Math.min(1, Math.max(0, +v || 0));
   if (OUT) OUT.gain.setTargetAtTime(S.volume, AC.currentTime, 0.02); // smooth, no click
   volShow();
   if (save) persist();
 }
-function volShow() {
-  const off = muted || !(S.volume > 0);
-  muteBtn.innerHTML = svgi(off ? 'mute' : 'vol', 22);
-  muteBtn.setAttribute('aria-label', `Sound: ${muted ? 'muted' : Math.round(S.volume * 100) + '%'}`);
-  volRange.value = S.volume;
-  volPct.textContent = muted ? 'Muted' : Math.round(S.volume * 100) + '%';
-  volMute.innerHTML = svgi(muted ? 'mute' : 'vol', 20);
-  volMute.setAttribute('aria-pressed', String(muted));
-  volMute.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
+/* the sound control, in every place that makes sound: a speaker that opens mute + volume, as a panel above it ('up', run
+   screen) or below it ('down', editor bar), or the same row inline ('inline', Settings) */
+function volCtl(mode) {
+  const row = `<button type="button" class="volmute" onclick="toggleMute()" aria-pressed="false"></button><input type="range" class="volrange" min="0" max="1" step="0.05" aria-label="Volume" oninput="setVolume(this.value)" onchange="setVolume(this.value, true);volTry()"><span class="volpct"></span>`;
+  if (mode === 'inline') return `<div class="volrow" role="group" aria-label="Volume">${row}</div>`;
+  return `<button type="button" class="volbtn ${mode === 'up' ? 'sm' : 'ib hb eb'}" onclick="volPanel(this)" aria-expanded="false" aria-label="Sound" title="Sound"></button><div class="volpop ${mode}" role="group" aria-label="Volume" hidden>${row}</div>`;
 }
-// run screen: the speaker opens a panel with the volume and mute; a tap anywhere else closes it
-function volPanel(open = volPop.hidden) {
-  volPop.hidden = !open;
-  muteBtn.setAttribute('aria-expanded', String(open));
-  if (open) volShow();
+function volShow() {
+  const pct = Math.round(S.volume * 100) + '%',
+    off = muted || !(S.volume > 0);
+  document.querySelectorAll('.volbtn').forEach((b) => {
+    b.innerHTML = svgi(off ? 'mute' : 'vol', b.classList.contains('sm') ? 22 : 18);
+    b.setAttribute('aria-label', `Sound: ${muted ? 'muted' : pct}`);
+  });
+  document.querySelectorAll('.volrange').forEach((r) => {
+    if (document.activeElement !== r) r.value = S.volume;
+  });
+  document.querySelectorAll('.volpct').forEach((e) => (e.textContent = muted ? 'Muted' : pct));
+  document.querySelectorAll('.volmute').forEach((b) => {
+    b.innerHTML = svgi(muted ? 'mute' : 'vol', 20);
+    b.setAttribute('aria-pressed', String(muted));
+    b.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
+  });
+}
+// open the panel of this speaker (or toggle it), close the others; a tap anywhere else closes them all
+function volPanel(btn, open) {
+  document.querySelectorAll('.volbtn').forEach((b) => {
+    const o = b === btn && (open ?? b.nextElementSibling.hidden);
+    b.nextElementSibling.hidden = !o;
+    b.setAttribute('aria-expanded', String(o));
+  });
+  volShow();
 }
 document.addEventListener('pointerdown', (e) => {
-  if (!volPop.hidden && !e.target.closest('#volPop, #muteBtn')) volPanel(false);
+  if (!e.target.closest('.volpop, .volbtn')) volPanel(null);
 });
 function volTry() {
   if (muted) toggleMute();
@@ -596,7 +612,7 @@ const waitTx = (s) => waitText(s, voiceLang());
 const cdn = (s) => countdownOf(s, SV().countdown);
 let NOISE = null;
 function tone(i, d, at, force) {
-  if (!force && (muted || silentHere())) return;
+  if (muted || (!force && silentHere())) return; // mute wins, also over the editor's ▶
   /* move tones are calls: they play with Beeps off too */ const c = ac(),
     [w, f0, f1, len, vol] = TONES[i] || TICK,
     t = at ?? c.currentTime,
@@ -693,6 +709,7 @@ export {
   testAudio,
   toggleMute,
   setVolume,
+  volCtl,
   volPanel,
   volShow,
   volTry,

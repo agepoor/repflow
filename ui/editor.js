@@ -626,7 +626,7 @@ function renderSnd() {
   eSnd.value = o ? 'own' : '';
   eSndBox.hidden = !o;
   eSndBox.innerHTML = o
-    ? `<div class="muted" style="grid-column:1/-1;font-size:var(--fs-sm)">This routine uses these instead of Settings. Vibrate and Keep screen on follow Settings.</div>` +
+    ? `<div class="muted span-all fs-sm">This routine uses these instead of Settings → Sound &amp; voice for routines. Volume, vibrate and keep screen on are for the whole app (Settings → This device).</div>` +
       sndForm(o, 'R')
     : '';
 }
@@ -664,7 +664,7 @@ function playCombo(id, n) {
         beep(1500, 0.05, 'square', 0.4);
       } else comboTones(l, cl, toneMap(cur.blocks), ac().currentTime + 0.05, true);
     });
-} // editor ▶: as set under Calls (voice, faster voice or tones; plays even when muted)
+} // editor ▶: as set under Calls (voice, faster voice or tones; silent when muted, like everything else)
 function poolPreview(id) {
   return withSnd(cur, () => poolPreview0(id));
 } // with this routine's sound & voice

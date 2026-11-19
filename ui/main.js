@@ -64,6 +64,7 @@ import {
   testVoice,
   toggleMute,
   setVolume,
+  volCtl,
   volPanel,
   volShow,
   volTry,
@@ -274,6 +275,7 @@ document.querySelectorAll('i[data-ic]').forEach((e) => (e.outerHTML = svgi(e.dat
 document.querySelector('.ctrl .sm').innerHTML = svgi('x', 22, 2.5);
 document.querySelectorAll('.ctrl .md')[0].innerHTML = svgi('prev', 24);
 document.querySelectorAll('.ctrl .md')[1].innerHTML = svgi('next', 24);
+document.querySelectorAll('[data-vol]').forEach((e) => (e.innerHTML = volCtl(e.dataset.vol))); // the sound controls
 volShow();
 pp.innerHTML = svgi('pause', 30);
 minBtn.innerHTML = svgi('down', 22, 2.5);
