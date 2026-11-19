@@ -54,7 +54,7 @@ function fillEditor(){cur=norm(mig(cur));
 }
 function num(id,k,v,lbl,step=1,min=0){return `<div><label>${lbl}</label><input type="number" step="${step}" min="${min}" value="${v}" oninput="setB('${id}','${k}',+this.value)"></div>`}
 function renderBlocks(){
-  blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,lab,col]=BT[b.type];let f='';
+  blocks.innerHTML=cur.blocks.map((b,i)=>{const [ic,,col]=BT[b.type];let f='';
    if(b.type==='reps')f=`<div class="grid">${num(b.id,'reps',b.reps,'Reps')}${num(b.id,'counts',b.counts,'Counts per rep',1,1)}
      <div><label>Mode</label><select onchange="setB('${b.id}','mode',this.value)"><option value="guided" ${b.mode==='guided'?'selected':''}>Guided tempo</option><option value="tap" ${b.mode==='tap'?'selected':''}>Tap to count</option></select></div>
      <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo>0?b.tempo:''}" data-rsec placeholder="Routine (${cur.sec||1} s)" oninput="setB('${b.id}','tempo',+this.value||0)"></div>${num(b.id,'repPause',b.repPause,'Breather (s)',0.5)}${dur(b.id,'restAfter',b.restAfter,'Rest after block')}</div>

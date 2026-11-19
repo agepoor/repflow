@@ -1,6 +1,6 @@
 /* Home screen, routing between views, parts of the day (Settings) and drag to reorder. */
 import {iconKey} from '../core/routine.js';
-import {DN,PARTS,WHEN,daysTxt,doneOnDay,nextUp,onDay,partAt,partOf,partTimes,partsOnIn,rDays,setDay} from '../core/schedule.js';
+import {DN,PARTS,WHEN,daysTxt,nextUp,onDay,partAt,partOf,partTimes,partsOnIn,rDays,setDay} from '../core/schedule.js';
 import {build} from '../core/steps.js';
 import {dk,fmt,hhmm} from '../core/time.js';
 import {autoT,autosave,cur,fillEditor,openEditor,readHead,saveRoutine,setCur,vfAll} from './editor.js';
@@ -45,7 +45,6 @@ function partSum(bad){const el=document.getElementById('partSum');if(!el)return;
 function setPart(){const v=id=>{const m=/^(\d\d):(\d\d)/.exec(document.getElementById(id).value||'');return m?+m[1]*60+ +m[2]:NaN;},m=v('pMid'),e=v('pEve');
   if(!(m>0))return partSum('Midday has to start after midnight.');if(!(e>m))return partSum('Evening has to start after midday.');
   const t=partT();if(t.mid===m&&t.eve===e)return partSum();META.parts={mid:m,eve:e,ts:Date.now(),...(partsOn()?{}:{off:true})};saveRaw();scheduleSync();partSum();}
-const doneToday=r=>doneOnDay(r,H);
 function upNext(){return nextUp(R,H,META.parts);}
 let SORT=false; // order view, opened with the Order button: all routines in their real order, drag to reorder, until Done
 function setSort(v){SORT=v;renderList();if(v)document.getElementById('list').scrollIntoView({block:'nearest'});}
