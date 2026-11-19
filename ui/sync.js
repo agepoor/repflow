@@ -3,7 +3,7 @@ import { runLive, unbox } from '../core/engine.js';
 import { merge } from '../core/merge.js';
 import { PRESETS, iconKey } from '../core/routine.js';
 import { renderHist, streaks, updHistBtn } from './history.js';
-import { COLORS, esc, svgi, toast } from './html.js';
+import { COLORS, esc, svgi, tint, toast } from './html.js';
 import {
   DEV,
   LAST,
@@ -535,20 +535,20 @@ function refreshAcct() {
   setSync(syncState);
 }
 function syncCard() {
-  const h = `<h2 style="margin-bottom:8px">Account & sync</h2>`,
+  const h = `<h2 class="mb-2">Account & sync</h2>`,
     msg = authMsg ? `<p class="amsg">${esc(authMsg)}</p>` : '';
-  if (CS === 'off') return h + `<p class="muted" style="margin:0">Sign-in isn’t set up yet.</p>`;
+  if (CS === 'off') return h + `<p class="muted m-0">Sign-in isn’t set up yet.</p>`;
   if (CS === 'fail')
     return (
       h +
-      `<p class="muted" style="margin:0 0 12px">Couldn’t load sign-in${syncErr ? ` (${esc(syncErr)})` : ''}. Check your connection.</p><button class="ib" onclick="cloud()">${svgi('refresh', 16)}Try again</button>`
+      `<p class="muted m-0 mb-3">Couldn’t load sign-in${syncErr ? ` (${esc(syncErr)})` : ''}. Check your connection.</p><button class="ib" onclick="cloud()">${svgi('refresh', 16)}Try again</button>`
     );
-  if (!CLOUD) return h + `<p class="muted" style="margin:0">Loading…</p>`;
+  if (!CLOUD) return h + `<p class="muted m-0">Loading…</p>`;
   if (!CU)
     return (
       h +
       (DELNOTE ? `<p class="anote">${DELNOTE}</p>` : '') +
-      `<p class="muted" style="margin:0 0 12px">Sign in to sync your routines, history and a running workout across your devices. Use the same sign-in on every device. Audio settings stay per device.</p>${msg}
+      `<p class="muted m-0 mb-3">Sign in to sync your routines, history and a running workout across your devices. Use the same sign-in on every device. Audio settings stay per device.</p>${msg}
     <div class="row"><button class="ib" onclick="signIn('google')">Continue with Google</button><button class="ib" onclick="signIn('github')">Continue with GitHub</button></div>`
     );
   const ms = CU.methods || CU.providers.map((id) => ({ id, label: '' })),
@@ -557,7 +557,7 @@ function syncCard() {
   return (
     h +
     `<p style="margin:0;overflow-wrap:anywhere">${esc(CU.email || CU.name || 'Signed in')}</p>
-    <div class="sstat muted"><span id="syncStatus"></span><button class="ghost" title="Sync now" aria-label="Sync now" onclick="syncNow()">${svgi('refresh', 16)}</button><button class="ghost" id="syncRetry" hidden onclick="syncNow()">Retry</button></div>${msg}${SWITCH ? `<p class="amsg">Waiting for your choice about the routines and history from ${esc(SWITCH.email || 'another account')}. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="askSwitch()">Choose</button></p>` : ''}${NEWACCT && !SWITCH ? `<p class="amsg">This is a new account. Already use PunchPace with ${ms.length === 1 && miss.length ? pname(miss[0]) : 'another sign-in'}? Sign out and continue with that, so everything stays in one account. <button class="ghost" style="padding:0;text-decoration:underline;color:inherit" onclick="keepNewAcct()">I’m new, keep this</button></p>` : ''}
+    <div class="sstat muted"><span id="syncStatus"></span><button class="ghost" title="Sync now" aria-label="Sync now" onclick="syncNow()">${svgi('refresh', 16)}</button><button class="ghost" id="syncRetry" hidden onclick="syncNow()">Retry</button></div>${msg}${SWITCH ? `<p class="amsg">Waiting for your choice about the routines and history from ${esc(SWITCH.email || 'another account')}. <button class="ghost link" onclick="askSwitch()">Choose</button></p>` : ''}${NEWACCT && !SWITCH ? `<p class="amsg">This is a new account. Already use PunchPace with ${ms.length === 1 && miss.length ? pname(miss[0]) : 'another sign-in'}? Sign out and continue with that, so everything stays in one account. <button class="ghost link" onclick="keepNewAcct()">I’m new, keep this</button></p>` : ''}
     <div class="acct-k">Sign-in methods</div>
     ${ms
       .map((m) => {
@@ -567,7 +567,7 @@ function syncCard() {
       .join('')}
     ${miss.map((p) => `<div class="meth"><span class="muted">Optional backup for this account</span><button class="ghost" onclick="linkProv('${p}')">+ Add ${pname(p)}</button></div>`).join('')}
     <div class="acct-row"><button onclick="signOutNow()">Sign out</button><button class="ghost danger" onclick="deleteAcct()">Delete account</button></div>
-    <p class="muted" style="margin:12px 0 0">Routines, history and a running workout sync automatically. Audio settings stay per device.</p>`
+    <p class="muted" style="margin:var(--space-3) 0 0">Routines, history and a running workout sync automatically. Audio settings stay per device.</p>`
   );
 }
 /* the running workout, shared live: the device you last controlled it from plays the sound and saves progress */
@@ -666,7 +666,7 @@ function banner() {
       r = JSON.parse(v.r) || {};
     } catch (e) {}
     const c = COLORS[r.color] || COLORS.blue;
-    h = `<div class="card rcard livebar"><div class="dot" style="background:${c}22;color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name || 'Workout')}</b><div class="muted">${v.p != null ? 'Paused' : 'Live'} on ${v.by === DEV.id ? 'this device' : esc(v.dn || 'another device')}</div></div><button class="primary" onclick="openLive()">Open</button></div>`;
+    h = `<div class="card rcard livebar"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name || 'Workout')}</b><div class="muted">${v.p != null ? 'Paused' : 'Live'} on ${v.by === DEV.id ? 'this device' : esc(v.dn || 'another device')}</div></div><button class="primary" onclick="openLive()">Open</button></div>`;
   }
   if (h !== BAN) {
     BAN = h;

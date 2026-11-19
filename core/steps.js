@@ -112,27 +112,20 @@ const spoken = (c) => c.replace(/_/g, ' ');
 /* move tones: each move of a combo has its own sound, played in rhythm (one per move, at the count length). The same move sounds the
    same in every routine: straights (1 jab, 2 cross) steady, hooks (3, 4) fall, uppercuts (5, 6) rise, lead hand low, rear hand high;
    slip, duck and roll a soft whoosh. Other moves get the next free sound (up to 8 sounds per routine), then a neutral tick.
-   [tag colour, wave, from Hz, to Hz, s, volume] */
+   [wave, from Hz, to Hz, s, volume]; the tag colours are design tokens (theme.color.tone) */
 const TONES = [
-    ['#4D94FF', 'triangle', 523, 523, 0.11, 1],
-    ['#FF4D5E', 'triangle', 784, 784, 0.11, 1], // jab · cross
-    ['#FFC93C', 'triangle', 698, 466, 0.15, 1],
-    ['#FF9F43', 'triangle', 1047, 698, 0.15, 1], // lead hook · rear hook
-    ['#3DDC84', 'triangle', 466, 698, 0.15, 1],
-    ['#22CCE0', 'triangle', 698, 1047, 0.15, 1], // lead uppercut · rear uppercut
-    ['#C4B5FD', 'noise', 3200, 1600, 0.14, 1.6],
-    ['#A78BFA', 'noise', 1200, 600, 0.18, 2.6],
-    ['#8B9CFF', 'noise', 700, 2100, 0.24, 2.6], // slip · duck · roll
-    ...[1319, 330, 1568, 262, 1175, 392, 1760, 294].map((f, i) => [
-      ['#FF5CAA', '#A3E635', '#FDBA74', '#E879F9', '#5EEAD4', '#FCA5A5', '#93C5FD', '#FDE68A'][i],
-      'square',
-      f,
-      f,
-      0.09,
-      0.45,
-    ]),
+    ['triangle', 523, 523, 0.11, 1],
+    ['triangle', 784, 784, 0.11, 1], // jab · cross
+    ['triangle', 698, 466, 0.15, 1],
+    ['triangle', 1047, 698, 0.15, 1], // lead hook · rear hook
+    ['triangle', 466, 698, 0.15, 1],
+    ['triangle', 698, 1047, 0.15, 1], // lead uppercut · rear uppercut
+    ['noise', 3200, 1600, 0.14, 1.6],
+    ['noise', 1200, 600, 0.18, 2.6],
+    ['noise', 700, 2100, 0.24, 2.6], // slip · duck · roll
+    ...[1319, 330, 1568, 262, 1175, 392, 1760, 294].map((f) => ['square', f, f, 0.09, 0.45]),
   ], // free
-  TICK = [null, 'noise', 5000, 5000, 0.03, 1.6],
+  TICK = ['noise', 5000, 5000, 0.03, 1.6],
   TFREE = 9;
 const mkey = (t) => t.toLowerCase().replace(/[^\p{L}\p{N}_]/gu, '');
 /* moves with a stable id: how a combo's words are recognised (numbers, English, Dutch, Spanish), so cues, tones and later

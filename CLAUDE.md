@@ -13,6 +13,7 @@ npm ci                                       # install the dev tools
 npm run check                                # lint, format check and tests: run before every commit
 npm test                                     # tests only (npm run test:watch while working)
 npm run format                               # apply Prettier
+npm run tokens                               # write tokens.css after changing design/tokens.json
 bash build.sh _site                          # build the site (decodes icons/fonts from base64)
 python3 -m http.server 8000 -d _site         # run it at http://localhost:8000 (ES modules don't work over file://)
 for f in core/*.js ui/*.js cloud.js sw.js; do node --check "$f"; done   # syntax check
@@ -25,7 +26,8 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 
 ## Layout
 
-- `index.html`: the page and all views. Loads `styles.css` (all CSS; theme tokens are the CSS variables in `:root`) and `ui/main.js`.
+- `index.html`: the page and all views. Loads `tokens.css`, `styles.css` (all CSS) and `ui/main.js`.
+- `design/`: the design tokens (`tokens.json`: colours, spacing, type, radii, durations), the script that writes `tokens.css` from them, and the design rules (`design/README.md`).
 - `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge (`merge.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`.
@@ -42,7 +44,8 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - New or renamed file the app loads: add it to `FILES` in `sw.js`, or the app breaks offline. Don't edit `CACHE`: `build.sh` names it after the commit, so every deploy refreshes the offline cache.
 - Never rename storage keys (`rf2_*`) or synced paths (`users/<uid>/doc`, `users/<uid>/run`): it would lose people's data.
 - Changing the routine data shape: update `schema/routine.schema.json`, add a step to `MIGRATIONS` in `core/routine.js` and bump `CV` (the schema's `cv`), so old routines, exports and other synced devices keep working. `test/schema.test.js` checks that routines are valid. Sync merges across devices (`core/merge.js`), so new fields need a sensible merge.
-- Use the theme variables (`--bg`, `--surf`, `--tx`, `--acc`, …) instead of hard-coded colors. A light theme is planned, so don't assume dark.
+- Use the design tokens, never hard-coded values: colours by role (`--text-muted`, `--surface`, `--accent-text`, `--routine-blue`), spacing on the 4px grid (`--space-3`), the type scale (`--fs-sm`), `--radius-*`, `--duration-*`. Follow the rules in `design/README.md` (contrast, scales, touch targets); `test/tokens.test.js` checks the colour ones. A light theme is planned, so don't assume dark.
+- Repeated inline styles become classes (the utilities at the end of `styles.css`).
 - Follow the existing style: Prettier formatting, a short comment at the top of each module saying what it does, comments that explain _why_.
 - Update `README.md` when a user-facing feature changes.
 

@@ -150,10 +150,9 @@ describe('schema/routine.schema.json', () => {
     expect(schema.properties.icon.enum).toEqual(ROUTINE_ICONS);
   });
 
-  it('matches the colours the app has', () => {
-    const html = readFileSync(new URL('../ui/html.js', import.meta.url), 'utf8');
-    const colors = [...html.match(/const COLORS = \{([^}]*)\}/)[1].matchAll(/(\w+):/g)].map((m) => m[1]);
-    expect(schema.properties.color.enum).toEqual(colors);
+  it('matches the routine colours in the design tokens', () => {
+    const t = JSON.parse(readFileSync(new URL('../design/tokens.json', import.meta.url), 'utf8'));
+    expect(schema.properties.color.enum).toEqual(Object.keys(t.theme.color.routine).filter((k) => !k.startsWith('$')));
   });
 
   it('the validator catches mistakes (so passing means something)', () => {

@@ -1,4 +1,5 @@
 /* Shared HTML bits: icons, colours, escaping, the toast, info boxes. */
+import { MOVES } from '../core/steps.js';
 const IC = {
   activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   wind: '<path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>',
@@ -76,29 +77,23 @@ function svgi(n, sz = 20, sw = 2) {
   return `<svg class="ic" width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || IC.activity}</svg>`;
 }
 
-const COLORS = {
-  orange: '#FF4B16',
-  red: '#FF4D5E',
-  blue: '#4D94FF',
-  green: '#3DDC84',
-  purple: '#A97BFF',
-  yellow: '#FFC93C',
-  teal: '#22CCE0',
-  pink: '#FF5CAA',
-}; // vivid set that matches the PunchPace brand
+/* colours come from the design tokens (tokens.css): a routine's colour by name, tints of it with color-mix */
+const COLORS = Object.fromEntries(
+  ['orange', 'red', 'blue', 'green', 'purple', 'yellow', 'teal', 'pink'].map((c) => [c, `var(--routine-${c})`]),
+);
+const tint = (c, pct) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
+// a move tone's tag colour: known moves by id, then the free ones in order (design/tokens.json theme.color.tone)
+const toneColor = (i) => `var(--tone-${i < MOVES.length ? MOVES[i] : 'free-' + (i - MOVES.length + 1)})`;
 function toast(msg, info) {
   let t = document.getElementById('toast');
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast';
     t.setAttribute('role', 'alert');
-    t.style.cssText =
-      'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:max-content;max-width:90%;background:#3a2020;color:#fff;border:1px solid #E06C6C;padding:12px 16px;border-radius:12px;z-index:9999;font-size:15px;cursor:pointer';
     t.onclick = () => t.remove();
     document.body.appendChild(t);
   }
-  t.style.background = info ? '#2a2a2a' : '#3a2020';
-  t.style.borderColor = info ? '#555' : '#E06C6C';
+  t.className = info ? 'info' : '';
   t.textContent = msg;
   clearTimeout(t._h);
   t._h = setTimeout(() => t.remove(), 8000);
@@ -116,4 +111,4 @@ function info(k, title, body) {
 function nsTag(t, title, s = 13) {
   return `<span class="nst" title="${title}">${svgi('nolog', s)}${t}</span>`;
 }
-export { svgi, COLORS, toast, esc, infoToggle, info, nsTag };
+export { svgi, COLORS, tint, toneColor, toast, esc, infoToggle, info, nsTag };

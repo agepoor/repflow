@@ -443,7 +443,7 @@ function sndForm(o, k, extra = '') {
     `<div class="tg">${chk('beeps', 'Beeps') + chk('voice', 'Voice coach') + extra}</div>` +
     `
   <div><label>Voice language</label><select onchange="sndSet('${k}','lang',this.value)">${ls.map((l) => `<option ${l === o.lang ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
-  <div><label>Voice</label><div style="display:flex;gap:8px"><select style="flex:1;min-width:0" onchange="sndSet('${k}','voiceURI',this.value);testVoice('${k}')"><option value="">Default for ${esc(o.lang)}</option>${langVoices(
+  <div><label>Voice</label><div style="display:flex;gap:var(--space-2)"><select style="flex:1;min-width:0" onchange="sndSet('${k}','voiceURI',this.value);testVoice('${k}')"><option value="">Default for ${esc(o.lang)}</option>${langVoices(
     o.lang,
   )
     .map(
@@ -452,8 +452,8 @@ function sndForm(o, k, extra = '') {
     )
     .join(
       '',
-    )}</select><button type="button" class="ib" style="padding:4px 12px" onclick="testVoice('${k}')" title="Test voice">${svgi('play', 14)}Test</button></div></div>
-  <div style="grid-column:1/-1;margin-top:-6px">${vTimeInfo(o, k)}</div>
+    )}</select><button type="button" class="ib" style="padding:var(--space-1) var(--space-3)" onclick="testVoice('${k}')" title="Test voice">${svgi('play', 14)}Test</button></div></div>
+  <div style="grid-column:1/-1;margin-top:-8px">${vTimeInfo(o, k)}</div>
   <div><label>Speak counts</label><select onchange="sndSet('${k}','speakCounts',this.value)">
     ${[
       ['every', 'Every count'],
@@ -480,7 +480,7 @@ function vTimeInfo(o, k) {
   return info(
     'vtime' + k,
     `Voice timing on this device: ${st}`,
-    `<p style="margin:0 0 6px">While the voice speaks in a workout or test, the app times it. That's how the editor knows when a step, count or combo is too short to say. Phrases it has said are measured; new ones are estimated from how fast this voice speaks, more precisely the more it has heard. Measured is per voice speed: after a change, phrases are estimated again until the voice has said them at the new speed.</p><p style="margin:0">${tip} Kept on this device, per voice.</p>`,
+    `<p style="margin:0 0 var(--space-2)">While the voice speaks in a workout or test, the app times it. That's how the editor knows when a step, count or combo is too short to say. Phrases it has said are measured; new ones are estimated from how fast this voice speaks, more precisely the more it has heard. Measured is per voice speed: after a change, phrases are estimated again until the voice has said them at the new speed.</p><p class="m-0">${tip} Kept on this device, per voice.</p>`,
   );
 }
 const sndVal = (c, v) =>
@@ -559,7 +559,7 @@ let NOISE = null;
 function tone(i, d, at, force) {
   if (!force && (muted || silentHere())) return;
   /* move tones are calls: they play with Beeps off too */ const c = ac(),
-    [, w, f0, f1, len, vol] = TONES[i] || TICK,
+    [w, f0, f1, len, vol] = TONES[i] || TICK,
     t = at ?? c.currentTime,
     e = Math.max(0.03, Math.min(len, d || len)),
     g = c.createGain();
