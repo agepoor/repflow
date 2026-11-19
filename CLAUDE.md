@@ -31,7 +31,7 @@ Prettier covers new files only; the existing app code (listed in `.prettierignor
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`.
 - `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time.
 - `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.
-- `sw.js`: offline cache. `build.sh`: build script. `.github/workflows/deploy.yml`: deploys to GitHub Pages.
+- `sw.js`: offline cache. `build.sh`: build script. `.github/workflows/deploy.yml`: runs `npm run check` on pull requests and on `main`, and deploys `main` to GitHub Pages only when it passes.
 
 ## Rules
 
