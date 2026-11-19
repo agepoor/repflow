@@ -34,7 +34,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - `schema/routine.schema.json`: the routine format (JSON Schema), versioned by `cv`. Served with the site.
 - `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time.
 - `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.
-- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` on pull requests and on `main`, and deploys `main` to GitHub Pages only when it passes.
+- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` on pull requests and on `main`, and deploys `main` to GitHub Pages only when it passes. `.github/dependabot.yml`: weekly update PRs for the dev tools and actions (the Firebase SDK version in `cloud.js` is updated by hand). Secret scanning, Dependabot alerts and CodeQL code scanning are on in the repo settings.
 
 ## Rules
 
