@@ -1482,6 +1482,16 @@ header {
     justify-content: center;
   }
 } /* editor actions: Back, Archive and Delete icon-only before the row gets too wide */
+@media (max-width: 400px) {
+  header .eb.tst .lbl {
+    display: none;
+  }
+  header .eb.tst {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+} /* small phones: Test icon-only too, so the sound control fits */
 /* editor actions: one style (outlined, icon + label, same height); Start only differs in colour */
 header .eb {
   height: 38px;
@@ -1965,15 +1975,17 @@ dialog.ask .btns {
   text-decoration: underline !important;
   color: inherit !important;
 }
-/* run screen: the volume panel above the speaker button */
-#volPop {
+/* the sound control (ui/sound.js volCtl): mute, volume and level, as a panel under a speaker button or inline in Settings */
+.volctl {
+  display: contents; /* the panel is placed against the bar the speaker sits in */
+}
+#edit header {
+  position: relative;
+}
+.volpop {
   position: absolute;
   right: 0;
-  bottom: calc(100% + var(--space-2));
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: min(320px, 100%);
+  width: min(320px, calc(100vw - 2 * var(--space-4)));
   padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
   background: var(--surface-raised);
   border: 1px solid var(--border);
@@ -1981,20 +1993,40 @@ dialog.ask .btns {
   box-shadow: 0 8px 24px var(--shadow);
   z-index: 5;
 }
-#volPop[hidden] {
+.volpop.up {
+  bottom: calc(100% + var(--space-2));
+}
+.volpop.down {
+  top: calc(100% + var(--space-2));
+}
+.volpop[hidden] {
   display: none;
 }
-#run .ctrl #volMute {
+.volpop,
+.volrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.volpop .volmute,
+.volrow .volmute,
+#run .ctrl .volmute {
   flex: none;
   width: 44px;
   height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-round);
   background: var(--tint-1);
+  border: 1px solid var(--border);
   color: var(--text);
 }
-#run .ctrl #volMute[aria-pressed='true'] {
+.volmute[aria-pressed='true'],
+#run .ctrl .volmute[aria-pressed='true'] {
   color: var(--accent-text);
 }
-#volRange {
+.volrange {
   flex: 1;
   min-width: 0;
   height: 44px;
@@ -2002,7 +2034,7 @@ dialog.ask .btns {
   border: none;
   background: none;
 }
-#volPct {
+.volpct {
   flex: none;
   min-width: 52px;
   text-align: right;

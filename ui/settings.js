@@ -1,6 +1,6 @@
 /* Settings. */
 import { PRESETS } from '../core/routine.js';
-import { sndForm, vdShow } from './sound.js';
+import { sndForm, vdShow, volCtl, volShow } from './sound.js';
 import { R, S, persist, setR } from './storage.js';
 import { cloud, setSync, syncCard, syncState } from './sync.js';
 import { renderList, renderParts, show } from './views.js';
@@ -33,13 +33,11 @@ function setOpt(k, v) {
 } // a device setting from its checkbox
 function openSettings() {
   setTimeout(vdShow);
-  setForm.innerHTML = sndForm(
-    S,
-    'S',
-    `
-  <label class="chk"><input type="checkbox" ${S.vibrate ? 'checked' : ''} onchange="setOpt('vibrate',this.checked)"> Vibrate (Android)</label>
-  <label class="chk"><input type="checkbox" ${S.wake ? 'checked' : ''} onchange="setOpt('wake',this.checked)"> Keep screen on</label>`,
-  );
+  devForm.innerHTML = `<div class="span-all"><label>Volume</label>${volCtl('inline')}</div>
+  <div class="tg"><label class="chk"><input type="checkbox" ${S.vibrate ? 'checked' : ''} onchange="setOpt('vibrate',this.checked)"> Vibrate (Android)</label>
+  <label class="chk"><input type="checkbox" ${S.wake ? 'checked' : ''} onchange="setOpt('wake',this.checked)"> Keep screen on</label></div>`;
+  setForm.innerHTML = sndForm(S, 'S');
+  volShow();
   renderParts();
   cloud();
   document.getElementById('syncCard').innerHTML = syncCard();

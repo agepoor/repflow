@@ -133,8 +133,14 @@
           <button class="ib hb eb" id="archBtn" onclick="toggleArchiveCur()"></button
           ><button class="danger ib hb eb" onclick="deleteRoutine()" title="Delete">
             <i data-ic="trash"></i><span class="lbl">Delete</span></button
-          ><button class="ib eb" onclick="saveRoutine('test')" title="Test run: not logged, no streak">
-            <i data-ic="flask"></i>Test</button
+          ><span class="volctl" data-vol="down"></span
+          ><button
+            class="ib eb tst"
+            onclick="saveRoutine('test')"
+            title="Test run: not logged, no streak"
+            aria-label="Test run"
+          >
+            <i data-ic="flask"></i><span class="lbl">Test</span></button
           ><button class="ib eb go1" onclick="saveRoutine(true)"><i data-ic="play"></i>Start</button>
         </div>
       </header>
@@ -287,8 +293,13 @@
         <span></span>
       </header>
       <div class="card">
-        <h2 class="mb-2">Sound &amp; voice</h2>
-        <p class="muted m-0 mb-3">For all routines, unless a routine has its own (editor → Sound &amp; voice → Own).</p>
+        <h2 class="mb-2">This device</h2>
+        <p class="muted m-0 mb-3">For the whole app, on this device.</p>
+        <div class="settings" id="devForm"></div>
+      </div>
+      <div class="card">
+        <h2 class="mb-2">Sound &amp; voice for routines</h2>
+        <p class="muted m-0 mb-3">Each routine uses these unless it has its own (editor → Sound &amp; voice → Own).</p>
         <div class="settings" id="setForm"></div>
         <div
           class="row"
@@ -310,8 +321,8 @@
           style="font-size: var(--fs-xs); line-height: 1.5; margin-top: var(--space-2); word-break: break-word"
         ></div>
         <p class="muted mt-3 fs-sm">
-          Reset restores beeps, voice coach, language, voice, speed, pitch, volume, spoken counts and countdown beeps.
-          Vibrate, Keep screen on and routines with their own sound &amp; voice stay as they are.
+          Reset restores the settings above to their defaults. This device and routines with their own sound &amp; voice
+          stay as they are.
         </p>
       </div>
       <div class="card">
@@ -415,32 +426,7 @@
         <button class="md" onclick="jump(-1)" title="Previous" aria-label="Previous"></button>
         <button id="pp" onclick="togglePause()" aria-label="Pause"></button>
         <button class="md" onclick="jump(1)" title="Next" aria-label="Next"></button>
-        <button
-          class="sm"
-          id="muteBtn"
-          onclick="volPanel()"
-          title="Sound"
-          aria-label="Sound"
-          aria-controls="volPop"
-          aria-expanded="false"
-        ></button>
-        <div id="volPop" role="group" aria-label="Volume" hidden>
-          <button id="volMute" onclick="toggleMute()" aria-pressed="false"></button>
-          <input
-            id="volRange"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            aria-label="Volume"
-            oninput="setVolume(this.value)"
-            onchange="
-              setVolume(this.value, true);
-              volTry();
-            "
-          />
-          <span id="volPct"></span>
-        </div>
+        <div class="volctl" data-vol="up"></div>
       </div>
     </div>
 
