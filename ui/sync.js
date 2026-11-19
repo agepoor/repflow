@@ -416,9 +416,11 @@ function removeProv(p) {
     ],
   });
 }
+/* is this sign-in method on the account: an exact match on Firebase's provider id ('google.com', 'github.com'), not a URL */
+const hasProvider = (ids, p) => ids.some((id) => id === `${p}.com`);
 function deleteAcct() {
   if (!CLOUD || !CU) return;
-  const p = CU.providers.includes('google.com') ? 'google' : 'github',
+  const p = hasProvider(CU.providers, 'google') ? 'google' : 'github',
     was = CU.providers.slice();
   ask({
     title: 'Delete account?',
@@ -456,9 +458,9 @@ function deleteAcct() {
 const delNote = (ps) =>
   'Account deleted. PunchPace may still be listed in ' +
   [
-    ps.includes('google.com') &&
+    hasProvider(ps, 'google') &&
       '<a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">your Google connections</a>',
-    ps.includes('github.com') &&
+    hasProvider(ps, 'github') &&
       '<a href="https://github.com/settings/applications" target="_blank" rel="noopener">your GitHub apps</a>',
   ]
     .filter(Boolean)
@@ -553,7 +555,7 @@ function syncCard() {
     );
   const ms = CU.methods || CU.providers.map((id) => ({ id, label: '' })),
     two = ms.length > 1,
-    miss = ['google', 'github'].filter((p) => !CU.providers.includes(p + '.com'));
+    miss = ['google', 'github'].filter((p) => !hasProvider(CU.providers, p));
   return (
     h +
     `<p style="margin:0;overflow-wrap:anywhere">${esc(CU.email || CU.name || 'Signed in')}</p>
