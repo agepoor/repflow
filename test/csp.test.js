@@ -37,6 +37,11 @@ describe('Content Security Policy', () => {
     const sdk = file('cloud.js').match(/const SDK = '(https:\/\/[^/]+)\//)[1];
     expect(H['script-src']).toContain(sdk);
   });
+  it('lets the offline worker fetch and cache that library (the worker gets the header too)', () => {
+    const sdk = file('cloud.js').match(/const SDK = '(https:\/\/[^/]+)\//)[1];
+    expect(file('sw.js')).toContain(sdk);
+    expect(H['connect-src']).toContain(sdk);
+  });
   it('lets sign-in open its frame on the auth domain', () => {
     const auth = file('cloud.js').match(/authDomain: '([^']+)'/)[1];
     expect(H['frame-src']).toContain(`https://${auth}`);
