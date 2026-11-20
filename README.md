@@ -45,3 +45,7 @@ Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages w
 ### Checks
 
 Node 22.12 or newer. `npm install` once, then `npm run check` runs everything: ESLint (`npm run lint`), Prettier (`npm run format:check`; `npm run format` fixes it) and the Vitest tests for `core/` (`npm test`, or `npm run test:watch` while working). The app itself needs no install or build step. Prettier formats all code; formatting-only commits are listed in `.git-blame-ignore-revs` so `git blame` skips them (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
+
+### Licence
+
+The code is licensed under the [Apache License 2.0](LICENSE): use, change and share it, also in closed or commercial apps, as long as you keep the licence and copyright notices and mark files you changed. Contributions are accepted under the same licence. The Saira font keeps its own licence (`fonts/OFL.txt`), and the licence gives no right to use the PunchPace name or logo as your own (section 6).
