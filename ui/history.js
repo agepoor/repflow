@@ -1,4 +1,5 @@
 /* Week view, history & streaks, import/export. */
+import { does } from './actions.js';
 import { iconKey, logMode, mig, norm, uid } from '../core/routine.js';
 import { DN, onDay, rDays, streakOf } from '../core/schedule.js';
 import { build } from '../core/steps.js';
@@ -32,7 +33,7 @@ function renderWeek() {
       return m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}` : `${m} min`;
     };
   const chip = (r, c, x) =>
-    `<button class="wchip ${c}" style="--c:${COLORS[r.color]}" onclick="openEditor('${r.id}','week')">${svgi(iconKey(r), 14)}<span>${esc(r.name)}</span>${x}</button>`;
+    `<button class="wchip ${c}" style="--c:${COLORS[r.color]}" ${does('click:openEditor', r.id, 'week')}>${svgi(iconKey(r), 14)}<span>${esc(r.name)}</span>${x}</button>`;
   const any = act.filter((r) => !rDays(r).length),
     pm = WKM === 'plan',
     anyH = any.length
@@ -42,7 +43,7 @@ function renderWeek() {
       ['week', 'This week'],
       ['plan', 'Schedule'],
     ]
-      .map(([m, t]) => `<button class="${(m === 'plan') === pm ? 'on' : ''}" onclick="wkMode('${m}')">${t}</button>`)
+      .map(([m, t]) => `<button class="${(m === 'plan') === pm ? 'on' : ''}" ${does('click:wkMode', m)}>${t}</button>`)
       .join('')}</div>`;
   /* Schedule: the usual week, only from the days set in each routine (no skips, additions or done workouts) */
   if (pm) {
@@ -224,7 +225,7 @@ function renderHist() {
       if (h.reps) bits.push(`${h.reps} reps`);
       if (h.calls) bits.push(`${h.calls} combos`);
       if (h.streak === false) bits.push(nsTag('log only', 'Logged, not counted for streak', 12));
-      html += `<div class="hitem"><div class="dot" style="background:${tint(c, 15)};color:${c}">${svgi(h.icon || 'activity', 18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" onclick="delHist('${h.id}')" title="Remove" style="padding:var(--space-2);color:var(--text-muted)">${svgi('trash', 16)}</button></div>`;
+      html += `<div class="hitem"><div class="dot" style="background:${tint(c, 15)};color:${c}">${svgi(h.icon || 'activity', 18)}</div><div class="info"><b>${esc(h.name)}</b><span>${bits.join(' · ')}</span></div><button class="ghost icon" ${does('click:delHist', h.id)} title="Remove" style="padding:var(--space-2);color:var(--text-muted)">${svgi('trash', 16)}</button></div>`;
     });
   histBody.innerHTML = html;
 }

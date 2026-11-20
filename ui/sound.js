@@ -1,4 +1,5 @@
 /* Sound & voice: beeps, move tones, the voice coach and its diagnostics, background beeps, and the Sound & voice form. */
+import { does } from './actions.js';
 import { countdownOf, cuePlan } from '../core/engine.js';
 import { DEF_SET } from '../core/routine.js';
 import { TICK, TONES, moveTones } from '../core/steps.js';
@@ -354,7 +355,7 @@ function vdShow() {
   if (!el) return;
   el.hidden = !VDBAD;
   if (!VDBAD) return;
-  let h = '<b>Voice problem</b> · <a href="#" onclick="vdHide();return false">Hide</a><br>';
+  let h = `<b>Voice problem</b> · <a href="#" ${does('click:vdHideLink')}>Hide</a><br>`;
   try {
     const ss = window.speechSynthesis,
       all = ss ? ss.getVoices() : [],
@@ -444,14 +445,14 @@ function sndForm(o, k) {
   const ls = voiceLangs();
   if (!ls.includes(o.lang)) ls.unshift(o.lang);
   const chk = (c, l) =>
-      `<label class="chk"><input type="checkbox" ${o[c] ? 'checked' : ''} onchange="sndSet('${k}','${c}',this.checked)"> ${l}</label>`,
+      `<label class="chk"><input type="checkbox" ${o[c] ? 'checked' : ''} ${does('change:sndSetChk', k, c)}> ${l}</label>`,
     rng = (c, l, a, b, tst) =>
-      `<div><label>${l} <span class="dh">${sndVal(c, o[c])}</span></label><input type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" oninput="sndSet('${k}','${c}',+this.value);this.previousElementSibling.lastChild.textContent=sndVal('${c}',this.value)"${tst ? ` onchange="testVoice('${k}')"` : ''}></div>`;
+      `<div><label>${l} <span class="dh">${sndVal(c, o[c])}</span></label><input type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" ${does(tst ? 'input:sndRange change:sndTest' : 'input:sndRange', k, c)}></div>`;
   return (
     `<div class="tg">${chk('beeps', 'Beeps') + chk('voice', 'Voice coach')}</div>` +
     `
-  <div><label>Voice language</label><select onchange="sndSet('${k}','lang',this.value)">${ls.map((l) => `<option ${l === o.lang ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
-  <div><label>Voice</label><div style="display:flex;gap:var(--space-2)"><select style="flex:1;min-width:0" onchange="sndSet('${k}','voiceURI',this.value);testVoice('${k}')"><option value="">Default for ${esc(o.lang)}</option>${langVoices(
+  <div><label>Voice language</label><select ${does('change:sndSetV', k, 'lang')}>${ls.map((l) => `<option ${l === o.lang ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
+  <div><label>Voice</label><div style="display:flex;gap:var(--space-2)"><select style="flex:1;min-width:0" ${does('change:sndVoice', k)}><option value="">Default for ${esc(o.lang)}</option>${langVoices(
     o.lang,
   )
     .map(
@@ -460,9 +461,9 @@ function sndForm(o, k) {
     )
     .join(
       '',
-    )}</select><button type="button" class="ib" style="padding:var(--space-1) var(--space-3)" onclick="testVoice('${k}')" title="Test voice">${svgi('play', 14)}Test</button></div></div>
+    )}</select><button type="button" class="ib" style="padding:var(--space-1) var(--space-3)" ${does('click:testVoice', k)} title="Test voice">${svgi('play', 14)}Test</button></div></div>
   <div style="grid-column:1/-1;margin-top:-8px">${vTimeInfo(o, k)}</div>
-  <div><label>Speak counts</label><select onchange="sndSet('${k}','speakCounts',this.value)">
+  <div><label>Speak counts</label><select ${does('change:sndSetV', k, 'speakCounts')}>
     ${[
       ['every', 'Every count'],
       ['reps', 'Rep numbers only'],
@@ -470,7 +471,7 @@ function sndForm(o, k) {
     ]
       .map(([v, l]) => `<option value="${v}" ${o.speakCounts === v ? 'selected' : ''}>${l}</option>`)
       .join('')}</select></div>
-  <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" oninput="sndSet('${k}','countdown',+this.value)"></div>
+  <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" ${does('input:sndSetN', k, 'countdown')}></div>
   ${rng('rate', 'Voice speed', '0.7', '1.8', 1)}${rng('pitch', 'Voice pitch', '0.5', '1.5', 1)}`
   );
 }
@@ -566,9 +567,9 @@ function setVolume(v, save) {
 /* the sound control, in every place that makes sound: a speaker that opens mute + volume, as a panel above it ('up', run
    screen) or below it ('down', editor bar), or the same row inline ('inline', Settings) */
 function volCtl(mode) {
-  const row = `<button type="button" class="volmute" onclick="toggleMute()" aria-pressed="false"></button><input type="range" class="volrange" min="0" max="1" step="0.05" aria-label="Volume" oninput="setVolume(this.value)" onchange="setVolume(this.value, true);volTry()"><span class="volpct"></span>`;
+  const row = `<button type="button" class="volmute" ${does('click:toggleMute')} aria-pressed="false"></button><input type="range" class="volrange" min="0" max="1" step="0.05" aria-label="Volume" ${does('input:setVolumeV change:setVolumeDone')}><span class="volpct"></span>`;
   if (mode === 'inline') return `<div class="volrow" role="group" aria-label="Volume">${row}</div>`;
-  return `<button type="button" class="volbtn ${mode === 'up' ? 'sm' : 'ib hb eb'}" onclick="volPanel(this)" aria-expanded="false" aria-label="Sound" title="Sound"></button><div class="volpop ${mode}" role="group" aria-label="Volume" hidden>${row}</div>`;
+  return `<button type="button" class="volbtn ${mode === 'up' ? 'sm' : 'ib hb eb'}" ${does('click:volPanelEl')} aria-expanded="false" aria-label="Sound" title="Sound"></button><div class="volpop ${mode}" role="group" aria-label="Volume" hidden>${row}</div>`;
 }
 function volShow() {
   const pct = Math.round(S.volume * 100) + '%',

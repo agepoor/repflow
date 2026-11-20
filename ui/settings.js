@@ -1,4 +1,5 @@
 /* Settings. */
+import { does } from './actions.js';
 import { PRESETS } from '../core/routine.js';
 import { sndForm, vdShow, volCtl, volShow } from './sound.js';
 import { R, S, persist, setR } from './storage.js';
@@ -34,8 +35,8 @@ function setOpt(k, v) {
 function openSettings() {
   setTimeout(vdShow);
   devForm.innerHTML = `<div class="span-all"><label>Volume</label>${volCtl('inline')}</div>
-  <div class="tg"><label class="chk"><input type="checkbox" ${S.vibrate ? 'checked' : ''} onchange="setOpt('vibrate',this.checked)"> Vibrate (Android)</label>
-  <label class="chk"><input type="checkbox" ${S.wake ? 'checked' : ''} onchange="setOpt('wake',this.checked)"> Keep screen on</label></div>`;
+  <div class="tg"><label class="chk"><input type="checkbox" ${S.vibrate ? 'checked' : ''} ${does('change:setOptChk', 'vibrate')}> Vibrate (Android)</label>
+  <label class="chk"><input type="checkbox" ${S.wake ? 'checked' : ''} ${does('change:setOptChk', 'wake')}> Keep screen on</label></div>`;
   setForm.innerHTML = sndForm(S, 'S');
   volShow();
   renderParts();

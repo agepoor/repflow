@@ -1,4 +1,5 @@
 /* Home screen, routing between views, parts of the day (Settings) and drag to reorder. */
+import { does } from './actions.js';
 import { iconKey } from '../core/routine.js';
 import {
   DN,
@@ -141,8 +142,8 @@ function renderParts() {
   const t = partT(),
     on = partsOn(),
     d = on ? '' : ' disabled';
-  el.innerHTML = `<div class="tg"><label class="chk"><input type="checkbox" ${on ? 'checked' : ''} onchange="setGuide(this.checked)"> Guide me through the day</label></div>
-  <div class="dim"${on ? '' : ''}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" onchange="setPart()"${d}></div><div class="dim"${on ? '' : ''}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" onchange="setPart()"${d}></div>`;
+  el.innerHTML = `<div class="tg"><label class="chk"><input type="checkbox" ${on ? 'checked' : ''} ${does('change:setGuideChk')}> Guide me through the day</label></div>
+  <div class="dim"${on ? '' : ''}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" ${does('change:setPart')}${d}></div><div class="dim"${on ? '' : ''}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" ${does('change:setPart')}${d}></div>`;
   partSum();
 }
 function setGuide(on) {
@@ -207,7 +208,7 @@ function renderList() {
   const dot = (r, sz) =>
     `<div class="dot" style="background:${tint(COLORS[r.color], 13)};color:${COLORS[r.color]}">${svgi(iconKey(r), sz)}</div>`;
   const go = (r, sz) =>
-    `<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" onclick="startRun('${r.id}')" aria-label="Start">${svgi('play', sz)}</button>`;
+    `<button class="go primary" style="background:${COLORS[r.color]};border-color:${COLORS[r.color]}" ${does('click:startRun', r.id)} aria-label="Start">${svgi('play', sz)}</button>`;
   const tot = (r) => build(r).reduce((a, s) => a + (s.dur || 0), 0);
   // today: full card, highlighted until a workout for it is logged today; subtle × skips it for today only
   const full = (r) => {
@@ -217,8 +218,8 @@ function renderList() {
       ok = done(r),
       nx = NX && NX.id === r.id;
     return `<div class="card rcard ${ok ? 'done' : NX && !nx ? 'today soft' : 'today'}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r, 22)}
-   <div class="info tap" onclick="openEditor('${r.id}')"><b>${esc(r.name)}</b>${nx ? '<span class="nxt">Up next</span>' : ''}${ok ? `<span class="ok" title="Done today">${svgi('check', 16, 3)}</span>` : ''}<div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''} · ~${fmt(t)} ${st.some((s) => s.mode === 'tap' || s.type === 'wait') ? '+ tap' : ''}${(r.sec || 1) !== 1 ? ` · count ${r.sec} s` : ''}${r.nolog ? ' · ' + nsTag('not logged', 'Not logged') : r.streak === false ? ' · ' + nsTag('log only', 'Logged, not counted for streak') : ''}${added(r) ? ' · added for today' : ''}</div></div>
-   ${ok ? '' : added(r) ? `<button class="ghost skip" onclick="addToday('${r.id}',false)" title="Remove from today" aria-label="Remove from today">${svgi('x', 16)}</button>` : `<button class="ghost skip" onclick="skipToday('${r.id}',true)" title="Skip today" aria-label="Skip today">${svgi('x', 16)}</button>`}${go(r, 22)}</div>`;
+   <div class="info tap" ${does('click:openEditor', r.id)}><b>${esc(r.name)}</b>${nx ? '<span class="nxt">Up next</span>' : ''}${ok ? `<span class="ok" title="Done today">${svgi('check', 16, 3)}</span>` : ''}<div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''} · ~${fmt(t)} ${st.some((s) => s.mode === 'tap' || s.type === 'wait') ? '+ tap' : ''}${(r.sec || 1) !== 1 ? ` · count ${r.sec} s` : ''}${r.nolog ? ' · ' + nsTag('not logged', 'Not logged') : r.streak === false ? ' · ' + nsTag('log only', 'Logged, not counted for streak') : ''}${added(r) ? ' · added for today' : ''}</div></div>
+   ${ok ? '' : added(r) ? `<button class="ghost skip" ${does('click:addToday', r.id, false)} title="Remove from today" aria-label="Remove from today">${svgi('x', 16)}</button>` : `<button class="ghost skip" ${does('click:skipToday', r.id, true)} title="Skip today" aria-label="Skip today">${svgi('x', 16)}</button>`}${go(r, 22)}</div>`;
   };
   // other routines: one compact row; a skipped one says so and can be brought back, the others can be added to today (+)
   const mini = (r) => {
@@ -226,8 +227,8 @@ function renderList() {
     const dt = daysTxt(r),
       sk = skip(r);
     return `<div class="card rcard mini${sk ? ' skipped' : ''}${flat && tod.includes(r) ? ' tod' : ''}" style="--c:${COLORS[r.color]}" data-id="${r.id}">${hd()}${dot(r, 18)}
-   <div class="info tap" onclick="openEditor('${r.id}')"><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt ? ' · ' + dt : ''}</span></div>
-   ${sk ? `<button class="ghost undo" onclick="skipToday('${r.id}',false)" title="Skipped today · tap to highlight it again">Undo skip</button>` : flat ? '' : `<button class="ghost skip" onclick="addToday('${r.id}',true)" title="Add to today (this time only)" aria-label="Add to today">${svgi('plus', 16)}</button>`}${go(r, 18)}</div>`;
+   <div class="info tap" ${does('click:openEditor', r.id)}><b>${esc(r.name)}</b><span class="muted">~${fmt(tot(r))}${dt ? ' · ' + dt : ''}</span></div>
+   ${sk ? `<button class="ghost undo" ${does('click:skipToday', r.id, false)} title="Skipped today · tap to highlight it again">Undo skip</button>` : flat ? '' : `<button class="ghost skip" ${does('click:addToday', r.id, true)} title="Add to today (this time only)" aria-label="Add to today">${svgi('plus', 16)}</button>`}${go(r, 18)}</div>`;
   };
   const grp = (a, f) => `<div class="grp">${a.map(f).join('')}</div>`;
   const NX = flat || !partsOn() ? null : upNext(); // the suggestion (same one the done screen offers as Next): an Up next label, the others a quieter outline; a guide, any order is fine
@@ -245,13 +246,13 @@ function renderList() {
           .join(''); // Today grouped by part of the day, once any of them has one; the current part is marked "now": a guide, any order is fine
   if (flat && act.length) {
     document.getElementById('list').innerHTML =
-      `<div class="sech shead"><span class="sht">All routines · in order</span><button class="ghost sbtn on" onclick="setSort(false)">${svgi('check', 14, 2.5)}Done</button></div>${grp(act, mini)}`;
+      `<div class="sech shead"><span class="sht">All routines · in order</span><button class="ghost sbtn on" ${does('click:setSort', false)}>${svgi('check', 14, 2.5)}Done</button></div>${grp(act, mini)}`;
   }
   /* home: Today on top (or a quiet note when nothing is left for today), then the other routines; without any days
      planned it is one list. New routine sits at the end; Reorder (under the list) opens the order view, the only place to reorder. */
   else {
     const planned = act.some((r) => rDays(r).length) || tod.length > 0,
-      add = `<button class="addrow" onclick="newRoutine()">${svgi('plus', 20, 2.5)}New routine</button>`;
+      add = `<button class="addrow" ${does('click:newRoutine')}>${svgi('plus', 20, 2.5)}New routine</button>`;
     const head = (t) => `<div class="sech">${t}</div>`;
     const none = `<div class="card noday">${svgi('moon', 18)}<span>${act.some((r) => rDays(r).includes(wd)) ? 'Nothing left for today' : 'Nothing planned for today'}<span class="muted"> · + on a routine adds it to today</span></span></div>`;
     document.getElementById('list').innerHTML = !act.length
@@ -265,10 +266,10 @@ function renderList() {
   }
   const ro =
       !flat && act.length > 1
-        ? `<button class="ghost" onclick="setSort(true)" title="See all routines in their real order and reorder them">${svgi('sort', 16)}Reorder</button>`
+        ? `<button class="ghost" ${does('click:setSort', true)} title="See all routines in their real order and reorder them">${svgi('sort', 16)}Reorder</button>`
         : '',
     ab = arc.length
-      ? `<button class="ghost" onclick="toggleArch()" aria-expanded="${archOpen}">Archived (${arc.length})<span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen ? 90 : 0}deg)">${svgi('right', 16)}</span></button>`
+      ? `<button class="ghost" ${does('click:toggleArch')} aria-expanded="${archOpen}">Archived (${arc.length})<span style="display:inline-flex;transition:transform .15s;transform:rotate(${archOpen ? 90 : 0}deg)">${svgi('right', 16)}</span></button>`
       : '';
   document.getElementById('arch').innerHTML =
     (ro || ab ? `<div class="lfoot">${ro || '<span></span>'}${ab}</div>` : '') +
@@ -278,8 +279,8 @@ function renderList() {
             (
               r,
             ) => `<div class="card rcard arch"><div class="dot" style="background:${tint(COLORS[r.color], 13)};color:${COLORS[r.color]}">${svgi(iconKey(r), 22)}</div>
-   <div class="info tap" onclick="openEditor('${r.id}')"><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''}</div></div>
-   <button onclick="setArchived('${r.id}',false)">Unarchive</button></div>`,
+   <div class="info tap" ${does('click:openEditor', r.id)}><b>${esc(r.name)}</b><div class="muted">${r.rounds} round${r.rounds > 1 ? 's' : ''} · ${r.blocks.length} block${r.blocks.length !== 1 ? 's' : ''}</div></div>
+   <button ${does('click:setArchived', r.id, false)}>Unarchive</button></div>`,
           )
           .join('')
       : '');

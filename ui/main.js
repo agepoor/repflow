@@ -1,5 +1,6 @@
 /* Starts the app: wires the page to the modules, in the order the app always started. */
 import { sndCopy } from '../core/routine.js';
+import { acts, initActions, plainActs } from './actions.js';
 import {
   addBlock,
   closeEditor,
@@ -105,23 +106,18 @@ import {
   skipToday,
   toggleArch,
 } from './views.js';
-// the page's inline handlers (onclick="…") run in global scope: these are the functions they call
-Object.assign(window, {
+// what the page's buttons and fields do (data-on="click:name", see actions.js)
+plainActs({
   addBlock,
-  addPresets,
   addToday,
   askSwitch,
   closeEditor,
   cloud,
-  delHist,
   deleteAcct,
   deleteRoutine,
+  delHist,
   dup,
-  durIn,
-  durOut,
   exportAll,
-  importAll,
-  infoToggle,
   jump,
   keepNewAcct,
   linkProv,
@@ -139,26 +135,19 @@ Object.assign(window, {
   pickColor,
   pickIcon,
   playCombo,
-  pvUpd,
   removeProv,
   resetAll,
   resetAudio,
   rm,
   saveRoutine,
   setArchived,
-  setB,
-  setGuide,
-  setOpt,
   setPart,
-  setRun,
   setSort,
   setWhen,
   show,
   signIn,
   signOutNow,
   skipToday,
-  sndSet,
-  sndVal,
   startRun,
   stopRun,
   syncNow,
@@ -169,14 +158,64 @@ Object.assign(window, {
   toggleArchiveCur,
   toggleDay,
   toggleMute,
-  setVolume,
-  volPanel,
-  volTry,
   togglePause,
   vMeasure,
-  vdHide,
   wkMode,
 });
+const val = (el) => el.value,
+  num = (el) => +el.value,
+  num0 = (el) => +el.value || 0;
+acts({
+  durIn: (el) => durIn(el),
+  durInB: (el, e, id, k) => durIn(el, (s) => setB(id, k, s)),
+  durOut: (el) => durOut(el),
+  importAll: (el) => importAll(el),
+  infoToggle: (el, e, k) => infoToggle(el, k),
+  setBV: (el, e, id, k) => setB(id, k, val(el)),
+  setBN: (el, e, id, k) => setB(id, k, num(el)),
+  setB0: (el, e, id, k) => setB(id, k, num0(el)),
+  setRunV: (el, e, id) => setRun(id, val(el)),
+  setOptChk: (el, e, k) => setOpt(k, el.checked),
+  setGuideChk: (el) => setGuide(el.checked),
+  sndSetV: (el, e, k, c) => sndSet(k, c, val(el)),
+  sndSetN: (el, e, k, c) => sndSet(k, c, num(el)),
+  sndSetChk: (el, e, k, c) => sndSet(k, c, el.checked),
+  // a slider: set it and show its value in the label above
+  sndRange: (el, e, k, c) => {
+    sndSet(k, c, num(el));
+    el.previousElementSibling.lastChild.textContent = sndVal(c, el.value);
+  },
+  sndTest: (el, e, k) => testVoice(k),
+  sndVoice: (el, e, k) => {
+    sndSet(k, 'voiceURI', val(el));
+    testVoice(k);
+  },
+  setVolumeV: (el) => setVolume(el.value),
+  setVolumeDone: (el) => {
+    setVolume(el.value, true);
+    volTry();
+  },
+  volPanelEl: (el) => volPanel(el),
+  vdHideLink: (el, e) => {
+    e.preventDefault();
+    vdHide();
+  },
+  // the mini player's pause button: doesn't also open the workout
+  pauseOnly: () => {
+    togglePause();
+    return false;
+  },
+  toggleIconGrid: () => (iconGrid.hidden = !iconGrid.hidden),
+  restorePresets: () => {
+    if (
+      confirm(
+        'Reset the 5 default routines to their original version? Routines with the same name are replaced (duplicates removed); your own routines are kept. Use Reset all to remove those too.',
+      )
+    )
+      addPresets();
+  },
+});
+initActions();
 
 addEventListener('pagehide', saveDraft);
 document.addEventListener('visibilitychange', () => {

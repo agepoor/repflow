@@ -1,4 +1,5 @@
 /* The run screen: plays a workout with the timer engine (core/engine.js), shows it, and keeps it in sync across devices. */
+import { does } from './actions.js';
 import { advance, boxStr, comboGap, drawCombo, guidedAt, secondCues, unbox } from '../core/engine.js';
 import { iconKey, mig, norm, uid } from '../core/routine.js';
 import { build, callTxt, moves, rTot, spoken, stepLen } from '../core/steps.js';
@@ -130,7 +131,7 @@ function liveCard() {
   const r = X.r,
     c = COLORS[r.color] || COLORS.blue,
     p = X.p != null;
-  return `<div class="card rcard live" id="mcard" style="--c:${c}" onclick="maxRun()" role="button" aria-label="Open workout"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name)}</b><div class="muted" id="mbTx"></div></div><span class="mexp" aria-hidden="true">${svgi('up', 18)}</span><button class="go primary" id="mbPP" style="background:${c};border-color:${c}" onclick="event.stopPropagation();togglePause()" aria-label="${p ? 'Resume' : 'Pause'}">${svgi(p ? 'play' : 'pause', 22)}</button><i id="mbP"></i></div>`;
+  return `<div class="card rcard live" id="mcard" style="--c:${c}" ${does('click:maxRun')} role="button" aria-label="Open workout"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name)}</b><div class="muted" id="mbTx"></div></div><span class="mexp" aria-hidden="true">${svgi('up', 18)}</span><button class="go primary" id="mbPP" style="background:${c};border-color:${c}" ${does('click:pauseOnly')} aria-label="${p ? 'Resume' : 'Pause'}">${svgi(p ? 'play' : 'pause', 22)}</button><i id="mbP"></i></div>`;
 }
 const shown = (el) => (el && el.offsetParent ? el.getBoundingClientRect() : null);
 function minRun(back) {
@@ -549,10 +550,10 @@ function showDone() {
   ];
   if (entry.reps) st.push([entry.reps, 'Reps']);
   if (entry.calls) st.push([entry.calls, 'Combos']);
-  doneView.innerHTML = `<div class="badge">${svgi('check', 48, 3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r), 16)}<span>${esc(r.name)}</span></div>${ask ? `<div class="streak text-muted">Ended while the app was closed · <button class="ghost" style="padding:var(--space-half) var(--space-1);color:var(--accent-text);font-weight:700" onclick="logLate()">Log it</button></div>` : !L ? `<div class="streak text-muted">${svgi('nolog', 16)}${r.test ? 'Test run · not logged' : 'Not logged'}</div>` : (H.find((h) => h.id === entry.id) || entry).streak === false ? `<div class="streak text-muted">${svgi('nolog', 16)}Logged · not counted for streak</div>` : L.cur ? `<div class="streak">${svgi('flame', 16)}${L.cur}-day streak${L.newBest ? ' · new best!' : ''}</div>` : ''}
+  doneView.innerHTML = `<div class="badge">${svgi('check', 48, 3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r), 16)}<span>${esc(r.name)}</span></div>${ask ? `<div class="streak text-muted">Ended while the app was closed · <button class="ghost" style="padding:var(--space-half) var(--space-1);color:var(--accent-text);font-weight:700" ${does('click:logLate')}>Log it</button></div>` : !L ? `<div class="streak text-muted">${svgi('nolog', 16)}${r.test ? 'Test run · not logged' : 'Not logged'}</div>` : (H.find((h) => h.id === entry.id) || entry).streak === false ? `<div class="streak text-muted">${svgi('nolog', 16)}Logged · not counted for streak</div>` : L.cur ? `<div class="streak">${svgi('flame', 16)}${L.cur}-day streak${L.newBest ? ' · new best!' : ''}</div>` : ''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
-    ${nx ? `<button class="primary nextb" style="background:${COLORS[nx.color] || ''};border-color:${COLORS[nx.color] || ''}" onclick="startRun('${nx.id}')">${svgi('play', 20)}<span>Next: ${esc(nx.name)} · ~${fmt(rTot(nx))}</span></button>` : ''}
-    <div class="acts"><button onclick="stopRun()">${svgi('x', 18)}Close</button><button class="${nx ? '' : 'primary'}" style="${nx ? '' : `background:${COLORS[r.color] || ''};border-color:${COLORS[r.color] || ''}`}" onclick="startRun('${r.id}',${!!r.test})">${svgi('play', 18)}Again</button></div>`;
+    ${nx ? `<button class="primary nextb" style="background:${COLORS[nx.color] || ''};border-color:${COLORS[nx.color] || ''}" ${does('click:startRun', nx.id)}>${svgi('play', 20)}<span>Next: ${esc(nx.name)} · ~${fmt(rTot(nx))}</span></button>` : ''}
+    <div class="acts"><button ${does('click:stopRun')}>${svgi('x', 18)}Close</button><button class="${nx ? '' : 'primary'}" style="${nx ? '' : `background:${COLORS[r.color] || ''};border-color:${COLORS[r.color] || ''}`}" ${does('click:startRun', r.id, !!r.test)}>${svgi('play', 18)}Again</button></div>`;
 }
 function logLate() {
   if (!LAST || !LAST.ask) return;
