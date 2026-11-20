@@ -1,4 +1,5 @@
 /* Shared HTML bits: icons, colours, escaping, the toast, info boxes. */
+import { does } from './actions.js';
 import { MOVES } from '../core/steps.js';
 const IC = {
   activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -106,7 +107,7 @@ function infoToggle(el, k) {
   else OPEN.delete(k);
 } // keeps an info box open across re-renders
 function info(k, title, body) {
-  return `<details class="info" ${OPEN.has(k) ? 'open' : ''} ontoggle="infoToggle(this,'${k}')"><summary>${title}</summary><div class="body">${body}</div></details>`;
+  return `<details class="info" ${OPEN.has(k) ? 'open' : ''} ${does('toggle:infoToggle', k)}><summary>${title}</summary><div class="body">${body}</div></details>`;
 }
 function nsTag(t, title, s = 13) {
   return `<span class="nst" title="${title}">${svgi('nolog', s)}${t}</span>`;

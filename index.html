@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- the same policy as the header in firebase.json (minus frame-ancestors, which only works as a header),
+         for hosts that can't send headers (GitHub Pages); test/csp.test.js keeps them in step -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://*.europe-west1.firebasedatabase.app; connect-src 'self' https://*.googleapis.com https://*.europe-west1.firebasedatabase.app wss://*.europe-west1.firebasedatabase.app; frame-src https://workout-pacer.firebaseapp.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <!-- the same as the --bg token (design/tokens.json); a meta tag cannot use CSS variables -->
     <meta name="theme-color" content="#171717" />
@@ -85,11 +91,11 @@
           </svg>
         </h1>
         <div class="row">
-          <button class="ghost" id="weekBtn" onclick="openWeek()" title="This week" aria-label="This week">
+          <button class="ghost" id="weekBtn" data-on="click:openWeek" title="This week" aria-label="This week">
             <span id="weekIc"></span>
           </button>
-          <button class="ghost ib" id="histBtn" onclick="openHist()" title="History" aria-label="History"></button>
-          <button class="ghost" id="setBtn" onclick="openSettings()" title="Settings" aria-label="Settings">
+          <button class="ghost ib" id="histBtn" data-on="click:openHist" title="History" aria-label="History"></button>
+          <button class="ghost" id="setBtn" data-on="click:openSettings" title="Settings" aria-label="Settings">
             <span id="gearIc"></span><i id="syncDot" hidden></i>
           </button>
         </div>
@@ -102,7 +108,7 @@
     <!-- HISTORY -->
     <section id="hist" class="view">
       <header>
-        <button class="ghost ib hb" onclick="show('lib')" title="Back">
+        <button class="ghost ib hb" data-on="click:show" data-args='["lib"]' title="Back">
           <i data-ic="back"></i><span class="lbl">Back</span>
         </button>
         <h2 class="m-0">History</h2>
@@ -114,7 +120,7 @@
     <!-- WEEK -->
     <section id="week" class="view">
       <header>
-        <button class="ghost ib hb" onclick="show('lib')" title="Back">
+        <button class="ghost ib hb" data-on="click:show" data-args='["lib"]' title="Back">
           <i data-ic="back"></i><span class="lbl">Back</span>
         </button>
         <h2 class="m-0">Week</h2>
@@ -126,27 +132,28 @@
     <!-- EDITOR -->
     <section id="edit" class="view">
       <header>
-        <button class="ghost ib hb" onclick="closeEditor()" title="Back">
+        <button class="ghost ib hb" data-on="click:closeEditor" title="Back">
           <i data-ic="back"></i><span class="lbl">Back</span>
         </button>
         <div class="row">
-          <button class="ib hb eb" id="archBtn" onclick="toggleArchiveCur()"></button
-          ><button class="danger ib hb eb" onclick="deleteRoutine()" title="Delete">
+          <button class="ib hb eb" id="archBtn" data-on="click:toggleArchiveCur"></button
+          ><button class="danger ib hb eb" data-on="click:deleteRoutine" title="Delete">
             <i data-ic="trash"></i><span class="lbl">Delete</span></button
           ><span class="volctl" data-vol="down"></span
           ><button
             class="ib eb tst"
-            onclick="saveRoutine('test')"
+            data-on="click:saveRoutine"
+            data-args='["test"]'
             title="Test run: not logged, no streak"
             aria-label="Test run"
           >
             <i data-ic="flask"></i><span class="lbl">Test</span></button
-          ><button class="ib eb go1" onclick="saveRoutine(true)"><i data-ic="play"></i>Start</button>
+          ><button class="ib eb go1" data-on="click:saveRoutine" data-args="[true]"><i data-ic="play"></i>Start</button>
         </div>
       </header>
       <div class="card">
         <div class="row" style="flex-wrap: nowrap; align-items: stretch">
-          <button id="eIconBtn" class="iconpick" onclick="iconGrid.hidden = !iconGrid.hidden" title="Icon"></button>
+          <button id="eIconBtn" class="iconpick" data-on="click:toggleIconGrid" title="Icon"></button>
           <input id="eName" style="font-size: var(--fs-xl); font-weight: 700" placeholder="Routine name" />
         </div>
         <div id="iconGrid" class="icongrid" hidden></div>
@@ -168,8 +175,7 @@
                 autocomplete="off"
                 placeholder="0:00"
                 data-min="0"
-                oninput="durIn(this)"
-                onblur="durOut(this)"
+                data-on="input:durIn blur:durOut"
               /><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button
               ><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button>
             </div>
@@ -195,8 +201,7 @@
                 autocomplete="off"
                 placeholder="0:00"
                 data-min="0"
-                oninput="durIn(this)"
-                onblur="durOut(this)"
+                data-on="input:durIn blur:durOut"
               /><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button
               ><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button>
             </div>
@@ -277,18 +282,18 @@
       <div id="blocks"></div>
       <div class="row">
         <span class="muted">Add block:</span>
-        <button class="ib" onclick="addBlock('reps')"><i data-ic="hash"></i>Reps / counts</button>
-        <button class="ib" onclick="addBlock('timed')"><i data-ic="timer"></i>Timed</button>
-        <button class="ib" onclick="addBlock('seq')"><i data-ic="steps"></i>Sequence</button>
-        <button class="ib" onclick="addBlock('boxing')"><i data-ic="glove"></i>Boxing combos</button>
-        <button class="ib" onclick="addBlock('rest')"><i data-ic="moon"></i>Rest</button>
+        <button class="ib" data-on="click:addBlock" data-args='["reps"]'><i data-ic="hash"></i>Reps / counts</button>
+        <button class="ib" data-on="click:addBlock" data-args='["timed"]'><i data-ic="timer"></i>Timed</button>
+        <button class="ib" data-on="click:addBlock" data-args='["seq"]'><i data-ic="steps"></i>Sequence</button>
+        <button class="ib" data-on="click:addBlock" data-args='["boxing"]'><i data-ic="glove"></i>Boxing combos</button>
+        <button class="ib" data-on="click:addBlock" data-args='["rest"]'><i data-ic="moon"></i>Rest</button>
       </div>
     </section>
 
     <!-- SETTINGS -->
     <section id="set" class="view">
       <header>
-        <button class="ghost" onclick="show('lib')">← Back</button>
+        <button class="ghost" data-on="click:show" data-args='["lib"]'>← Back</button>
         <h2>Settings</h2>
         <span></span>
       </header>
@@ -311,8 +316,8 @@
             border-top: 1px solid var(--border);
           "
         >
-          <button class="ib" onclick="testAudio()"><i data-ic="vol"></i>Test sound & voice</button
-          ><button class="ib ghost" onclick="resetAudio()"><i data-ic="refresh"></i>Reset to defaults</button>
+          <button class="ib" data-on="click:testAudio"><i data-ic="vol"></i>Test sound & voice</button
+          ><button class="ib ghost" data-on="click:resetAudio"><i data-ic="refresh"></i>Reset to defaults</button>
         </div>
         <div
           id="vdiag"
@@ -340,7 +345,7 @@
         <h2 class="mb-2">Backup</h2>
         <p class="muted m-0 mb-3">Save your routines to a file, or load them from one.</p>
         <div class="row">
-          <button class="ib" onclick="exportAll()">Export JSON</button>
+          <button class="ib" data-on="click:exportAll">Export JSON</button>
           <label
             class="ib"
             style="
@@ -352,7 +357,7 @@
               color: var(--text);
               font-size: var(--fs-md);
             "
-            >Import JSON<input type="file" accept=".json" hidden onchange="importAll(this)"
+            >Import JSON<input type="file" accept=".json" hidden data-on="change:importAll"
           /></label>
         </div>
       </div>
@@ -363,20 +368,8 @@
           <b class="text">Reset all</b> deletes everything and starts over with the defaults.
         </p>
         <div class="row">
-          <button
-            class=""
-            onclick="
-              if (
-                confirm(
-                  'Reset the 5 default routines to their original version? Routines with the same name are replaced (duplicates removed); your own routines are kept. Use Reset all to remove those too.',
-                )
-              )
-                addPresets();
-            "
-          >
-            Restore presets
-          </button>
-          <button class="danger" onclick="resetAll()">Reset all</button>
+          <button class="" data-on="click:restorePresets">Restore presets</button>
+          <button class="danger" data-on="click:resetAll">Reset all</button>
         </div>
       </div>
     </section>
@@ -386,16 +379,16 @@
       <div class="top">
         <div class="meta">
           <span class="ml"
-            ><button id="minBtn" onclick="minRun()" title="Minimize" aria-label="Minimize"></button
+            ><button id="minBtn" data-on="click:minRun" title="Minimize" aria-label="Minimize"></button
             ><span id="rName"></span></span
           ><span id="rRound"></span>
         </div>
         <div class="bar"><i id="rBar"></i></div>
-        <div class="lw"><button id="live" hidden onclick="liveTap()"></button></div>
+        <div class="lw"><button id="live" hidden data-on="click:liveTap"></button></div>
       </div>
       <div id="call"></div>
       <div id="phase"></div>
-      <div id="stage" onclick="tap()">
+      <div id="stage" data-on="click:tap">
         <svg viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="5" />
           <circle
@@ -422,10 +415,10 @@
       <div id="tapHint"></div>
       <div id="doneView"></div>
       <div class="ctrl">
-        <button class="sm" onclick="stopRun()" title="Stop" aria-label="Stop"></button>
-        <button class="md" onclick="jump(-1)" title="Previous" aria-label="Previous"></button>
-        <button id="pp" onclick="togglePause()" aria-label="Pause"></button>
-        <button class="md" onclick="jump(1)" title="Next" aria-label="Next"></button>
+        <button class="sm" data-on="click:stopRun" title="Stop" aria-label="Stop"></button>
+        <button class="md" data-on="click:jump" data-args="[-1]" title="Previous" aria-label="Previous"></button>
+        <button id="pp" data-on="click:togglePause" aria-label="Pause"></button>
+        <button class="md" data-on="click:jump" data-args="[1]" title="Next" aria-label="Next"></button>
         <div class="volctl" data-vol="up"></div>
       </div>
     </div>
