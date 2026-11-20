@@ -1,6 +1,6 @@
 /* Account & sync: Google / GitHub sign-in (Firebase, in cloud.js) for routines, history and the running workout. */
 import { runLive, unbox } from '../core/engine.js';
-import { merge } from '../core/merge.js';
+import { changed, docOf, itemsOf, merge, norm, print } from '../core/merge.js';
 import { PRESETS, iconKey } from '../core/routine.js';
 import { renderHist, streaks, updHistBtn } from './history.js';
 import { COLORS, esc, svgi, tint, toast } from './html.js';
@@ -65,7 +65,7 @@ let CLOUD = null,
 let NEWACCT = false,
   DOC1 = false; // signed in to an account that had no data yet (maybe a second account by mistake)
 let SWITCH = null,
-  PEND,
+  PEND, // the account's first data while a choice is pending: {raw, legacy, empty}
   PENDRUN,
   DELNOTE = ''; // another account signed in than this device last synced with: wait for a choice before merging
 let CR = null,
@@ -73,6 +73,27 @@ let CR = null,
 function saveSY() {
   store(localStorage, 'rf2_sync', JSON.stringify(SY));
 }
+/* what the account stores, as far as this device knows: per item a fingerprint (core/merge.js print), and the newest
+   written time seen, so the next start asks only for items written since. Only valid for that account and this device's data */
+let SYN = { uid: '', seen: 0, items: {} };
+try {
+  SYN = { ...SYN, ...JSON.parse(localStorage.getItem('rf2_synced') || 'null') };
+} catch (e) {}
+const saveSYN = () => store(localStorage, 'rf2_synced', JSON.stringify(SYN));
+const resetSYN = (uid = '') => {
+  SYN = { uid, seen: 0, items: {} };
+  saveSYN();
+};
+/* while connected and listening, this device has everything the account had a moment ago: remember when, so the next
+   start asks only for items written since then (cloud.js subtracts a margin for writes still on their way) */
+let LISTENING = false;
+function markSeen() {
+  if (!CU || !CLOUD || !online || !LISTENING || SYN.uid !== CU.uid) return;
+  SYN.seen = Math.max(SYN.seen, CLOUD.now());
+  saveSYN();
+}
+document.addEventListener('visibilitychange', () => document.hidden && markSeen());
+addEventListener('pagehide', markSeen);
 const pname = (p) => ({ google: 'Google', github: 'GitHub', 'google.com': 'Google', 'github.com': 'GitHub' })[p] || p;
 /* the sign-in code (and Firebase) only loads once you open Settings or have signed in on this device */
 function cloud() {
@@ -83,7 +104,9 @@ function cloud() {
       if (
         !(await m.start({
           user: onUser,
-          doc: onDoc,
+          items: (raw, first) => onRemote(raw, first, false),
+          legacy: onLegacy,
+          seen: (uid) => (SYN.uid === uid ? SYN.seen : 0),
           run: onRemoteRun,
           conn: onConn,
           offset: onOffset,
@@ -119,6 +142,7 @@ function onUser(u) {
   if (u) store(localStorage, 'rf2_acct', '1');
   else localStorage.removeItem('rf2_acct');
   if (!u || u.uid !== was) {
+    LISTENING = false;
     CR = null;
     CR1 = false;
     NEWACCT = false;
@@ -195,57 +219,87 @@ function localDoc() {
     parts: META.parts,
   };
 }
-function applyRemote(txt) {
-  let remote = {};
-  try {
-    remote = JSON.parse(txt || '{}') || {};
-  } catch (e) {}
-  const m = merge(localDoc(), remote);
-  setR(m.routines);
-  META.deleted = m.deleted;
-  META.orderTs = m.order.ts;
-  if (m.parts) META.parts = m.parts;
-  setH(m.history);
-  setHDEL(m.hdel);
-  saveH();
-  setSNAP(snapOf());
-  saveRaw();
-  renderList();
-  if (document.getElementById('set').classList.contains('on') && !document.activeElement.closest('#partForm'))
-    renderParts();
-  if (document.getElementById('hist').classList.contains('on')) renderHist();
-  if (LAST && LAST.ask && H.some((h) => h.id === LAST.entry.id)) {
-    LAST.ask = false;
-    LAST.L = { ...streaks(), newBest: false };
-    updHistBtn();
-    if (run.classList.contains('fin')) showDone();
-  } // already logged on another device
-  return JSON.stringify(m);
+/* merges items from the account into this device's data. stored: they are what the account holds (not the old document
+   being moved), so they count as synced. Returns whether this device now has something to upload */
+function applyRemote(raw, stored = true) {
+  if (!CU) return false;
+  if (SYN.uid !== CU.uid) resetSYN(CU.uid);
+  const got = {};
+  Object.entries(raw || {}).forEach(([k, v]) => {
+    const n = norm(k, v);
+    if (!n) return;
+    if (stored) {
+      if (v && v.m > SYN.seen) SYN.seen = v.m;
+      const p = print(n);
+      if (SYN.items[k] === p) return; // nothing new (e.g. this device's own write coming back)
+      SYN.items[k] = p;
+    }
+    got[k] = n;
+  });
+  if (stored) saveSYN();
+  if (Object.keys(got).length) {
+    const ids = Object.keys(SYN.items)
+      .filter((k) => k.startsWith('r/'))
+      .map((k) => k.slice(2));
+    const m = merge(localDoc(), docOf(got), ids);
+    setR(m.routines);
+    META.deleted = m.deleted;
+    META.orderTs = m.order.ts;
+    if (m.parts) META.parts = m.parts;
+    setH(m.history);
+    setHDEL(m.hdel);
+    saveH();
+    setSNAP(snapOf());
+    saveRaw();
+    renderList();
+    if (document.getElementById('set').classList.contains('on') && !document.activeElement.closest('#partForm'))
+      renderParts();
+    if (document.getElementById('hist').classList.contains('on')) renderHist();
+    if (LAST && LAST.ask && H.some((h) => h.id === LAST.entry.id)) {
+      LAST.ask = false;
+      LAST.L = { ...streaks(), newBest: false };
+      updHistBtn();
+      if (run.classList.contains('fin')) showDone();
+    } // already logged on another device
+  }
+  return changed(itemsOf(localDoc()), SYN.items).length > 0;
 }
-function onDoc(txt) {
+/* items from the account: on start (first) the changes since this device last looked, then each change */
+function onRemote(raw, first, legacy, empty) {
   if (!CU) return;
   if (SWITCH) {
-    const first = PEND === undefined;
-    PEND = txt;
-    if (first) askSwitch();
+    if (PEND === undefined) {
+      PEND = { raw, legacy, empty };
+      askSwitch();
+    } else if (!legacy) PEND.raw = { ...PEND.raw, ...raw };
     return;
   }
-  if (!DOC1) {
+  if (first && !DOC1) {
     DOC1 = true;
     saveAcct();
-    if (txt == null) {
+    if (empty) {
       NEWACCT = true;
       refreshAcct();
     }
   }
-  const out = applyRemote(txt);
-  if (out !== txt) scheduleSync(300);
-  else {
+  if (!legacy) LISTENING = true;
+  if (applyRemote(raw, !legacy) || legacy) scheduleSync(300);
+  else if (first) {
     SY.last = Date.now();
     saveSY();
     syncFails = 0;
     setSync('ok');
   }
+}
+/* an account that hasn't moved to items yet: its old single document (null: a new account), read once. The next sync
+   uploads everything as items */
+function onLegacy(txt) {
+  let doc = {};
+  try {
+    doc = JSON.parse(txt || '{}') || {};
+  } catch (e) {}
+  if (CU) resetSYN(CU.uid); // nothing of this account is stored as items yet
+  onRemote(itemsOf(doc), true, true, txt == null);
 }
 async function syncNow() {
   if (!CU || !CLOUD || SWITCH) return;
@@ -256,10 +310,20 @@ async function syncNow() {
   syncBusy = true;
   if (online) setSync('busy');
   try {
-    await CLOUD.update((txt) => {
-      const out = applyRemote(txt);
-      return out === txt ? undefined : out;
-    });
+    if (SYN.uid !== CU.uid) resetSYN(CU.uid);
+    const it = itemsOf(localDoc());
+    const list = Object.fromEntries(changed(it, SYN.items).map((k) => [k, it[k]]));
+    if (Object.keys(list).length) {
+      // what the account now stores: ours, or its own if that was newer
+      applyRemote(await CLOUD.put(list));
+      // the account kept an equally new copy that differs only in form (e.g. migrated here, not there): don't send it
+      // again on every sync. Only for items not edited again meanwhile
+      const now = itemsOf(localDoc());
+      changed(now, SYN.items)
+        .filter((k) => list[k] && print(now[k]) === print(list[k]))
+        .forEach((k) => (SYN.items[k] = print(now[k])));
+      saveSYN();
+    }
     SY.last = Date.now();
     saveSY();
     syncFails = 0;
@@ -360,6 +424,7 @@ function clearLocal(none) {
   setLAST(null);
   SY.last = 0;
   saveSY();
+  resetSYN(); // nothing is synced any more: the next start downloads the account's data in full
   saveH();
   setSNAP(snapOf());
   saveRaw();
@@ -472,7 +537,7 @@ function onGone() {
 }
 /* a different account than last time: add this device's data to it, use only its data, or sign out (wrong account) */
 function askSwitch() {
-  const fresh = PEND == null,
+  const fresh = !!(PEND && PEND.empty),
     me = CU.email || CU.name || 'this account';
   ask({
     title: 'Data from another account',
@@ -493,14 +558,14 @@ function askSwitch() {
   });
 }
 function switchTo(only) {
-  const txt = PEND,
+  const p = PEND || { raw: {} },
     run = PENDRUN;
   SWITCH = null;
   PEND = undefined;
   PENDRUN = undefined;
-  if (only) clearLocal(txt != null); // the account's own data only (defaults if it has none)
-
-  onDoc(txt);
+  if (only) clearLocal(!p.empty); // the account's own data only (defaults if it has none)
+  resetSYN(CU.uid);
+  onRemote(p.raw, true, p.legacy, p.empty);
   NEWACCT = false;
   if (run !== undefined) onRemoteRun(run);
   refreshAcct();

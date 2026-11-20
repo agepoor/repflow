@@ -29,7 +29,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 
 - `index.html`: the page and all views. Loads `tokens.css`, `styles.css` (all CSS) and `ui/main.js`.
 - `design/`: the design tokens (`tokens.json`: colours, spacing, type, radii, durations), the script that writes `tokens.css` from them, and the design rules (`design/README.md`).
-- `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge (`merge.js`), durations and dates (`time.js`).
+- `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge and the items the account stores (`merge.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`. Changing the rules: update `test/rules/` and run `npm run test:rules`.
 - `schema/routine.schema.json`: the routine format (JSON Schema), versioned by `cv`. Served with the site.
@@ -43,7 +43,8 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - `core/` only imports from `core/`. `ui/` calls into `core/`, never the other way round. Pass state into core functions instead of reading globals.
 - Functions called from inline `onclick="…"` handlers in `index.html` must be added to the `Object.assign(window, …)` list in `ui/main.js`.
 - New or renamed file the app loads: add it to `FILES` in `sw.js`, or the app breaks offline. Don't edit `CACHE`: `build.sh` names it after the commit, so every deploy refreshes the offline cache.
-- Never rename storage keys (`rf2_*`) or synced paths (`users/<uid>/doc`, `users/<uid>/run`): it would lose people's data.
+- Never rename storage keys (`rf2_*`) or synced paths (`users/<uid>/v2/…`, `users/<uid>/run`, and the old `users/<uid>/doc`, read once to move an account): it would lose people's data.
+- Sync stores one item per routine and workout (`users/<uid>/v2/routines/<id>`, `…/history/<id>`, plus `order`, `parts`, `since`), each with `m`, when it was written. A device asks only for items written since it last looked (`rf2_synced`), so a change to sync should keep downloads to what changed. The rules for which version wins live in `core/merge.js` (`merge`, `newer`); `database.rules.json` indexes `m`.
 - Changing the routine data shape: update `schema/routine.schema.json`, add a step to `MIGRATIONS` in `core/routine.js` and bump `CV` (the schema's `cv`), so old routines, exports and other synced devices keep working. `test/schema.test.js` checks that routines are valid. Sync merges across devices (`core/merge.js`), so new fields need a sensible merge.
 - Use the design tokens, never hard-coded values: colours by role (`--text-muted`, `--surface`, `--accent-text`, `--routine-blue`), spacing on the 4px grid (`--space-3`), the type scale (`--fs-sm`), `--radius-*`, `--duration-*`. Follow the rules in `design/README.md` (contrast, scales, touch targets); `test/tokens.test.js` checks the colour ones. A light theme is planned, so don't assume dark.
 - Repeated inline styles become classes (the utilities at the end of `styles.css`).
