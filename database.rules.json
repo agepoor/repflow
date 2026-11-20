@@ -3,7 +3,11 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+        "v2": {
+          "routines": { ".indexOn": ["m"] },
+          "history": { ".indexOn": ["m"] }
+        }
       }
     }
   }

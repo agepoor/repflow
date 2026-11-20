@@ -41,12 +41,19 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   // Start every test from the same data: two users with a routine doc and a running timer
-  const user = { doc: { routines: [] }, run: { at: 1 } };
+  const v2 = {
+    routines: { r1: { m: 10, d: '{}' }, r2: { m: 30, d: '{}' } },
+    history: { h1: { m: 20, d: '{}' } },
+    order: { ts: 1 },
+    parts: { ts: 1 },
+    since: 1,
+  };
+  const user = { doc: { routines: [] }, run: { at: 1 }, v2 };
   expect(await call('PUT', '', 'owner', { users: { alice: user, bob: user } })).toBe(200);
 });
 
-// The paths the app syncs (cloud.js); never renamed
-const PATHS = ['doc', 'run'];
+// The paths the app syncs (cloud.js); never renamed. doc is the old single document, v2/* one item per routine/workout
+const PATHS = ['doc', 'run', 'v2/routines/r1', 'v2/history/h1', 'v2/order', 'v2/parts', 'v2/since'];
 
 describe('signed in', () => {
   it.each(PATHS)('reads and writes their own %s', async (p) => {
@@ -70,6 +77,25 @@ describe('signed in', () => {
 
   it("can't write outside users/", async () => {
     expect(await write('other', 'alice')).toBe(401);
+  });
+});
+
+describe('changes since a time', () => {
+  // a device asks only for items written since it last looked: without the index Firebase refuses (or sends everything)
+  const since = (path, as, t) =>
+    fetch(`http://${HOST}/${path}.json?ns=${NS}&orderBy=%22m%22&startAt=${t}&auth=${token(as)}`).then(async (r) => [
+      r.status,
+      await r.json(),
+    ]);
+
+  it.each(['routines', 'history'])('%s can be asked for by when they were written', async (p) => {
+    const [status, body] = await since(`users/alice/v2/${p}`, 'alice', 15);
+    expect(status).toBe(200);
+    expect(Object.keys(body)).toEqual(p === 'routines' ? ['r2'] : ['h1']);
+  });
+
+  it("not for someone else's items", async () => {
+    expect((await since('users/bob/v2/routines', 'alice', 0))[0]).toBe(401);
   });
 });
 
