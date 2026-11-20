@@ -13,6 +13,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:rules": "npx --yes firebase-tools@15.37.0 emulators:exec --only database --project demo-punchpace \"vitest run --config vitest.rules.config.js\"",
     "check": "npm run lint && npm run format:check && npm test",
     "tokens": "node design/tokens.js && prettier --write tokens.css"
   },
