@@ -1,6 +1,7 @@
 name: Check and deploy
-# Pull requests: lint, format check and tests, plus the database rules tests against the emulator.
-# main: the same checks, then deploy to https://agepoor.github.io/repflow/ only if they pass.
+# Pull requests: lint, format check and tests, plus the database rules tests against the emulator, then a preview on
+# Firebase Hosting with its link on the PR.
+# main: the same checks, then deploy to https://agepoor.github.io/repflow/ and https://workout-pacer.web.app only if they pass.
 on:
   push:
     branches: [main]
@@ -61,3 +62,30 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v5
+  firebase:
+    needs: [check, rules]
+    # main goes live; a pull request gets a preview (its link is commented on the PR, kept 7 days)
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    concurrency:
+      group: firebase-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      # Dependabot and forks get no secrets: then the deploy is skipped instead of failing
+      KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build site
+        run: bash build.sh _site
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: env.KEY != ''
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER }}
+          projectId: workout-pacer
+          channelId: ${{ github.event_name != 'pull_request' && 'live' || '' }}
+          expires: 7d
