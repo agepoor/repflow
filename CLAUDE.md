@@ -12,6 +12,7 @@ No bundler: plain ES modules, served as static files. `package.json` only holds 
 npm ci                                       # install the dev tools
 npm run check                                # lint, format check and tests: run before every commit
 npm test                                     # tests only (npm run test:watch while working)
+npm run test:rules                           # database rules tests in the Firebase emulator (needs Java 11+; CI runs them too)
 npm run format                               # apply Prettier
 npm run tokens                               # write tokens.css after changing design/tokens.json
 bash build.sh _site                          # build the site (decodes icons/fonts from base64)
@@ -30,11 +31,11 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - `design/`: the design tokens (`tokens.json`: colours, spacing, type, radii, durations), the script that writes `tokens.css` from them, and the design rules (`design/README.md`).
 - `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge (`merge.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
-- `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`.
+- `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`. Changing the rules: update `test/rules/` and run `npm run test:rules`.
 - `schema/routine.schema.json`: the routine format (JSON Schema), versioned by `cv`. Served with the site.
-- `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time.
+- `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time. `test/rules/` tests `database.rules.json` against the Realtime Database emulator (`firebase.json`, `vitest.rules.config.js`, project `demo-punchpace`); `npm test` skips it.
 - `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.
-- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` on pull requests and on `main`, and deploys `main` to GitHub Pages only when it passes. `.github/dependabot.yml`: weekly update PRs for the dev tools and actions (the Firebase SDK version in `cloud.js` is updated by hand). Secret scanning, Dependabot alerts and CodeQL code scanning are on in the repo settings.
+- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` and `npm run test:rules` on pull requests and on `main`, and deploys `main` to GitHub Pages only when both pass. `.github/dependabot.yml`: weekly update PRs for the dev tools and actions (the Firebase SDK version in `cloud.js` and the firebase-tools version in `test:rules` are updated by hand). Secret scanning, Dependabot alerts and CodeQL code scanning are on in the repo settings.
 
 ## Rules
 
