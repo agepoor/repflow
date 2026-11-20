@@ -1,6 +1,8 @@
 /* Workout Pacer v2: account (Google / GitHub sign-in via Firebase Auth) and sync (Firebase Realtime Database).
    Paste the web-app config from the Firebase console (Project settings → Your apps) below. These values are public
    identifiers, not secrets: access is limited by database.rules.json (each account can only read/write users/<its uid>). */
+import { newer } from './core/merge.js';
+
 export const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBcskek0bCUDnG8xDArFPbUxzpFQsMjdUs',
   authDomain: 'workout-pacer.firebaseapp.com',
@@ -45,7 +47,8 @@ const provider = (p) => {
   return x;
 };
 
-/* hooks: user(info|null), doc(json string|null), run(object|null), conn(bool), offset(ms), error(err), gone() = account deleted elsewhere */
+/* hooks: user(info|null), items(key → value, first?) changed items, legacy(json string|null) the old document of an account
+   that hasn't moved yet, seen(uid) newest m this device has, run(object|null), conn(bool), offset(ms), error(err), gone() = account deleted elsewhere */
 export async function start(h) {
   if (!FIREBASE_CONFIG) return false;
   hooks = h;
@@ -94,49 +97,103 @@ const open = () => {
   if (settle) settle.res();
   settle = null;
 };
+/* The account's data is one item per routine and workout under users/<uid>/v2 (see core/merge.js), each with m: when it
+   was written. A device asks only for items written since it last looked (minus a margin for clocks), so opening the app
+   with nothing changed downloads almost nothing. v2/since marks an account as moved; before that, its data is the old
+   single document at users/<uid>/doc, read once to move it. */
+const MARGIN = 10 * 60 * 1000;
+const PATH = { 'r/': 'routines', 'h/': 'history' };
+// item ids become database keys, which can't contain . # $ [ ] /
+const keyOf = (id) => id.replace(/[.#$[\]/%]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+const pathOf = (k) => (PATH[k.slice(0, 2)] ? `v2/${PATH[k.slice(0, 2)]}/${keyOf(k.slice(2))}` : `v2/${k}`);
+let moved = false; // this account's data is in v2
 function watch(u) {
   const at = (k) => fd.ref(D, `users/${u.uid}/${k}`),
-    fail = (e) => hooks.error && hooks.error(e);
+    fail = (e) => hooks.error && hooks.error(e),
+    failed = (e) => {
+      if (settle) settle.no(e);
+      settle = null;
+      fail(e);
+    };
+  let items = [];
+  moved = false;
   gate();
+  // nothing stored: a new account, or one just deleted on another device. Check the account before uploading anything
+  const check = (then) =>
+    fa.reload(u).then(
+      () => me === u && then(),
+      (e) => {
+        if (me !== u) return;
+        if (/user-not-found|user-disabled|user-token-expired/.test(e.code || '')) {
+          gone = true;
+          stop();
+          hooks.gone && hooks.gone();
+          fa.signOut(A);
+        } else then();
+      },
+    );
+  const listen = () => {
+    const seen = Math.max(0, (hooks.seen ? hooks.seen(u.uid) : 0) - MARGIN);
+    const parts = [
+      ['r/', fd.query(at('v2/routines'), fd.orderByChild('m'), fd.startAt(seen))],
+      ['h/', fd.query(at('v2/history'), fd.orderByChild('m'), fd.startAt(seen))],
+      ['order', at('v2/order')],
+      ['parts', at('v2/parts')],
+    ];
+    // the first answers of all parts go up together, so the account's changes are applied in one go; after that each change
+    const first = {};
+    let waiting = parts.length;
+    parts.forEach(([k, q]) =>
+      items.push(
+        fd.onValue(
+          q,
+          (s) => {
+            const out = {};
+            if (k.endsWith('/')) s.forEach((c) => void (out[k + decodeURIComponent(c.key)] = c.val()));
+            else if (s.val() !== null) out[k] = s.val();
+            if (!waiting) return hooks.items(out, false);
+            if (!(k in first)) waiting--;
+            first[k] = out;
+            if (!waiting) hooks.items(Object.assign({}, ...Object.values(first)), true);
+          },
+          fail,
+        ),
+      ),
+    );
+  };
   subs.push(
     fd.onValue(
-      at('doc'),
+      at('v2/since'),
       (s) => {
-        const v = s.val();
-        if (v !== null) {
+        if (s.val() !== null) {
+          moved = true;
+          if (items.length) return;
           open();
-          hooks.doc(v);
+          listen();
           return;
         }
-        // nothing stored: a new account, or one just deleted on another device. Check the account before uploading anything
-        gate();
-        fa.reload(u).then(
-          () => {
+        if (items.length) {
+          // the data was there and is gone: deleted on another device
+          moved = false;
+          items.forEach((f) => f());
+          items = [];
+          gate();
+          check(open);
+          return;
+        }
+        // not moved yet: read the old document once (null for a new account)
+        check(() =>
+          fd.get(at('doc')).then((d) => {
             if (me !== u) return;
             open();
-            hooks.doc(null);
-          },
-          (e) => {
-            if (me !== u) return;
-            if (/user-not-found|user-disabled|user-token-expired/.test(e.code || '')) {
-              gone = true;
-              stop();
-              hooks.gone && hooks.gone();
-              fa.signOut(A);
-            } else {
-              open();
-              hooks.doc(null);
-            }
-          },
+            hooks.legacy(d.val());
+          }, failed),
         );
       },
-      (e) => {
-        if (settle) settle.no(e);
-        settle = null;
-        fail(e);
-      },
+      failed,
     ),
   );
+  subs.push(() => items.forEach((f) => f()));
   subs.push(fd.onValue(at('run'), (s) => hooks.run(s.val()), fail));
 }
 
@@ -210,11 +267,38 @@ export const signOut = () => {
   return fa.signOut(A);
 };
 
-/* Data: one JSON document per account, merged on every device (fn gets the stored string, returns a new one or undefined) */
-export const update = (fn) =>
-  ready.then(() => {
+/* Writes items (key → value, see core/merge.js). Each item keeps the account's version if that is newer (newer()), so
+   saving one routine sends and receives only that routine. Resolves with what the account now stores for each key.
+   The first write to an account that hasn't moved yet stores everything at once and marks it moved. */
+export const put = (list) =>
+  ready.then(async () => {
     if (gone || !me) throw Object.assign(new Error('signed out'), { code: 'signed-out' });
-    return fd.runTransaction(fd.ref(D, `users/${me.uid}/doc`), fn, { applyLocally: false });
+    const u = me,
+      at = (k) => fd.ref(D, `users/${u.uid}` + (k ? '/' + k : '')),
+      t = now(),
+      out = {};
+    list = JSON.parse(JSON.stringify(list)); // Firebase refuses undefined values
+    if (!moved) {
+      const all = {};
+      Object.entries(list).forEach(([k, v]) => {
+        all[pathOf(k)] = { ...v, m: t };
+        out[k] = all[pathOf(k)];
+      });
+      all['v2/since'] = t;
+      await fd.update(at(''), all);
+      moved = true;
+      return out;
+    }
+    await Promise.all(
+      Object.entries(list).map(([k, v]) =>
+        fd
+          .runTransaction(at(pathOf(k)), (cur) => (newer(k, cur, v) ? { ...v, m: now() } : undefined), {
+            applyLocally: false,
+          })
+          .then((r) => (out[k] = r.snapshot.val())),
+      ),
+    );
+    return out;
   });
 /* The running workout: a single small node per account; the last write wins */
 export const setRun = (v) => {
