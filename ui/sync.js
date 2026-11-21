@@ -380,7 +380,14 @@ function linkProv(p) {
     },
   );
 }
-/* small in-page dialog; a button's action runs straight from its click, so sign-in pop-ups are allowed */
+/* small in-page dialog; a button's action runs straight from its click, so sign-in pop-ups are allowed.
+   A button with a `lead` (the situation it fits) and a `note` (what it does) is shown as a choice block,
+   so people pick by situation instead of decoding what each option does */
+function askBtn(b, i) {
+  const btn = `<button class="${b.cls || ''}" data-i="${i}">${esc(b.label)}</button>`;
+  if (!b.lead) return btn;
+  return `<div class="choice"><h3>${esc(b.lead)}</h3>${btn}${b.note ? `<p>${esc(b.note)}</p>` : ''}</div>`;
+}
 function ask({ title, text, check, buttons, locked }) {
   let d = document.getElementById('ask');
   if (!d) {
@@ -390,7 +397,7 @@ function ask({ title, text, check, buttons, locked }) {
     document.body.appendChild(d);
   }
   if (d.open) d.close();
-  d.innerHTML = `<h2>${esc(title)}</h2>${text || ''}${check ? `<label class="chk"><input type="checkbox" id="askChk">${esc(check)}</label>` : ''}<div class="btns">${buttons.map((b, i) => `<button class="${b.cls || ''}" data-i="${i}">${esc(b.label)}</button>`).join('')}</div>`;
+  d.innerHTML = `<h2>${esc(title)}</h2>${text || ''}${check ? `<label class="chk"><input type="checkbox" id="askChk">${esc(check)}</label>` : ''}<div class="btns">${buttons.map(askBtn).join('')}</div>`;
   d.oncancel = (e) => {
     if (locked) e.preventDefault();
   };
@@ -435,28 +442,36 @@ function clearLocal(none) {
 function signOutNow() {
   if (!CLOUD || !CU) return;
   ask({
-    title: 'Sign out on this device?',
-    text: '<p>Your routines and history stay in your account.</p>',
-    check: 'Also remove them from this device (e.g. a shared device)',
+    title: 'Sign out?',
+    text: '<p>Your routines and history are safe in your account either way.</p>',
     buttons: [
       {
+        lead: 'Your own phone?',
         label: 'Sign out',
+        note: 'Your routines stay in the app, so you can keep training. Sign in again to sync.',
+        run: () => signOutAnd(false),
+      },
+      {
+        lead: 'Someone else’s phone or computer?',
+        label: 'Sign out and clear',
         cls: 'danger',
-        run: (wipe) => {
-          authMsg = '';
-          CLOUD.signOut()
-            .then(() => {
-              if (wipe) {
-                clearLocal();
-                localStorage.removeItem('rf2_uid');
-              }
-            })
-            .finally(refreshAcct);
-        },
+        note: 'Removes your routines from the app, so the next person can’t see or change them.',
+        run: () => signOutAnd(true),
       },
       { label: 'Cancel', cls: 'ghost' },
     ],
   });
+}
+function signOutAnd(wipe) {
+  authMsg = '';
+  CLOUD.signOut()
+    .then(() => {
+      if (wipe) {
+        clearLocal();
+        localStorage.removeItem('rf2_uid');
+      }
+    })
+    .finally(refreshAcct);
 }
 function removeProv(p) {
   const other = CU.providers.map(pname).find((n) => n !== pname(p)) || '';
