@@ -1912,6 +1912,28 @@ dialog.ask .btns {
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
+dialog.ask .btns button {
+  min-height: 44px; /* touch target (design/README.md) */
+}
+/* a choice led by the situation it fits (ask() buttons with a lead), e.g. the sign-out dialog */
+dialog.ask .choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+}
+dialog.ask .choice + :not(.choice) {
+  margin-top: var(--space-2);
+}
+dialog.ask .choice h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+dialog.ask .choice p {
+  margin: 0;
+}
 /* messages at the bottom of the screen (ui/html.js toast): errors, or info */
 #toast {
   position: fixed;
