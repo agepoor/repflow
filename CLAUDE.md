@@ -2,7 +2,7 @@
 
 Audio-guided routine timer (reps, timed blocks, sequences, boxing combos) for people who do the same routines daily or weekly. Installable PWA, works offline, optional sign-in to sync. Open source; the goal is an app that is safe to use and easy to contribute to.
 
-Live: https://agepoor.github.io/repflow/ (the repo is still called `repflow`, the app's old name).
+Live: https://agepoor.github.io/repflow/ (the repo is still called `repflow`, the app's old name). Also on Firebase Hosting at https://punchpace.app, its own domain (sign-in there waits for #21, moving users for #22), and https://workout-pacer.web.app.
 
 ## Commands
 
@@ -35,7 +35,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - `schema/routine.schema.json`: the routine format (JSON Schema), versioned by `cv`. Served with the site.
 - `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time. `test/rules/` tests `database.rules.json` against the Realtime Database emulator (`firebase.json`, `vitest.rules.config.js`, project `demo-punchpace`); `npm test` skips it.
 - `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.
-- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` and `npm run test:rules` on pull requests and on `main`. Only when both pass it deploys `main` to GitHub Pages and to Firebase Hosting (https://workout-pacer.web.app), and each pull request to a Firebase preview whose link is commented on the PR (needs the `FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER` secret; skipped without it, e.g. for Dependabot). Hosting settings and headers (security headers including the Content Security Policy, `no-cache` for code so the offline worker gets updates) are in `firebase.json`. The database rules are not deployed by CI: publish `database.rules.json` in the Firebase console. `.github/dependabot.yml`: weekly update PRs for the dev tools and actions (the Firebase SDK version in `cloud.js` and the firebase-tools version in `test:rules` are updated by hand). Secret scanning, Dependabot alerts and CodeQL code scanning are on in the repo settings.
+- `sw.js`: offline cache. `build.sh`: build script (also names the offline cache after the commit). `.github/workflows/deploy.yml`: runs `npm run check` and `npm run test:rules` on pull requests and on `main`. Only when both pass it deploys `main` to GitHub Pages and to Firebase Hosting (https://punchpace.app and https://workout-pacer.web.app; the domain's DNS is at Namecheap: an A record and a `hosting-site` TXT record for Firebase, next to the email-forwarding records), and each pull request to a Firebase preview whose link is commented on the PR (needs the `FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER` secret; skipped without it, e.g. for Dependabot). Hosting settings and headers (security headers including the Content Security Policy, `no-cache` for code so the offline worker gets updates) are in `firebase.json`. The database rules are not deployed by CI: publish `database.rules.json` in the Firebase console. `.github/dependabot.yml`: weekly update PRs for the dev tools and actions (the Firebase SDK version in `cloud.js` and the firebase-tools version in `test:rules` are updated by hand). Secret scanning, Dependabot alerts and CodeQL code scanning are on in the repo settings.
 
 ## Rules
 
