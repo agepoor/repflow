@@ -1,7 +1,8 @@
 name: Check and deploy
 # Pull requests: lint, format check and tests, plus the database rules tests against the emulator, then a preview on
 # Firebase Hosting with its link on the PR.
-# main: the same checks, then deploy to https://agepoor.github.io/repflow/ and https://workout-pacer.web.app only if they pass.
+# main: the same checks, then deploy to https://agepoor.github.io/repflow/ and Firebase Hosting (https://punchpace.app,
+# also https://workout-pacer.web.app) only if they pass.
 on:
   push:
     branches: [main]
