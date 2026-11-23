@@ -17,6 +17,7 @@ const FILES = [
   'core/steps.js',
   'core/time.js',
   'core/voice.js',
+  'core/windows.js',
   'ui/actions.js',
   'ui/editor.js',
   'ui/history.js',

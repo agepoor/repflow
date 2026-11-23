@@ -81,6 +81,7 @@ import {
   cloud,
   cloudP,
   deleteAcct,
+  fromOtherWindow,
   keepNewAcct,
   linkProv,
   openLive,
@@ -307,6 +308,10 @@ document.addEventListener('visibilitychange', () => {
     banner();
     if (document.getElementById('lib').classList.contains('on')) renderList();
   }
+});
+// another window of the app on this device changed what's stored: take it over (ui/sync.js fromOtherWindow)
+addEventListener('storage', (e) => {
+  if (e.storageArea === localStorage) fromOtherWindow(e.key);
 });
 addEventListener('online', () => {
   if (!cloudP && localStorage.getItem('rf2_acct')) cloud();
