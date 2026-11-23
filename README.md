@@ -17,7 +17,9 @@ Visual, audio-guided counter & timer for burpees, rep/count-based exercises and 
 - Installable PWA, works offline; JSON import/export
 - Sign in with Google or GitHub to sync routines, history and a running workout across devices
 
-**Live:** https://agepoor.github.io/repflow/ — open in Chrome on Android → ⋮ → _Install app_. The same app also runs on Firebase Hosting at https://workout-pacer.web.app, ahead of the move to its own domain; routines on the device are stored per address, so sign in to see the same ones on both.
+**Live:** https://punchpace.app — open in Chrome on Android → ⋮ → _Install app_.
+
+**Moved from the old addresses.** The app used to run at https://agepoor.github.io/repflow/ and https://workout-pacer.web.app. Opening either now forwards to punchpace.app with the routines, settings and workout history saved there (in the part of the link after `#`, which isn't sent to any server). punchpace.app asks before adding them, merges them with what's already there as sync does, and asks again only when the old address has something new. The old address stays put when offline or during a workout; add `#stay` to its address (e.g. https://agepoor.github.io/repflow/#stay) to use it there, for instance to export a backup. Installed the old app? Install PunchPace from punchpace.app and remove the old one.
 
 **Brand:** PunchPace logo; display type [Saira](https://github.com/Omnibus-Type/Saira) (SIL Open Font License 1.1, see `fonts/OFL.txt`).
 

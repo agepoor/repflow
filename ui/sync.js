@@ -782,4 +782,6 @@ export {
   syncCard,
   banner,
   openLive,
+  ask,
+  localDoc,
 };
