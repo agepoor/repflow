@@ -57,6 +57,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 
 - Guidance guides, it doesn't enforce: features like parts of the day and Up next suggest an order; users can ignore them or switch them off in Settings.
 - UI text is plain and short. Step cues say what to do ("Right knee: lift forward, swing out, down"), not exercise jargon.
+- Voice, separators (`·`, `×`), times, icons and the logo: follow `design/README.md`.
 - Check changes on a phone-sized screen; it's mostly used on Android as an installed app.
 
 ## Workflow
