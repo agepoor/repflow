@@ -2,7 +2,7 @@
 
 Audio-guided routine timer (reps, timed blocks, sequences, boxing combos) for people who do the same routines daily or weekly. Installable PWA, works offline, optional sign-in to sync. Open source; the goal is an app that is safe to use and easy to contribute to.
 
-Live: https://agepoor.github.io/repflow/ (the repo is still called `repflow`, the app's old name). Also on Firebase Hosting at https://punchpace.app, its own domain (sign-in there waits for #21, moving users for #22), and https://workout-pacer.web.app.
+Live: https://agepoor.github.io/repflow/ (the repo is still called `repflow`, the app's old name). Also on Firebase Hosting at https://punchpace.app, its own domain (moving users there is #22), and https://workout-pacer.web.app.
 
 ## Commands
 
@@ -31,7 +31,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - `design/`: the design tokens (`tokens.json`: colours, spacing, type, radii, durations), the script that writes `tokens.css` from them, and the design rules (`design/README.md`).
 - `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge and the items the account stores (`merge.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
-- `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`. Changing the rules: update `test/rules/` and run `npm run test:rules`.
+- `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`. Sign-in runs through `punchpace.app` (`authDomain`, the security policy's `frame-src`) from every address the app runs on; each address must be in Firebase Auth's Authorized domains and allowed on the API key. The Google and GitHub OAuth apps redirect to `https://punchpace.app/__/auth/handler`. Changing the rules: update `test/rules/` and run `npm run test:rules`.
 - `schema/routine.schema.json`: the routine format (JSON Schema), versioned by `cv`. Served with the site.
 - `test/`: Vitest tests for `core/`, one file per module (`<module>.test.js`). Tests run in the `Europe/Amsterdam` time zone (`vitest.config.js`) because dates are local time. `test/rules/` tests `database.rules.json` against the Realtime Database emulator (`firebase.json`, `vitest.rules.config.js`, project `demo-punchpace`); `npm test` skips it.
 - `eslint.config.js`: lint rules per folder; it reads the element ids from `index.html` because `ui/` uses them as globals.

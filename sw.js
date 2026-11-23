@@ -45,11 +45,13 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 // Network first (so updates arrive), fall back to cache when offline
-// plus the sign-in/sync library, so a signed-in device also starts offline (changes sync when back online)
+// plus the sign-in/sync library, so a signed-in device also starts offline (changes sync when back online).
+// Firebase's sign-in pages (/__/auth/…) are left alone: they only work online and must never come from the cache.
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url);
   if (
     e.request.method !== 'GET' ||
+    u.pathname.startsWith('/__/') ||
     (u.origin !== location.origin && !u.href.startsWith('https://www.gstatic.com/firebasejs/'))
   )
     return;

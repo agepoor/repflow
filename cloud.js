@@ -5,7 +5,8 @@ import { newer } from './core/merge.js';
 
 export const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBcskek0bCUDnG8xDArFPbUxzpFQsMjdUs',
-  authDomain: 'workout-pacer.firebaseapp.com',
+  // Sign-in runs on our own domain (Firebase Hosting serves /__/auth there), so the Google and GitHub screens show it
+  authDomain: 'punchpace.app',
   databaseURL: 'https://workout-pacer-default-rtdb.europe-west1.firebasedatabase.app',
   projectId: 'workout-pacer',
   storageBucket: 'workout-pacer.firebasestorage.app',
