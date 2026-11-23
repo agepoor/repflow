@@ -97,6 +97,34 @@ function saveH() {
   store(localStorage, 'rf2_hist', JSON.stringify(H));
   store(localStorage, 'rf2_hdel', JSON.stringify(HDEL));
 }
+/* another window of the app (core/windows.js) changed the data: take its version. Nothing is written back, which
+   would only bounce the change to the other windows again. False when what's stored can't be read */
+function reloadData() {
+  const get = (k, d) => JSON.parse(localStorage.getItem(k) || 'null') || d;
+  let r, s, h, hdel, meta;
+  try {
+    r = get('rf2_routines', null);
+    s = get('rf2_set', {});
+    h = get('rf2_hist', []);
+    hdel = get('rf2_hdel', {});
+    meta = get('rf2_meta', { deleted: {}, orderTs: 0 });
+  } catch (e) {
+    return false;
+  }
+  R = r ? canon(r) : PRESETS().map((x) => ({ ...x, upd: 0 }));
+  S = { ...DEF_SET, ...s };
+  H = h;
+  HDEL = hdel;
+  META = meta;
+  SNAP = snapOf();
+  reloadSY();
+  return true;
+}
+function reloadSY() {
+  try {
+    SY.last = (JSON.parse(localStorage.getItem('rf2_sync') || 'null') || {}).last || 0;
+  } catch (e) {}
+}
 // for the modules that replace these
 function setR(v) {
   R = v;
@@ -116,4 +144,24 @@ function setMETA(v) {
 function setS(v) {
   S = v;
 }
-export { S, H, HDEL, R, SY, META, snapOf, store, saveRaw, persist, saveH, setR, setH, setHDEL, setSNAP, setMETA, setS };
+export {
+  S,
+  H,
+  HDEL,
+  R,
+  SY,
+  META,
+  snapOf,
+  store,
+  saveRaw,
+  persist,
+  saveH,
+  reloadData,
+  reloadSY,
+  setR,
+  setH,
+  setHDEL,
+  setSNAP,
+  setMETA,
+  setS,
+};

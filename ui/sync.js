@@ -3,6 +3,7 @@ import { does } from './actions.js';
 import { runLive, unbox } from '../core/engine.js';
 import { changed, docOf, itemsOf, merge, norm, print } from '../core/merge.js';
 import { PRESETS, iconKey } from '../core/routine.js';
+import { WIPE_KEY, storageChange } from '../core/windows.js';
 import { renderHist, streaks, updHistBtn } from './history.js';
 import { COLORS, esc, svgi, tint, toast } from './html.js';
 import {
@@ -41,6 +42,8 @@ import {
   saveRaw,
   setH,
   setHDEL,
+  reloadData,
+  reloadSY,
   setMETA,
   setR,
   setSNAP,
@@ -81,6 +84,11 @@ try {
   SYN = { ...SYN, ...JSON.parse(localStorage.getItem('rf2_synced') || 'null') };
 } catch (e) {}
 const saveSYN = () => store(localStorage, 'rf2_synced', JSON.stringify(SYN));
+function reloadSYN() {
+  try {
+    SYN = { uid: '', seen: 0, items: {}, ...JSON.parse(localStorage.getItem('rf2_synced') || 'null') };
+  } catch (e) {}
+}
 const resetSYN = (uid = '') => {
   SYN = { uid, seen: 0, items: {} };
   saveSYN();
@@ -252,10 +260,7 @@ function applyRemote(raw, stored = true) {
     saveH();
     setSNAP(snapOf());
     saveRaw();
-    renderList();
-    if (document.getElementById('set').classList.contains('on') && !document.activeElement.closest('#partForm'))
-      renderParts();
-    if (document.getElementById('hist').classList.contains('on')) renderHist();
+    redraw();
     if (LAST && LAST.ask && H.some((h) => h.id === LAST.entry.id)) {
       LAST.ask = false;
       LAST.L = { ...streaks(), newBest: false };
@@ -264,6 +269,40 @@ function applyRemote(raw, stored = true) {
     } // already logged on another device
   }
   return changed(itemsOf(localDoc()), SYN.items).length > 0;
+}
+/* the screens that show routines and history, after the data changed underneath them */
+function redraw() {
+  renderList();
+  if (document.getElementById('set').classList.contains('on') && !document.activeElement.closest('#partForm'))
+    renderParts();
+  if (document.getElementById('hist').classList.contains('on')) renderHist();
+}
+/* another window of the app on this device (a tab or the installed app) changed what's stored (core/windows.js).
+   Without this, a window holding an old copy writes deleted routines back, or uploads them to the next account.
+   After a wipe it starts over: its editor draft is dropped so a deleted routine can't come back from there. A burst of
+   writes is read once. An open editor stays open (saving merges into the new data); a workout keeps running */
+let otherT = null,
+  otherData = false;
+function fromOtherWindow(key) {
+  const kind = storageChange(key);
+  if (!kind) return;
+  if (kind === 'wipe') {
+    sessionStorage.removeItem('rf2_draft');
+    history.replaceState(null, '', '#/');
+    location.reload();
+    return;
+  }
+  if (kind === 'data') otherData = true;
+  clearTimeout(otherT);
+  otherT = setTimeout(() => {
+    reloadSYN();
+    if (!otherData) return reloadSY();
+    otherData = false;
+    if (!reloadData()) return;
+    redraw();
+    updHistBtn();
+    banner();
+  }, 50);
 }
 /* items from the account: on start (first) the changes since this device last looked, then each change */
 function onRemote(raw, first, legacy, empty) {
@@ -423,8 +462,14 @@ function lastAcct() {
 function saveAcct() {
   if (CU) store(localStorage, 'rf2_uid', JSON.stringify({ uid: CU.uid, email: CU.email || CU.name || '' }));
 }
-/* back to the 5 default routines (or none) and an empty history, on this device only (no sync: signed out or about to merge) */
+/* back to the 5 default routines (or none) and an empty history, on this device only (no sync: signed out or about to merge).
+   An unfinished workout goes too, so the next person can't resume it; the other windows start over (fromOtherWindow) */
 function clearLocal(none) {
+  if (X && X.steps) {
+    closeRun();
+    show('lib');
+  }
+  localStorage.removeItem('rf2_run');
   setR(none ? [] : PRESETS().map((r) => ({ ...r, upd: 0 })));
   setMETA({ deleted: {}, orderTs: 0 });
   setH([]);
@@ -436,6 +481,7 @@ function clearLocal(none) {
   saveH();
   setSNAP(snapOf());
   saveRaw();
+  store(localStorage, WIPE_KEY, String(Date.now()));
   renderList();
   updHistBtn();
 }
@@ -785,4 +831,5 @@ export {
   openLive,
   ask,
   localDoc,
+  fromOtherWindow,
 };
