@@ -287,6 +287,7 @@ function fromOtherWindow(key) {
   const kind = storageChange(key);
   if (!kind) return;
   if (kind === 'wipe') {
+    document.getElementById('edit').classList.remove('on'); // or leaving the page saves the editor's draft again (saveDraft)
     sessionStorage.removeItem('rf2_draft');
     history.replaceState(null, '', '#/');
     location.reload();
