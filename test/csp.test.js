@@ -42,6 +42,11 @@ describe('Content Security Policy', () => {
     expect(file('sw.js')).toContain(sdk);
     expect(H['connect-src']).toContain(sdk);
   });
+  it('lets App Check run its reCAPTCHA script and frame', () => {
+    expect(file('cloud.js')).toMatch(/provider: 'ReCaptcha\w+Provider'/);
+    expect(H['script-src']).toContain('https://www.google.com');
+    expect(H['frame-src']).toContain('https://www.google.com');
+  });
   it('lets sign-in open its frame on the auth domain', () => {
     const auth = file('cloud.js').match(/authDomain: '([^']+)'/)[1];
     expect(H['frame-src']).toContain(`https://${auth}`);

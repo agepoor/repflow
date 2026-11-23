@@ -13,8 +13,13 @@ export const FIREBASE_CONFIG = {
   messagingSenderId: '149446370348',
   appId: '1:149446370348:web:8d306c4ae95d3572e35d89',
 };
+// App Check: the database only answers this app's own pages, proven by an invisible reCAPTCHA check (#9).
+// The site key is public, like the config above; reCAPTCHA only accepts it on the domains listed in its console.
+const APP_CHECK = { provider: 'ReCaptchaEnterpriseProvider', siteKey: 'SITE_KEY' };
 // For local testing only, e.g. {auth: 'http://127.0.0.1:9099', db: ['127.0.0.1', 9000]} (Firebase Emulator Suite)
 const EMULATOR = null;
+// For local testing only: true prints a debug token in the console, to add in Firebase → App Check → Manage debug tokens
+const APP_CHECK_DEBUG = false;
 
 const SDK = 'https://www.gstatic.com/firebasejs/13.0.0/firebase-';
 let fa,
@@ -53,10 +58,20 @@ const provider = (p) => {
 export async function start(h) {
   if (!FIREBASE_CONFIG) return false;
   hooks = h;
-  const [app, auth, db] = await Promise.all(['app', 'auth', 'database'].map((m) => import(SDK + m + '.js')));
+  const [app, auth, db, check] = await Promise.all(
+    ['app', 'auth', 'database', 'app-check'].map((m) => import(SDK + m + '.js')),
+  );
   fa = auth;
   fd = db;
   const ap = app.initializeApp(FIREBASE_CONFIG);
+  // Before the database starts, so its first request already carries a token. The emulator doesn't check tokens.
+  if (!EMULATOR) {
+    if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    check.initializeAppCheck(ap, {
+      provider: new check[APP_CHECK.provider](APP_CHECK.siteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
   A = auth.getAuth(ap);
   D = db.getDatabase(ap);
   if (EMULATOR) {
