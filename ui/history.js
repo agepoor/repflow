@@ -234,7 +234,7 @@ function exportAll() {
   a.href = URL.createObjectURL(
     new Blob([JSON.stringify({ routines: R, settings: S, history: H }, null, 2)], { type: 'application/json' }),
   );
-  a.download = 'workout-pacer-routines.json';
+  a.download = 'punchpace-routines.json';
   a.click();
 }
 function importAll(inp) {

@@ -34,6 +34,7 @@ import {
 } from './editor.js';
 import { delHist, exportAll, importAll, openHist, openWeek, wkMode } from './history.js';
 import { infoToggle, svgi } from './html.js';
+import { forwardFromOldAddress, takeInMove } from './move.js';
 import {
   NOW,
   X,
@@ -106,6 +107,10 @@ import {
   skipToday,
   toggleArch,
 } from './views.js';
+
+// On an old address the app forwards itself to punchpace.app (ui/move.js). Start-up waits for that, and stops if the
+// page is leaving, so nothing is shown or synced in between.
+if (await forwardFromOldAddress()) await new Promise(() => {});
 // what the page's buttons and fields do (data-on="click:name", see actions.js)
 plainActs({
   addBlock,
@@ -319,6 +324,7 @@ volShow();
 pp.innerHTML = svgi('pause', 30);
 minBtn.innerHTML = svgi('down', 22, 2.5);
 renderList();
+takeInMove(); // before route(): it takes its data out of the address (#move=…) first
 route();
 setSync('');
 restoreRun();

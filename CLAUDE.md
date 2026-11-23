@@ -2,7 +2,7 @@
 
 Audio-guided routine timer (reps, timed blocks, sequences, boxing combos) for people who do the same routines daily or weekly. Installable PWA, works offline, optional sign-in to sync. Open source; the goal is an app that is safe to use and easy to contribute to.
 
-Live: https://agepoor.github.io/repflow/ (the repo is still called `repflow`, the app's old name). Also on Firebase Hosting at https://punchpace.app, its own domain (moving users there is #22), and https://workout-pacer.web.app.
+Live: https://punchpace.app (Firebase Hosting). The old addresses, https://agepoor.github.io/repflow/ (the repo is still called `repflow`, the app's old name) and https://workout-pacer.web.app, still get every deploy but forward to punchpace.app with the device's data (`core/move.js`, `ui/move.js`; `#stay` keeps the old one open).
 
 ## Commands
 
@@ -29,7 +29,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 
 - `index.html`: the page and all views. Loads `tokens.css`, `styles.css` (all CSS) and `ui/main.js`.
 - `design/`: the design tokens (`tokens.json`: colours, spacing, type, radii, durations), the script that writes `tokens.css` from them, and the design rules (`design/README.md`).
-- `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge and the items the account stores (`merge.js`), durations and dates (`time.js`).
+- `core/`: app logic with no DOM or browser APIs, so it runs in Node. Routine model and migrations (`routine.js`), days, parts of the day, up next and streaks (`schedule.js`), the step list, boxing moves (stable ids) and combo tones (`steps.js`), timer engine (`engine.js`), voice timing (`voice.js`), sync merge and the items the account stores (`merge.js`), moving data from the old addresses (`move.js`), durations and dates (`time.js`).
 - `ui/`: everything on screen and on the device: views, editor, run screen, settings, history, sound and voice, storage, sync.
 - `cloud.js`: Firebase Auth + Realtime Database, loaded only after sign-in or opening Settings. The config in it is public; access is limited by `database.rules.json`. Sign-in runs through `punchpace.app` (`authDomain`, the security policy's `frame-src`) from every address the app runs on; each address must be in Firebase Auth's Authorized domains and allowed on the API key. The Google and GitHub OAuth apps redirect to `https://punchpace.app/__/auth/handler`. App Check (`APP_CHECK`: a reCAPTCHA site key, public) proves requests come from the app's own pages; reCAPTCHA needs `https://www.google.com` in the policy's `script-src`, `frame-src` and `connect-src`. Testing locally against the real database: set `APP_CHECK_DEBUG` and add the printed token in Firebase → App Check. The browser API key only allows the Identity Toolkit, Token Service and Firebase App Check APIs, from the app's own addresses. Changing the rules: update `test/rules/` and run `npm run test:rules`.
 - `schema/routine.schema.json`: the routine format (JSON Schema), versioned by `cv`. Served with the site.
