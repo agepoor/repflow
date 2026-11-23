@@ -39,6 +39,33 @@ Tests in `test/tokens.test.js` check the ones marked ✓.
 
 Styles that repeat in the HTML templates are classes, not `style="…"`: `.text`, `.text-muted`, `.fs-sm`, `.m-0`, `.mt-3`, `.mb-2`, `.mb-3`, `.span-all`, `.w-auto`, `.tap`, `.dim`, `.link` (at the end of `styles.css`). A one-off inline style is fine, but its sizes come from the tokens too.
 
+## Voice and copy
+
+The app is read at arm's length in the middle of a workout, so text is short and screens hold one decision at a time.
+
+- **A coach, not a manual.** Short, plain, present tense, addressed to _you_: "Pick a pace you can hold for 3 rounds." Run-screen calls are imperative and terse: "Go go go", "Last one — finish strong".
+- **Say what to do, not the jargon.** Step cues describe the movement: "Right knee: lift forward, swing out, down".
+- **Sentence case** for buttons, labels and headings ("New routine", "Rest between rounds"). Uppercase comes from CSS (`text-transform` on section heads, the run screen's phase label, small captions), never typed in caps.
+- **Separators:** a spaced middle dot `·` joins facts ("3 rounds · 6:30 · Mon Wed Fri"), `×` counts sets ("Boxing 3 × 3 min", "8 × 12"), an em dash marks an aside ("Burpees — max reps").
+- **Times** are `m:ss` in fields and stats (`1:15`) and spelled out in hints ("1 min 15 s", `core/time.js`).
+- **No emoji in the UI.** Use the stroke icons; old emoji routine icons are mapped to icons when a routine loads (`core/routine.js`).
+- **Help is titled as the user's question** ("What is count length?") and answered in one or two sentences.
+- **Errors say what happened and what to do:** "Could not save on this device (storage full or blocked). Export a JSON backup in Settings."
+
+## Icons
+
+- One flat stroke set (`IC` in `ui/html.js`, drawn by `svgi()`): 24px grid, stroke width 2, round caps and joins, no fill, `currentColor` so an icon takes its text colour. `play`, `pause`, `prev` and `next` use a filled shape.
+- 20px by default, 14–18px in chips and compact rows, 22–30px on run controls.
+- Routines pick from the twenty sport icons (`activity` … `bounce`, the first entries of `IC`). A new icon is drawn the same way: on the 24px grid, strokes only, no colours of its own.
+- An icon next to a label sits before it, `--space-2` apart (`.ib`).
+
+## Logo
+
+- The mark is two interlocking italic Ps: the front P and the word in `--logo-word`, the rear P in `--logo-mark`. The header wordmark (`#appName`) is at most 214px wide.
+- `icon.svg` is the mark on a `#252525` rounded square, for the favicon and other small places. The install icons in `icons/` show the same mark.
+- The logo is made for dark backgrounds. Don't recolour it or put it on a light background; a light theme will need its own logo colours, via `--logo-word` and `--logo-mark`.
+- The brand slash, a 4px `--accent` bar skewed −16° (`.sech::before`), marks section heads and echoes the italic logo. It is the only ornament.
+
 ## Changing a token
 
 1. Edit `tokens.json` (add a primitive if it's a new colour, then point a theme token at it).
