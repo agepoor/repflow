@@ -632,7 +632,8 @@ function syncCard() {
       h +
       (DELNOTE ? `<p class="anote">${DELNOTE}</p>` : '') +
       `<p class="muted m-0 mb-3">Sign in to sync your routines, history and a running workout across your devices. Use the same sign-in on every device. Audio settings stay per device.</p>${msg}
-    <div class="row"><button class="ib" ${does('click:signIn', 'google')}>Continue with Google</button><button class="ib" ${does('click:signIn', 'github')}>Continue with GitHub</button></div>`
+    <div class="row"><button class="ib" ${does('click:signIn', 'google')}>Continue with Google</button><button class="ib" ${does('click:signIn', 'github')}>Continue with GitHub</button></div>
+    <div class="links mt-3 fs-sm"><a href="privacy.html">How your data is handled</a></div>`
     );
   const ms = CU.methods || CU.providers.map((id) => ({ id, label: '' })),
     two = ms.length > 1,

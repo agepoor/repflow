@@ -52,6 +52,10 @@ Node 22.12 or newer. `npm install` once, then `npm run check` runs everything: E
 
 Found a security problem? Please report it privately, not in a public issue: see [SECURITY.md](SECURITY.md).
 
+### Privacy
+
+[privacy.html](privacy.html) (linked from Settings → About and under the sign-in buttons) says what's stored, where and how to delete it. Without an account nothing leaves the device. With one, routines and workouts sync through Firebase (database in Belgium); reCAPTCHA (App Check) only starts once someone is signed in. No ads, analytics or tracking. Delete account in Settings removes `users/<uid>` and the sign-in.
+
 ### Licence
 
 The code is licensed under the [Apache License 2.0](LICENSE): use, change and share it, also in closed or commercial apps, as long as you keep the licence and copyright notices and mark files you changed. Contributions are accepted under the same licence. The Saira font keeps its own licence (`fonts/OFL.txt`), and the licence gives no right to use the PunchPace name or logo as your own (section 6).

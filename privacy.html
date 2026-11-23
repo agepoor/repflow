@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- a page without scripts: nothing may run here (Firebase Hosting adds the app's own policy as a header) -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#171717" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="icon-192.png" type="image/png" />
+    <title>Privacy · PunchPace</title>
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="doc">
+      <p><a href="./">← PunchPace</a></p>
+      <h1>Privacy</h1>
+      <p class="muted">Last changed 23 November 2026</p>
+
+      <div class="card">
+        <p><b>In short:</b></p>
+        <ul>
+          <li>PunchPace works without an account. Then your routines, settings and workouts stay on your device.</li>
+          <li>
+            With an account, your routines and workouts are also stored with Google (Firebase), so they sync between
+            your devices. Sound and other settings stay on each device.
+          </li>
+          <li>No ads, no analytics, no tracking, and your data is never sold or shared for marketing.</li>
+          <li>You can export everything, and delete your account and all synced data yourself, in Settings.</li>
+        </ul>
+      </div>
+
+      <h2>Who is responsible</h2>
+      <p>
+        PunchPace is made by Age Poortinga in the Netherlands, who decides what happens with your data. Questions or
+        requests:
+        <a href="mailto:hello@punchpace.app">hello@punchpace.app</a>.
+      </p>
+
+      <h2>Without an account</h2>
+      <p>
+        Your routines, settings and workout history are saved in your browser on this device. So is a random device code
+        and the kind of device (like “Android phone”), used to show where a workout is running. None of this is sent
+        anywhere. Opening Settings loads the code for signing in and syncing from Google’s servers, so Google sees your
+        IP address, as any website you visit does. The security check below only starts once you sign in.
+      </p>
+
+      <h2>With an account</h2>
+      <p>When you sign in with Google or GitHub, these are stored:</p>
+      <ul>
+        <li>
+          <b>Your sign-in</b>, in Firebase Authentication: your email address, name and profile photo link as Google or
+          GitHub give them, which sign-in you used, and when you signed up and last signed in.
+        </li>
+        <li>
+          <b>Your routines and workouts</b>, in the Firebase Realtime Database in Belgium: routines, their order,
+          workout history, your parts of the day, and while a workout runs, its progress with the device code and kind
+          of device, so your other devices can show it.
+        </li>
+        <li>
+          <b>A security check</b>: once you’re signed in, Google’s reCAPTCHA (Firebase App Check) checks that requests
+          come from the real PunchPace app and not from someone misusing it. It looks at signals from your device and
+          browser.
+        </li>
+      </ul>
+      <p>
+        This is used to give you the account and sync you asked for, and to keep the service safe. Your email address
+        isn’t used to send you anything; it only shows which account you’re signed in with.
+      </p>
+
+      <h2>Services involved</h2>
+      <ul>
+        <li>
+          <b>Google</b> (Firebase Authentication, Realtime Database, App Check with reCAPTCHA, and hosting of
+          punchpace.app): <a href="https://firebase.google.com/support/privacy">Firebase privacy</a>,
+          <a href="https://policies.google.com/privacy">Google privacy policy</a>.
+        </li>
+        <li>
+          <b>GitHub</b>, if you sign in with GitHub, and for the app’s old address (agepoor.github.io/repflow):
+          <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement"
+            >GitHub privacy statement</a
+          >.
+        </li>
+      </ul>
+      <p>
+        Google and GitHub may keep the usual server logs, such as IP addresses, to run and protect their services.
+        PunchPace doesn’t receive or use those. Both are US companies; data that goes to the US is protected under the
+        EU–US Data Privacy Framework and their standard data protection terms.
+      </p>
+
+      <h2>How long it’s kept</h2>
+      <p>
+        Until you delete it. <b>Delete account</b> in Settings removes your synced routines, workouts and sign-in right
+        away, on every device. When you delete a single routine or workout, a small marker (its code and the time) stays
+        in your account so your other devices remove it too; it goes when you delete the account. On a device,
+        <b>Reset all</b> in Settings clears what’s stored there.
+      </p>
+
+      <h2>Your rights</h2>
+      <ul>
+        <li><b>See and take your data</b>: Export JSON in Settings saves everything in a file.</li>
+        <li><b>Correct it</b>: edit your routines and history in the app.</li>
+        <li><b>Delete it</b>: Delete account and Reset all in Settings.</li>
+        <li>
+          <b>Ask or object</b>: email <a href="mailto:hello@punchpace.app">hello@punchpace.app</a>; you’ll get an answer
+          within a month.
+        </li>
+        <li>
+          <b>Complain</b>: to the Dutch data protection authority,
+          <a href="https://autoriteitpersoonsgegevens.nl/en">Autoriteit Persoonsgegevens</a>.
+        </li>
+      </ul>
+
+      <h2>Age</h2>
+      <p>An account is for people aged 16 or over. Younger people need permission from a parent or guardian.</p>
+
+      <h2>Changes</h2>
+      <p>
+        Changes to this page are dated at the top. PunchPace is open source, so you can check what it does in
+        <a href="https://github.com/agepoor/repflow">its code</a>, including every change to this page.
+      </p>
+    </main>
+  </body>
+</html>

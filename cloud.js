@@ -64,25 +64,28 @@ export async function start(h) {
   fa = auth;
   fd = db;
   const ap = app.initializeApp(FIREBASE_CONFIG);
-  // Before the database starts, so its first request already carries a token. The emulator doesn't check tokens.
-  if (!EMULATOR) {
-    if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    check.initializeAppCheck(ap, {
-      provider: new check[APP_CHECK.provider](APP_CHECK.siteKey),
-      isTokenAutoRefreshEnabled: true,
-    });
-  }
   A = auth.getAuth(ap);
-  D = db.getDatabase(ap);
-  if (EMULATOR) {
-    auth.connectAuthEmulator(A, EMULATOR.auth, { disableWarnings: true });
-    db.connectDatabaseEmulator(D, ...EMULATOR.db);
-  }
-  db.onValue(db.ref(D, '.info/serverTimeOffset'), (s) => {
-    off = +s.val() || 0;
-    hooks.offset && hooks.offset(off);
-  });
-  db.onValue(db.ref(D, '.info/connected'), (s) => hooks.conn && hooks.conn(!!s.val()));
+  if (EMULATOR) auth.connectAuthEmulator(A, EMULATOR.auth, { disableWarnings: true });
+  /* The database and App Check (reCAPTCHA, a Google service that looks at the device and browser) start only once
+     someone is signed in: opening Settings without an account loads just the sign-in library (privacy policy, #12) */
+  const openDatabase = () => {
+    if (D) return;
+    // App Check before the database, so its first request already carries a token. The emulator doesn't check tokens.
+    if (!EMULATOR) {
+      if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      check.initializeAppCheck(ap, {
+        provider: new check[APP_CHECK.provider](APP_CHECK.siteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    }
+    D = db.getDatabase(ap);
+    if (EMULATOR) db.connectDatabaseEmulator(D, ...EMULATOR.db);
+    db.onValue(db.ref(D, '.info/serverTimeOffset'), (s) => {
+      off = +s.val() || 0;
+      hooks.offset && hooks.offset(off);
+    });
+    db.onValue(db.ref(D, '.info/connected'), (s) => hooks.conn && hooks.conn(!!s.val()));
+  };
   auth.onAuthStateChanged(A, (u) => {
     const same = me && u && me.uid === u.uid;
     me = u;
@@ -92,6 +95,7 @@ export async function start(h) {
     }
     stop();
     gone = false;
+    if (u) openDatabase();
     hooks.user(u ? info(u) : null);
     if (u) watch(u);
   });

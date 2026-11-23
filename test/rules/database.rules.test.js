@@ -35,6 +35,9 @@ async function call(method, path, as, body) {
 }
 const read = (path, as) => call('GET', path, as);
 const write = (path, as, value = { t: 1 }) => call('PUT', path, as, value);
+// what is stored at a path, read as the owner (no rules)
+const stored = async (path) =>
+  (await fetch(`http://${HOST}/${path}.json?ns=${NS}`, { headers: { Authorization: 'Bearer owner' } })).json();
 
 beforeAll(async () => {
   expect(await call('PUT', '.settings/rules', 'owner', rules)).toBe(200);
@@ -73,6 +76,14 @@ describe('signed in', () => {
     expect(await read('', 'alice')).toBe(401);
     expect(await write('users', 'alice', { alice: {} })).toBe(401);
     expect(await write('', 'alice', {})).toBe(401);
+  });
+
+  // Delete account (cloud.js deleteAccount) removes users/<uid> in one go before the sign-in itself (privacy policy, #12)
+  it('can delete everything they have, and only that', async () => {
+    expect(await call('DELETE', 'users/alice', 'alice')).toBe(200);
+    expect(await stored('users/alice')).toBe(null);
+    expect(await call('DELETE', 'users/bob', 'alice')).toBe(401);
+    expect(await stored('users/bob/v2/since')).toBe(1);
   });
 
   it("can't write outside users/", async () => {

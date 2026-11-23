@@ -3,7 +3,7 @@
 set -euo pipefail
 out="${1:?usage: build.sh <output-dir>}"
 mkdir -p "$out/v2"
-cp index.html tokens.css styles.css cloud.js manifest.webmanifest icon.svg "$out"/
+cp index.html privacy.html tokens.css styles.css cloud.js manifest.webmanifest icon.svg "$out"/
 cp -r core ui schema "$out"/
 # Name the offline cache after the commit (plus a timestamp for uncommitted changes), so every deploy refreshes it
 ver=$(git rev-parse --short HEAD 2>/dev/null || date +%s)
