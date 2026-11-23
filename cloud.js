@@ -15,7 +15,7 @@ export const FIREBASE_CONFIG = {
 };
 // App Check: the database only answers this app's own pages, proven by an invisible reCAPTCHA check (#9).
 // The site key is public, like the config above; reCAPTCHA only accepts it on the domains listed in its console.
-const APP_CHECK = { provider: 'ReCaptchaEnterpriseProvider', siteKey: 'SITE_KEY' };
+const APP_CHECK = { provider: 'ReCaptchaEnterpriseProvider', siteKey: '6Lc1AC4uAAAAAOzAlmXcha8PI5XFSQzueFHfSl28' };
 // For local testing only, e.g. {auth: 'http://127.0.0.1:9099', db: ['127.0.0.1', 9000]} (Firebase Emulator Suite)
 const EMULATOR = null;
 // For local testing only: true prints a debug token in the console, to add in Firebase → App Check → Manage debug tokens
