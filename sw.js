@@ -5,6 +5,7 @@ const CACHE = 'pacer-live-dev';
 const FILES = [
   './',
   'index.html',
+  'privacy.html',
   'tokens.css',
   'styles.css',
   'cloud.js',
