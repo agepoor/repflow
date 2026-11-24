@@ -30,6 +30,7 @@ const FILES = [
   'ui/storage.js',
   'ui/sync.js',
   'ui/views.js',
+  'ui/week.js',
   'manifest.webmanifest',
   'icon-192.png',
   'icon-512.png',

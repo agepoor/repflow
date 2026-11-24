@@ -101,6 +101,8 @@ function toast(msg, info) {
 }
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+// "1 round", "2 rounds"
+const plural = (n, word) => `${n} ${word}${n !== 1 ? 's' : ''}`;
 const OPEN = new Set();
 function infoToggle(el, k) {
   if (el.open) OPEN.add(k);
@@ -112,4 +114,4 @@ function info(k, title, body) {
 function nsTag(t, title, s = 13) {
   return `<span class="nst" title="${title}">${svgi('nolog', s)}${t}</span>`;
 }
-export { svgi, COLORS, tint, toneColor, toast, esc, infoToggle, info, nsTag };
+export { svgi, COLORS, tint, toneColor, toast, esc, plural, infoToggle, info, nsTag };

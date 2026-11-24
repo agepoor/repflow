@@ -18,7 +18,8 @@ import {
 import { build } from '../core/steps.js';
 import { dk, fmt, hhmm } from '../core/time.js';
 import { autoT, autosave, cur, fillEditor, openEditor, readHead, saveRoutine, setCur, vfAll } from './editor.js';
-import { openHist, openWeek, renderWeek, updHistBtn } from './history.js';
+import { openHist, updHistBtn } from './history.js';
+import { openWeek, renderWeek } from './week.js';
 import { COLORS, esc, nsTag, svgi, tint } from './html.js';
 import { MINI, X, liveCard, liveIn, minRun, miniTx, stopRun } from './runner.js';
 import { openSettings } from './settings.js';

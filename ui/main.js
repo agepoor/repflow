@@ -32,7 +32,7 @@ import {
   vMeasure,
   vfAll,
 } from './editor.js';
-import { delHist, exportAll, importAll, openHist, openWeek, wkMode } from './history.js';
+import { delHist, exportAll, importAll, openHist } from './history.js';
 import { infoToggle, svgi } from './html.js';
 import { forwardFromOldAddress, takeInMove } from './move.js';
 import {
@@ -108,6 +108,7 @@ import {
   skipToday,
   toggleArch,
 } from './views.js';
+import { openWeek, wkMode } from './week.js';
 
 // On an old address the app forwards itself to punchpace.app (ui/move.js). Start-up waits for that, and stops if the
 // page is leaving, so nothing is shown or synced in between.

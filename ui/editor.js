@@ -17,7 +17,7 @@ import { DN, DOW, PARTS, WHEN, partOf, rDays } from '../core/schedule.js';
 import { build, callTxt, mkey, moves, movesOf, spoken, toneMap } from '../core/steps.js';
 import { durStepSize, durWords, fmt, fmtDur, mmss, parseDur } from '../core/time.js';
 import { rk, vSlow } from '../core/voice.js';
-import { openWeek } from './history.js';
+import { openWeek } from './week.js';
 import { COLORS, esc, info, svgi, toneColor } from './html.js';
 import { boxRate, startRun } from './runner.js';
 import {
