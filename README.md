@@ -16,6 +16,7 @@ PunchPace talks you through the routines you repeat every day or week, from a mo
 Open **https://punchpace.app**. On Android, open it in Chrome and choose ⋮ → _Install app_ to get it on your home screen; it works offline from then on.
 
 You don't need an account. Without one, everything stays on your device. Sign in with Google or GitHub only if you want your routines and workouts on more than one device.
+
 ## What it does
 
 - **Guides you by voice:** it counts, times and calls out each step, so you never have to look.
