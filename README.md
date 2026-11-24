@@ -2,7 +2,7 @@
 
 _Think once. Move without thinking._
 
-PunchPace is an audio-guided timer for routines you do every day or every week: reps, timed blocks, sequences of steps and boxing combos. Set up a routine once; after that the app counts, times and calls everything out loud, so you can keep your eyes off the screen.
+PunchPace talks you through the routines you repeat every day or week, from a morning stretch to a boxing session, so you can keep your eyes off the screen and just move.
 
 <p>
   <img src="docs/screenshots/home.png" width="200" alt="Home screen: today's routines grouped by morning, midday and evening, with the next one marked Up next">
@@ -17,17 +17,15 @@ Open **https://punchpace.app**. On Android, open it in Chrome and choose ⋮ →
 
 You don't need an account. Without one, everything stays on your device. Sign in with Google or GitHub only if you want your routines and workouts on more than one device.
 
-Used the app at its old address (agepoor.github.io/repflow or workout-pacer.web.app)? Opening it there brings your routines over to punchpace.app. Add `#stay` to the old address to keep using it there, for instance to export a backup.
+Used the app at its old address (agepoor.github.io/repflow or workout-pacer.web.app)? Opening it there brings your routines over to punchpace.app.
 
 ## What it does
 
-- **Blocks:** reps (the app counts at your pace, or you tap each rep), timed work, sequences of steps (stretches, kata, breathing) and rest. Repeat them for several rounds, with warm-ups only in the first round and finishers only in the last.
-- **Boxing combos:** called out at random from your own combo list. Each move has its own tone (hooks fall, uppercuts rise), so the calls can keep time even when they're too fast to say.
-- **Voice coach and beeps:** counts, cues and countdowns in your browser's language, with built-in phrases in English, Dutch, Spanish, German and French. Each routine can have its own voice and sound.
-- **Your day and week:** give a routine its days and a part of the day (morning, midday, evening). The home screen shows what's left for today and suggests what's _Up next_; you can ignore it, skip a routine for today or switch the guidance off.
-- **History and streaks:** every workout is logged; the week view shows what was planned and what got done.
-- **Keeps going:** a workout survives a reload, a locked screen or a closed app. Minimise it and keep using the app.
-- **Your data:** export and import routines as JSON. With an account, routines, history and a running workout sync across devices.
+- **Guides you by voice:** it counts, times and calls out each step, so you never have to look.
+- **Fits any routine:** reps, timed work, step-by-step sequences, boxing combos and rest, in as many rounds as you like.
+- **Plans your day:** routines show up on the days and times of day you choose, with a gentle hint about what's next.
+- **Keeps track:** workouts are logged, with streaks and a week overview.
+- **Works anywhere:** installable, works offline, and syncs across devices if you sign in.
 
 ## Run it locally
 
