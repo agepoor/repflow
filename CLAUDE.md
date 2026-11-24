@@ -52,6 +52,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 - Repeated inline styles become classes (the utilities at the end of `styles.css`).
 - Follow the existing style: Prettier formatting, a short comment at the top of each module saying what it does, comments that explain _why_.
 - Update `README.md` when a user-facing feature changes.
+- `CONTRIBUTING.md` is the short version of these rules and commands for contributors: keep it in step when they change.
 
 ## UX and copy
 
