@@ -48,7 +48,10 @@ jobs:
       # Only Chromium: the app is mostly used in Chrome on Android
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-  deploy:
+  # GitHub Pages in two jobs, like GitHub's own Pages workflow: deploy-pages right after the upload in the same job often
+  # found no artifact yet (#88), and a re-run then fails on two artifacts with the same name. A separate job starts once
+  # the upload is done, when the artifact can be found.
+  pages:
     needs: [check, rules, e2e]
     # Pull requests are checked but never deployed.
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -56,13 +59,6 @@ jobs:
     permissions:
       contents: read
       pages: write
-      id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: true
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - name: Build site
@@ -73,6 +69,19 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+  deploy:
+    needs: pages
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
   firebase:
