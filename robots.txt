@@ -1,0 +1,5 @@
+# Every page may be indexed; punchpace.app is the address to show (the old addresses name it as canonical)
+User-agent: *
+Allow: /
+
+Sitemap: https://punchpace.app/sitemap.xml
