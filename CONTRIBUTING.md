@@ -2,6 +2,8 @@
 
 Thanks for helping. PunchPace is a small project with one maintainer, so this page tries to answer the questions you'd otherwise have to ask: how to set up, how a change gets in, and the few rules that keep the app safe and working offline.
 
+Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 Found a security problem? Don't open an issue: report it privately as [SECURITY.md](SECURITY.md) describes.
 
 ## How a change gets in
