@@ -1,61 +1,107 @@
-# PunchPace (formerly Workout Pacer)
+# PunchPace
 
 _Think once. Move without thinking._
 
-Visual, audio-guided counter & timer for burpees, rep/count-based exercises and boxing drills.
+PunchPace is an audio-guided timer for routines you do every day or every week: reps, timed blocks, sequences of steps and boxing combos. Set up a routine once; after that the app counts, times and calls everything out loud, so you can keep your eyes off the screen.
 
-- Blocks: reps/counts (guided tempo or tap), timed, sequence (steps in a fixed order, e.g. kata, flows or breathing; each step gets the block's time, its own time `@6` or waits for a tap `@tap`), boxing combo call-outs, rest
-- Rounds, rest between rounds (auto-start, or wait for a tap before each round or each block), first-round-only warm-ups, last-round-only finishers
-- Days and part of day per routine: today's routines on top, grouped by Morning / Midday / Evening / Anytime once any routine has a part of day; each part shows its times and the current one is marked _now_; one routine is labelled _Up next_ and the others left for today get a quieter outline (a guide, any order is fine; Settings → Parts of the day sets when Midday and Evening start, or switches the guidance off; synced), and the done screen offers what's left as _Next_ (current part of the day first, then Anytime, then missed earlier parts); skip for today only, the rest as compact rows (+ adds one to today, this time only); a quiet note when nothing is planned; reorder in the Order view (all routines in their real order)
-- Week view: this week's schedule per day with done, added, skipped and not-done routines (also workouts done on other days), planned and done time per day, and a key; Schedule shows the usual week from the days set in each routine only; tap a routine to change its days
-- Per-block display: cue + number / cue only / number only
-- Beeps, voice coach (any browser language; built-in phrases in en/nl/es/de/fr), vibration, keep-screen-on. A routine can have its own sound & voice (beeps, voice, language, speed…) instead of Settings
-- One volume and mute for the whole app (per device), wherever sound plays: the speaker on the run screen and in the editor's top bar, and Settings → This device. A change is heard right away, also during a workout. Settings separates what is for the whole device (volume, vibrate, keep screen on) from the sound & voice routines use, which a routine can replace with its own
-- When the voice can't keep up (short count length, long combos), the editor says so and the run screen shows it. Guided counts that are too fast to say fall back to rep numbers, then beeps. Each device learns how long its voice takes: per phrase, and for new phrases from that voice's start-up time and speed
-- Boxing calls per block: _Voice_ (default; calls wait for the voice when it's too slow), _Voice, tones when too fast_ (said faster, up to 1.5×, otherwise tones + call on screen) or _Tones only_ (exact timing; keeps playing with the screen off on Android). Move tones: one per move, the same in every routine (jab and cross steady, hooks fall, uppercuts rise, lead hand low, rear hand high; slip, duck and roll a soft whoosh; other moves the next free tone, up to 8 sounds, then a tick). They play with Beeps off too. The editor colors each move by its tone; ▶ plays a combo
-- Minimize a running workout (⌄ or Back): it shrinks into its own card on the home screen, which shows it live (step, time, round, progress, pause); tap to expand. Keep using the app meanwhile; one workout at a time
-- Installable PWA, works offline; JSON import/export
-- Sign in with Google or GitHub to sync routines, history and a running workout across devices
+<p>
+  <img src="docs/screenshots/home.png" width="200" alt="Home screen: today's routines grouped by morning, midday and evening, with the next one marked Up next">
+  <img src="docs/screenshots/run.jpg" width="200" alt="Run screen during a boxing round: the combo 1-2-5-2 in large type above a countdown ring at 2:54">
+  <img src="docs/screenshots/editor.png" width="200" alt="Editor: a boxing block's combo pool, each move shown in the colour of its tone">
+  <img src="docs/screenshots/week.png" width="200" alt="Week view: the routines planned for each day, with the done ones ticked">
+</p>
 
-**Live:** https://punchpace.app — open in Chrome on Android → ⋮ → _Install app_.
+## Try it
 
-**Moved from the old addresses.** The app used to run at https://agepoor.github.io/repflow/ and https://workout-pacer.web.app. Opening either now forwards to punchpace.app with the routines, settings and workout history saved there (in the part of the link after `#`, which isn't sent to any server). punchpace.app asks before adding them, merges them with what's already there as sync does, and asks again only when the old address has something new. The old address stays put when offline or during a workout; add `#stay` to its address (e.g. https://agepoor.github.io/repflow/#stay) to use it there, for instance to export a backup. Installed the old app? Install PunchPace from punchpace.app and remove the old one.
+Open **https://punchpace.app**. On Android, open it in Chrome and choose ⋮ → _Install app_ to get it on your home screen; it works offline from then on.
 
-**Brand:** PunchPace logo; display type [Saira](https://github.com/Omnibus-Type/Saira) (SIL Open Font License 1.1, see `fonts/OFL.txt`).
+You don't need an account. Without one, everything stays on your device. Sign in with Google or GitHub only if you want your routines and workouts on more than one device.
 
-### Account, sync and a persistent timer (since v2)
+Used the app at its old address (agepoor.github.io/repflow or workout-pacer.web.app)? Opening it there brings your routines over to punchpace.app. Add `#stay` to the old address to keep using it there, for instance to export a backup.
 
-- **Sign in with Google or GitHub** (Firebase Authentication) instead of a gist token. Routines and history sync through Firebase Realtime Database, merged on every device; audio settings stay per device. Each routine and workout is its own item (`users/<uid>/v2/…`), so a device downloads only what changed since it last looked: opening the app with nothing new costs about a kilobyte, and saving a routine sends just that routine. Accounts synced before this (one document at `users/<uid>/doc`) move over by themselves the first time a device signs in; the old document stays as it was.
-- **Persistent timer:** a workout is stored as start times on the wall clock, so it keeps going through reloads, a locked screen or a closed app, and picks up at the right moment. In the background (another app, screen off) the beeps (and _Tones only_ combo calls) are queued on the audio clock and keep playing on Android and computers; the voice coach only speaks while the app is open, and names the current step when you come back.
-- **Account:** add or remove a sign-in method (Google / GitHub), sign out (on someone else's phone or computer: sign out and clear, so the next person can't see your routines) or delete the account with all synced data. A device that last synced with another account asks before mixing data.
-- **Live on all devices:** the running workout (`users/<uid>/run`) shows on every signed-in device. Sound plays on the device you last controlled it from; the others follow silently (_Play here_ moves the sound).
-- `cloud.js` loads Firebase only after signing in (or opening Settings). Paste the web-app config into `FIREBASE_CONFIG`; those values are public identifiers, access is limited by `database.rules.json`.
+## What it does
 
-Firebase setup: create a project → Realtime Database (locked mode) → paste `database.rules.json` into Rules → Authentication: enable Google, and GitHub with a GitHub OAuth app (callback `https://<auth-domain>/__/auth/handler`, where the auth domain is `authDomain` in `cloud.js`: `<project-id>.firebaseapp.com`, or your own domain on Firebase Hosting) → Authentication → Settings → Authorized domains: add `agepoor.github.io` → Project settings → add a Web app and copy its config (it must include `databaseURL`).
+- **Blocks:** reps (the app counts at your pace, or you tap each rep), timed work, sequences of steps (stretches, kata, breathing) and rest. Repeat them for several rounds, with warm-ups only in the first round and finishers only in the last.
+- **Boxing combos:** called out at random from your own combo list. Each move has its own tone (hooks fall, uppercuts rise), so the calls can keep time even when they're too fast to say.
+- **Voice coach and beeps:** counts, cues and countdowns in your browser's language, with built-in phrases in English, Dutch, Spanish, German and French. Each routine can have its own voice and sound.
+- **Your day and week:** give a routine its days and a part of the day (morning, midday, evening). The home screen shows what's left for today and suggests what's _Up next_; you can ignore it, skip a routine for today or switch the guidance off.
+- **History and streaks:** every workout is logged; the week view shows what was planned and what got done.
+- **Keeps going:** a workout survives a reload, a locked screen or a closed app. Minimise it and keep using the app.
+- **Your data:** export and import routines as JSON. With an account, routines, history and a running workout sync across devices.
 
-### Code
+## Run it locally
 
-Plain ES modules, no bundler: `index.html` holds the page, `styles.css` the styles, and it loads `ui/main.js`. Colours, spacing, type sizes, radii and durations are design tokens in [`design/tokens.json`](design/tokens.json) (`npm run tokens` writes `tokens.css` from it); the rules for using them are in [`design/README.md`](design/README.md).
+You need git, bash and Python 3. There's no install step and no bundler: the app is plain JavaScript modules served as static files.
 
-- `core/`: the app's logic without any DOM or browser UI, so it can be tested on its own: the routine model and migrations (`routine.js`), days, parts of the day and streaks (`schedule.js`), the step list a routine plays, boxing moves and combo tones (`steps.js`), the timer engine and its cues (`engine.js`), voice timing and spoken phrases (`voice.js`), sync merging (`merge.js`), durations and dates (`time.js`). Core modules only import each other.
-- `ui/`: everything on screen and on the device: storage, sound & voice, views, editor, run screen, settings, history, sync. UI modules call into `core/`, never the other way round. Functions called from the page's `onclick="…"` handlers are put on `window` in `ui/main.js`.
-- Routines follow [`schema/routine.schema.json`](schema/routine.schema.json) (JSON Schema). Its `cv` is the format version: when the format changes, `core/routine.js` gets a migration step so older routines keep working. Known boxing moves have stable ids (`jab`, `cross`, `lead_hook`, … in `core/steps.js`), derived from the combo text.
-- Storage keys stay `rf2_*` (renaming them would lose people's data). A new module file goes into `FILES` in `sw.js` so the app keeps working offline; `build.sh` names the cache after the commit, so each deploy refreshes it.
+```bash
+git clone https://github.com/agepoor/repflow.git
+```
 
-Icons are stored base64 in `icons/` and decoded by `build.sh`, which the Pages workflow runs on every push to `main`. The former `/v2/` preview forwards to the live app.
+```bash
+cd repflow
+```
 
-### Checks
+```bash
+bash build.sh _site
+```
 
-Node 22.12 or newer. `npm install` once, then `npm run check` runs everything: ESLint (`npm run lint`), Prettier (`npm run format:check`; `npm run format` fixes it) and the Vitest tests for `core/` (`npm test`, or `npm run test:watch` while working). The app itself needs no install or build step. Prettier formats all code; formatting-only commits are listed in `.git-blame-ignore-revs` so `git blame` skips them (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
+```bash
+python3 -m http.server 8000 -d _site
+```
 
-### Security
+Open http://localhost:8000. Run `bash build.sh _site` again after every change; `_site` is build output, so don't commit it. Opening `index.html` straight from disk doesn't work, because browsers don't load JavaScript modules over `file://`.
+
+Everything works locally except signing in, which only works on the app's own addresses. To work on sign-in and sync, see [Your own Firebase](#your-own-firebase).
+
+## Develop
+
+The checks need Node 22.12 or newer.
+
+```bash
+npm ci
+```
+
+```bash
+npm run check
+```
+
+`npm run check` runs ESLint, Prettier and the tests; run it before every commit. While working, `npm run test:watch` reruns the tests on every save and `npm run format` fixes formatting. `npm run test:rules` tests the database security rules in the Firebase emulator (needs Java 11 or newer). After changing the design tokens in `design/tokens.json`, `npm run tokens` writes `tokens.css`.
+
+Where things are:
+
+- `index.html`, `styles.css`: the page and all its styles. Colours, spacing and type come from the design tokens; the rules for them are in [`design/README.md`](design/README.md).
+- `core/`: the app's logic (routines, schedule, timer, voice timing, sync merging), with no DOM, so it runs and is tested in Node.
+- `ui/`: everything on screen and on the device. It calls into `core/`, never the other way round.
+- `cloud.js`: sign-in and sync (Firebase), loaded only when needed.
+- `schema/routine.schema.json`: the routine format.
+- `test/`: one test file per `core/` module, and `test/rules/` for the database rules.
+- `sw.js`: the offline cache. `build.sh`: builds the site.
+
+[`CLAUDE.md`](CLAUDE.md) has the full list of rules: the security policy (no inline scripts or handlers), storage keys that must never be renamed, how routine format changes are migrated, and more.
+
+Every push to `main` deploys to the live app, so all changes go through a pull request. CI runs the same checks on every pull request and posts a preview link.
+
+## Your own Firebase
+
+Sign-in and sync use Firebase. The config in `cloud.js` is public; access is limited by `database.rules.json`, and the project only accepts requests from the app's own addresses. To run sign-in and sync yourself, use your own Firebase project:
+
+1. Create a project with a Realtime Database (locked mode) and paste `database.rules.json` into its Rules.
+2. Authentication: turn on Google, and GitHub with a GitHub OAuth app whose callback is `https://<authDomain>/__/auth/handler`. Add `localhost` and your own domain under Settings → Authorized domains.
+3. Project settings → add a Web app and paste its config into `FIREBASE_CONFIG` in `cloud.js` (it must include `databaseURL`). Set `authDomain` to `<project-id>.firebaseapp.com`, or to your own domain if you host the app on Firebase Hosting.
+4. Set up App Check with reCAPTCHA Enterprise and put its site key in `APP_CHECK`. When testing locally, set `APP_CHECK_DEBUG` to `true` and add the token it prints under App Check → Manage debug tokens.
+
+To test without a Firebase project, `EMULATOR` in `cloud.js` points sign-in and the database at the Firebase Emulator Suite.
+
+## Security
 
 Found a security problem? Please report it privately, not in a public issue: see [SECURITY.md](SECURITY.md).
 
-### Privacy
+## Privacy
 
-[privacy.html](privacy.html) (linked from Settings → About and under the sign-in buttons) says what's stored, where and how to delete it. Without an account nothing leaves the device. With one, routines and workouts sync through Firebase (database in Belgium); reCAPTCHA (App Check) only starts once someone is signed in. No ads, analytics or tracking. Delete account in Settings removes `users/<uid>` and the sign-in.
+Without an account, nothing leaves your device. With one, routines and workouts sync through Firebase (database in Belgium). There are no ads, analytics or tracking. [privacy.html](privacy.html), also linked in the app's Settings, says what's stored, where, and how to delete it.
 
-### Licence
+## Licence
 
-The code is licensed under the [Apache License 2.0](LICENSE): use, change and share it, also in closed or commercial apps, as long as you keep the licence and copyright notices and mark files you changed. Contributions are accepted under the same licence. The Saira font keeps its own licence (`fonts/OFL.txt`), and the licence gives no right to use the PunchPace name or logo as your own (section 6).
+The code is licensed under the [Apache License 2.0](LICENSE): use, change and share it, also in closed or commercial apps, as long as you keep the licence and copyright notices and mark the files you changed. Contributions are accepted under the same licence. The licence gives no right to use the PunchPace name or logo as your own (section 6).
+
+The display type is [Saira](https://github.com/Omnibus-Type/Saira), under the SIL Open Font License 1.1 (`fonts/OFL.txt`).
