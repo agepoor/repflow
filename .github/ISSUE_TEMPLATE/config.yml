@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/agepoor/repflow/security/advisories/new
+    about: Report it privately, not in a public issue (see SECURITY.md).
+  - name: How to contribute
+    url: https://github.com/agepoor/repflow/blob/main/CONTRIBUTING.md
+    about: How to set up, how a change gets in, and the rules that are easy to miss.

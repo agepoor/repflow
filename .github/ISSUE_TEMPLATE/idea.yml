@@ -1,0 +1,24 @@
+name: I have an idea
+description: Something PunchPace could do, or do better.
+labels: ['feature']
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to do?
+      placeholder: Repeat the same three blocks five times without copying them.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: What it would help with, or what you do now instead.
+      placeholder: My routines get long and hard to edit.
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else?
+      description: Examples, screenshots, or apps that do this well.

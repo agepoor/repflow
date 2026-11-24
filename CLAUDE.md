@@ -64,7 +64,7 @@ Prettier formats all code (`npm run format`). Formatting-only commits go in `.gi
 
 ## Workflow
 
-- Work comes from GitHub issues (template: What / Why / Notes, one type label + one timing label). Phases are milestones; each issue has one row on the PunchPace board in Notion.
+- Work comes from GitHub issues (templates in `.github/ISSUE_TEMPLATE/`: _Planned change_ with Problem / Proposal / Done when and one kind label; forms _Something's wrong_ and _I have an idea_ for people who don't code; PR template in `.github/pull_request_template.md`). Phases are milestones; each issue has one row on the PunchPace board in Notion.
 - One issue per session. For anything beyond a small fix, plan first and check the plan before coding.
 - Changing `core/`: add or update its tests in `test/`.
 - Before finishing: `npm run check`, build, run it, check the change in the browser (including offline if `sw.js` changed). Changed `ui/`, `index.html`, `sw.js` or the security policy: also `npm run test:e2e`, and update it when the flow it follows changes.
