@@ -3,7 +3,7 @@ import { does } from './actions.js';
 import { runLive, unbox } from '../core/engine.js';
 import { changed, docOf, itemsOf, merge, norm, print } from '../core/merge.js';
 import { PRESETS, iconKey } from '../core/routine.js';
-import { WIPE_KEY, storageChange } from '../core/windows.js';
+import { WIPE_KEY, appKeys, storageChange } from '../core/windows.js';
 import { renderHist, streaks, updHistBtn } from './history.js';
 import { COLORS, esc, svgi, tint, toast } from './html.js';
 import {
@@ -520,6 +520,50 @@ function signOutAnd(wipe) {
     })
     .finally(refreshAcct);
 }
+/* Reset all (#74): this device starts over like a fresh install. Every key the app owns goes (core/windows.js appKeys):
+   routines, history, settings, what the voice learned, the device code and the last account. Signed in, it signs out
+   first, so nothing is deleted from the account (that's Delete account). Other windows start over (fromOtherWindow) */
+function resetDevice() {
+  const signedIn = !!CU || !!localStorage.getItem('rf2_acct');
+  ask({
+    title: 'Reset this device?',
+    text:
+      '<p>Removes all routines, history and settings from this device and starts over with the 5 default routines. Export JSON first if you want a backup.</p>' +
+      (signedIn
+        ? '<p>You’ll be signed out first. Your account keeps its routines and history; to delete those, use Delete account.</p>'
+        : ''),
+    buttons: [
+      { label: 'Reset this device', cls: 'danger', run: () => (signedIn ? signOutThenWipe() : wipeDevice()) },
+      { label: 'Cancel', cls: 'ghost' },
+    ],
+  });
+}
+/* signed in: the account must be signed out before the device forgets it, or the next start would sign in again and
+   sync. Firebase's signOut waits for the saved sign-in to load, so it works right after opening Settings too */
+function signOutThenWipe() {
+  authMsg = '';
+  (CLOUD ? Promise.resolve(CLOUD) : cloud())
+    .then((m) => {
+      if (m) return m.signOut();
+      if (CS !== 'off') throw new Error('sign-in code not loaded');
+    })
+    .then(wipeDevice, () => {
+      toast('Couldn’t sign out, so nothing was reset. Check your connection and try again.');
+      refreshAcct();
+    });
+}
+function wipeDevice() {
+  if (X && X.steps) closeRun();
+  document.getElementById('edit').classList.remove('on'); // or leaving the page saves an editor draft again (saveDraft)
+  try {
+    appKeys(Object.keys(localStorage)).forEach((k) => localStorage.removeItem(k));
+    appKeys(Object.keys(sessionStorage)).forEach((k) => sessionStorage.removeItem(k));
+    localStorage.setItem(WIPE_KEY, String(Date.now())); // tells the other windows; then gone, as on a fresh install
+    localStorage.removeItem(WIPE_KEY);
+  } catch (e) {}
+  history.replaceState(null, '', '#/');
+  location.reload();
+}
 function removeProv(p) {
   const other = CU.providers.map(pname).find((n) => n !== pname(p)) || '';
   ask({
@@ -823,6 +867,7 @@ export {
   signIn,
   linkProv,
   signOutNow,
+  resetDevice,
   removeProv,
   deleteAcct,
   askSwitch,

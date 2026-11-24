@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WIPE_KEY, storageChange } from '../core/windows.js';
+import { WIPE_KEY, appKeys, storageChange } from '../core/windows.js';
 
 describe('storageChange: what another window changed', () => {
   it('a wipe, or all storage cleared, means start over', () => {
@@ -14,4 +14,23 @@ describe('storageChange: what another window changed', () => {
     '%s is nothing this window keeps',
     (k) => expect(storageChange(k)).toBeNull(),
   );
+});
+
+describe('appKeys: what Reset all removes', () => {
+  it('keeps the rf2_ and old rf_ keys, nothing else', () =>
+    expect(
+      appKeys([
+        'rf2_routines',
+        'rf2_vfit',
+        'rf2_uid',
+        'rf_routines',
+        'rf_gist',
+        'rf',
+        'rf2',
+        'other',
+        'firebase:x',
+        'RF2_set',
+      ]),
+    ).toEqual(['rf2_routines', 'rf2_vfit', 'rf2_uid', 'rf_routines', 'rf_gist']));
+  it('skips missing keys', () => expect(appKeys([null, undefined, 'rf2_set'])).toEqual(['rf2_set']));
 });

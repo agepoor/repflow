@@ -3,19 +3,10 @@ import { does } from './actions.js';
 import { PRESETS } from '../core/routine.js';
 import { sndForm, vdShow, volCtl, volShow } from './sound.js';
 import { R, S, persist, setR } from './storage.js';
-import { cloud, setSync, syncCard, syncState } from './sync.js';
+import { cloud, resetDevice, setSync, syncCard, syncState } from './sync.js';
 import { renderList, renderParts, show } from './views.js';
-function resetAll() {
-  if (
-    !confirm(
-      'Delete ALL routines, including your own, and go back to the 5 default routines?\n\nTip: Export JSON first if you want a backup.',
-    )
-  )
-    return;
-  setR(PRESETS());
-  persist();
-  renderList();
-}
+// Reset all: the whole device starts over, signed out first if signed in (ui/sync.js resetDevice)
+const resetAll = () => resetDevice();
 function addPresets() {
   PRESETS().forEach((p) => {
     const i = R.findIndex((r) => r.name === p.name);
