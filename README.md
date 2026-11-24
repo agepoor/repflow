@@ -13,7 +13,11 @@ PunchPace talks you through the routines you repeat every day or week, from a mo
 
 ## Try it
 
-Open **https://punchpace.app**. On Android, open it in Chrome and choose ⋮ → _Install app_ to get it on your home screen; it works offline from then on.
+Open **https://punchpace.app** in any modern browser, on a phone, tablet or computer. You can install it like an app, and it works offline from then on:
+
+- **Android:** in Chrome, ⋮ → _Install app_.
+- **iPhone and iPad:** in Safari, the share button → _Add to Home Screen_.
+- **Computer:** in Chrome or Edge, the install button in the address bar.
 
 You don't need an account. Without one, everything stays on your device. Sign in with Google or GitHub only if you want your routines and workouts on more than one device.
 
