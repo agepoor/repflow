@@ -101,6 +101,14 @@ Write the subject as what changes for the user, in plain words, for example:
 
 Not `fix bug` or `update ui.js`. For a change users don't see, say what it makes possible ("Tests for the database rules run in CI"). Small commits are welcome; the pull request description says how they fit together.
 
+## Releases
+
+The maintainer cuts a release at the end of each release milestone. From launch on, releases are numbered 1.0, 1.1, 1.2…: the app isn't a library, so there's no need for strict semantic versioning. The version lives in one place, `version` in `package.json`; `build.sh` writes it and the commit into the site, and Settings → About shows both ("Version 1.0 · a1b2c3d"). The routine format has its own version (`cv` in `schema/routine.schema.json`), separate from the app's.
+
+1. On a branch, set the new version: `npm version 1.1.0 --no-git-tag-version` (it updates `package.json` and `package-lock.json`). Open a pull request ("Version 1.1") and merge it; the deploy then shows the new version.
+2. Tag the merge commit on `main` with the version, without the `.0` patch: `git tag v1.1 <commit>`, then `git push origin v1.1`.
+3. On GitHub, **Releases → Draft a new release**, pick the tag and click **Generate release notes**. Pull request titles already say what changes for the user, so the notes need only a light edit: group them under what's new and what's fixed, drop the ones users don't notice (dependency updates, CI), and credit anyone who reported a security problem, if they'd like that ([SECURITY.md](SECURITY.md)). Publish it.
+
 ## Your own Firebase
 
 Sign-in and sync use Firebase. The config in `cloud.js` is public; access is limited by `database.rules.json`, and the project only accepts requests from the app's own addresses. To run sign-in and sync yourself, use your own Firebase project:

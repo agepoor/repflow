@@ -1,7 +1,7 @@
 {
   "name": "punchpace",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "PunchPace: a timer for daily and weekly routines",
   "license": "Apache-2.0",
   "type": "module",

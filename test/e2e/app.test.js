@@ -44,3 +44,11 @@ test('make a routine, run it, open the app offline', async ({ page, context }) =
   await expect(page.locator('#list')).toContainText('Browser test');
   await context.setOffline(false);
 });
+
+test('Settings shows the version and commit', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await expect(page.locator('#set')).toHaveClass(/\bon\b/);
+  // build.sh fills these in from package.json and git; "dev" would mean the placeholder was left in
+  await expect(page.locator('#set')).toContainText(/Version \d+\.\d+(\.\d+)? · [0-9a-f]{7,}(-dirty)?/);
+});
