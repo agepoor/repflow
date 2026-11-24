@@ -1,6 +1,6 @@
 name: Check and deploy
-# Pull requests: lint, format check and tests, plus the database rules tests against the emulator, then a preview on
-# Firebase Hosting with its link on the PR.
+# Pull requests: lint, format check and tests, the database rules tests against the emulator and the browser test
+# against the built site, then a preview on Firebase Hosting with its link on the PR.
 # main: the same checks, then deploy to https://agepoor.github.io/repflow/ and Firebase Hosting (https://punchpace.app,
 # also https://workout-pacer.web.app) only if they pass.
 on:
@@ -36,8 +36,20 @@ jobs:
           java-version: 21
       - run: npm ci
       - run: npm run test:rules
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Only Chromium: the app is mostly used in Chrome on Android
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
   deploy:
-    needs: [check, rules]
+    needs: [check, rules, e2e]
     # Pull requests are checked but never deployed.
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -64,7 +76,7 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v5
   firebase:
-    needs: [check, rules]
+    needs: [check, rules, e2e]
     # main goes live; a pull request gets a preview (its link is commented on the PR, kept 7 days)
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
