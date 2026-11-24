@@ -19,7 +19,7 @@ PunchPace is a small open-source project with one maintainer, so there is no sec
 
 ## Which version
 
-Only the live app is supported: the latest version of the `main` branch, deployed at https://punchpace.app (the old addresses forward there). An installed app updates itself, so there are no older versions to patch.
+Only the live app is supported: the latest version of the `main` branch, deployed at https://punchpace.app (the old addresses forward there). An installed app updates itself, so there are no older versions to patch. Settings → About shows which version and commit you have; please include it in your report.
 
 ## What's in scope
 
