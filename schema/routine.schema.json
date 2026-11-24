@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agepoor.github.io/repflow/schema/routine.schema.json",
+  "$id": "https://punchpace.app/schema/routine.schema.json",
   "title": "PunchPace routine",
   "description": "One routine as the app stores, syncs and exports it (export files hold them in \"routines\"). cv is the format version: core/routine.js migrates older routines up to it. Durations are in seconds.",
   "type": "object",
