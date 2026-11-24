@@ -1,5 +1,7 @@
 node_modules/
 _site/
 coverage/
+test-results/
+playwright-report/
 firebase-debug.log
 .firebase/

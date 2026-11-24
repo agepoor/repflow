@@ -4,6 +4,6 @@ import { defineConfig } from 'vitest/config';
 process.env.TZ = 'Europe/Amsterdam';
 
 export default defineConfig({
-  // test/rules/ needs the database emulator: `npm run test:rules`
-  test: { include: ['test/**/*.test.js'], exclude: ['test/rules/**', 'node_modules/**'] },
+  // test/rules/ needs the database emulator (`npm run test:rules`), test/e2e/ a browser (`npm run test:e2e`)
+  test: { include: ['test/**/*.test.js'], exclude: ['test/rules/**', 'test/e2e/**', 'node_modules/**'] },
 });

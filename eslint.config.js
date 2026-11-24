@@ -10,7 +10,7 @@ const elementIds = Object.fromEntries(
 );
 
 export default [
-  { ignores: ['node_modules/', '_site/', 'coverage/'] },
+  { ignores: ['node_modules/', '_site/', 'coverage/', 'test-results/', 'playwright-report/'] },
   js.configs.recommended,
   {
     files: ['**/*.js'],
@@ -27,4 +27,6 @@ export default [
   { files: ['ui/**/*.js', 'cloud.js'], languageOptions: { globals: { ...globals.browser, ...elementIds } } },
   { files: ['sw.js'], languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } } },
   { files: ['test/**/*.js', 'design/**/*.js', '*.config.js'], languageOptions: { globals: { ...globals.node } } },
+  // the browser test also runs code inside the page (page.evaluate)
+  { files: ['test/e2e/**/*.js'], languageOptions: { globals: { ...globals.browser } } },
 ];
