@@ -1,4 +1,4 @@
-/* Workout Pacer v2: account (Google / GitHub sign-in via Firebase Auth) and sync (Firebase Realtime Database).
+/* PunchPace: account (Google / GitHub sign-in via Firebase Auth) and sync (Firebase Realtime Database).
    Paste the web-app config from the Firebase console (Project settings → Your apps) below. These values are public
    identifiers, not secrets: access is limited by database.rules.json (each account can only read/write users/<its uid>). */
 import { newer } from './core/merge.js';

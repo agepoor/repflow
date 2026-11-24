@@ -1,7 +1,7 @@
 {
   "name": "PunchPace",
   "short_name": "PunchPace",
-  "description": "Think once. Move without thinking. Audio-guided pacer for rep, timed and boxing workouts.",
+  "description": "Talks you through the routines you repeat every day or week, from a morning stretch to a boxing session, so you can keep your eyes off the screen.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

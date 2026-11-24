@@ -19,7 +19,7 @@ PunchPace is a small open-source project with one maintainer, so there is no sec
 
 ## Which version
 
-Only the live app is supported: the latest version of the `main` branch, deployed at https://agepoor.github.io/repflow/ and https://workout-pacer.web.app. An installed app updates itself, so there are no older versions to patch.
+Only the live app is supported: the latest version of the `main` branch, deployed at https://punchpace.app (the old addresses forward there). An installed app updates itself, so there are no older versions to patch.
 
 ## What's in scope
 
