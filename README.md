@@ -29,6 +29,10 @@ You don't need an account. Without one, everything stays on your device. Sign in
 - **Keeps track:** workouts are logged, with streaks and a week overview.
 - **Works anywhere:** installable, works offline, and syncs across devices if you sign in.
 
+## Feedback
+
+Something not working, or an idea? [Open an issue](https://github.com/agepoor/repflow/issues/new/choose) and pick _Something's wrong_ or _I have an idea_. All you need is a GitHub account.
+
 ## Contribute
 
 Want to fix something or add a feature? [CONTRIBUTING.md](CONTRIBUTING.md) explains how to run the app locally, how a change gets in, and the rules that keep it safe and working offline. In short: you need git, bash and Python 3 to run it (no bundler, plain JavaScript modules), and Node 22.12+ for the checks.

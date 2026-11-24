@@ -1,0 +1,59 @@
+name: Something's wrong
+description: Something in PunchPace doesn't work, or doesn't work as you expected.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for letting us know. Found a security problem? Don't post it here: report it privately as [SECURITY.md](https://github.com/agepoor/repflow/blob/main/SECURITY.md) describes.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, and what went wrong? Steps to make it happen again help most.
+      placeholder: I started my morning routine, and after the first round the voice stopped.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: The voice keeps counting until the end.
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Android phone or tablet
+        - iPhone or iPad
+        - Computer
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: how
+    attributes:
+      label: How do you open PunchPace?
+      options:
+        - Installed app (from the home screen)
+        - In a browser tab
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Chrome, Safari, Firefox…
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in Settings → About, once the app shows its version. Leave empty if you can't find it.
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else?
+      description: Screenshots, a screen recording, or when it started happening.

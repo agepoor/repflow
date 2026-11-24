@@ -8,11 +8,11 @@ Found a security problem? Don't open an issue: report it privately as [SECURITY.
 
 ## How a change gets in
 
-1. **Start from an issue.** Pick an open [issue](https://github.com/agepoor/repflow/issues) (`good first issue` ones are a good start), or open one first for anything that isn't a small fix: say what's wrong or missing, what you'd change, and when it's done. That way we agree on the change before you spend time on it. Comment on the issue so others know you're on it.
+1. **Start from an issue.** Pick an open [issue](https://github.com/agepoor/repflow/issues) (`good first issue` ones are a good start), or open one first for anything that isn't a small fix with the _Planned change_ template: what's wrong or missing, what you'd change, and when it's done. That way we agree on the change before you spend time on it. Comment on the issue so others know you're on it.
 2. **Fork and branch.** Fork the repo and make a branch named after the issue: `<issue number>-<short name>`, for example `37-touch-targets`.
 3. **Keep it small.** One issue per pull request. Ideas that come up along the way become new issues, not extra changes in this one.
 4. **Check before you push.** `npm run check` must pass (see [Checks](#checks)), and try the change in the browser, on a phone-sized screen too: most people use PunchPace as an installed app on Android.
-5. **Open a pull request** against `main`, with `Fixes #<issue number>` in the description so merging closes the issue. Say what changes for the user and how you tested it.
+5. **Open a pull request** against `main`, with `Fixes #<issue number>` in the description so merging closes the issue. The template asks what changes for the user and how you tested it, with a short checklist.
 6. **Review.** CI runs the same checks and comments a preview link (pull requests from forks don't get a preview). The maintainer reviews and merges. Every merge to `main` goes live at https://punchpace.app, so nothing goes in without review.
 
 Contributions are accepted under the project's licence, [Apache-2.0](LICENSE).
