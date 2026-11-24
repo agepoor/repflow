@@ -2,8 +2,8 @@
    means for this window. Each window keeps the data in memory and saves it whole, so one that holds an old copy
    would write deleted routines back or upload them to the next account that signs in. No DOM: runs in Node. */
 
-/* written when this device's data is cleared (Delete account with its box ticked, Sign out and clear, switching to
-   another account's data only), so the other windows start over from what's stored now */
+/* written when this device's data is cleared (Reset all, Delete account with its box ticked, Sign out and clear,
+   switching to another account's data only), so the other windows start over from what's stored now */
 const WIPE_KEY = 'rf2_wipe';
 const DATA_KEYS = ['rf2_routines', 'rf2_set', 'rf2_meta', 'rf2_hist', 'rf2_hdel'];
 const SYNC_KEYS = ['rf2_sync', 'rf2_synced'];
@@ -17,4 +17,8 @@ function storageChange(key) {
   return null;
 }
 
-export { WIPE_KEY, storageChange };
+/* the keys this app owns among a storage area's keys: rf2_* and the old v1 rf_* (storage.js copies those back in when
+   rf2_routines is missing, so clearing only rf2_* would bring v1 routines back). Other sites' keys on the same origin stay */
+const appKeys = (keys) => keys.filter((k) => typeof k === 'string' && (k.startsWith('rf2_') || k.startsWith('rf_')));
+
+export { WIPE_KEY, appKeys, storageChange };
