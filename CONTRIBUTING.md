@@ -80,6 +80,7 @@ The checks catch some of these; the rest break the app for real users if missed.
 - **New external host** (a script, an API): add it to the security policy in both `firebase.json` and the `<meta>` tag in `index.html`. A test checks they match.
 - **New file the app loads:** add it to `FILES` in `sw.js`, or the app breaks offline.
 - **Never rename storage keys** (`rf2_*`) or synced paths (`users/<uid>/…`): people would lose their data.
+- **Syncing something new?** The database only accepts the keys, types and sizes listed in `database.rules.json`. Add the new field there with a test in `test/rules/`, or its writes are refused.
 - **Changing the routine format:** update `schema/routine.schema.json`, add a migration in `core/routine.js` and bump the version, so old routines, exports and other devices keep working.
 - **Design tokens, not hard-coded values:** colours by role (`--text-muted`), spacing on the 4px grid (`--space-3`), the type scale (`--fs-sm`). A light theme is planned, so don't assume dark.
 - **Plain, short text.** Step cues say what to do ("Right knee: lift forward, swing out, down"), not exercise jargon.
