@@ -55,7 +55,7 @@ This runs ESLint, the Prettier format check and the tests. Run it before every c
 
 - `npm run test:watch` reruns the tests on every save.
 - `npm run format` fixes the formatting. Prettier formats all code and Markdown, so don't format by hand.
-- `npm run test:e2e` builds the site and runs a browser test at phone size: the app loads without errors, a new routine can be made, started and stopped, the app opens offline, and a workout can be stopped from a second device (with a stand-in for sync, `test/e2e/fake-cloud.js`). Run it when you change `ui/`, `index.html` or `sw.js`; CI runs it on every pull request. The first time, install its browser with `npx playwright install chromium`.
+- `npm run test:e2e` builds the site and runs a browser test at phone size: the app loads without errors, a new routine can be made, started and stopped, the app opens offline, and a workout behaves on two devices as [`docs/multi-device.md`](docs/multi-device.md) describes (with a stand-in for sync, `test/e2e/fake-cloud.js`). Run it when you change `ui/`, `index.html` or `sw.js`; CI runs it on every pull request. The first time, install its browser with `npx playwright install chromium`.
 - `npm run test:rules` tests the database security rules in the Firebase emulator (needs Java 11 or newer). Run it when you change `database.rules.json`; CI runs it on every pull request, and after a merge to `main` publishes the rules just before the app.
 - `npm run tokens` writes `tokens.css` after you change `design/tokens.json`.
 
@@ -69,6 +69,7 @@ Changed something in `core/`? Add or update its tests in `test/` (one file per m
 - `cloud.js`: sign-in and sync (Firebase), loaded only when needed.
 - `design/`: the design tokens (`tokens.json`) and the design rules ([`design/README.md`](design/README.md)).
 - `schema/routine.schema.json`: the routine format.
+- [`docs/multi-device.md`](docs/multi-device.md): how a running workout behaves on several devices and windows, with its edge cases. Read it before changing the run screen or sync of a running workout, and keep it up to date.
 - `test/`: Vitest tests for `core/`, `test/rules/` for the database rules and `test/e2e/` for the browser test.
 - `sw.js`: the offline cache. `build.sh`: builds the site.
 

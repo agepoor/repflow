@@ -16,11 +16,27 @@ test.afterEach(() => expect(errors, 'console errors').toEqual([]));
 // a stored value, as the database keeps it: without null fields
 const stored = (v) => (v ? JSON.parse(JSON.stringify(v, (k, x) => (x === null ? undefined : x))) : null);
 
-/* a device signed in to the test account; 'Desktop Chrome' says Windows, so the app calls it "Windows PC" */
-async function device(browser, baseURL, kind) {
+/* a routine short enough to finish during a test: no get-ready, one 8-second block */
+const SHORT = [
+  {
+    id: 'short',
+    name: 'Short',
+    color: 'blue',
+    rounds: 1,
+    prep: 0,
+    cv: 3,
+    blocks: [{ id: 'b1', type: 'timed', name: 'Work', work: 8 }],
+  },
+];
+/* a device signed in to the test account; 'Desktop Chrome' says Windows, so the app calls it "Windows PC".
+   routines: what's on it the first time it opens (the presets when left out) */
+async function device(browser, baseURL, kind, routines) {
   const ctx = await browser.newContext({ ...devices[kind], baseURL, serviceWorkers: 'block' });
   await ctx.route('**/cloud.js', (r) => r.fulfill({ contentType: 'text/javascript', body: FAKE }));
-  await ctx.addInitScript(() => localStorage.setItem('rf2_acct', '1')); // signed in before: sync starts on opening
+  await ctx.addInitScript((rs) => {
+    localStorage.setItem('rf2_acct', '1'); // signed in before: sync starts on opening
+    if (rs && localStorage.getItem('rf2_routines') === null) localStorage.setItem('rf2_routines', JSON.stringify(rs));
+  }, routines || null);
   await ctx.exposeFunction('ppGetRun', () => shared);
   await ctx.exposeFunction('ppSetRun', (v) => {
     shared = stored(v);
@@ -89,4 +105,68 @@ test('a paused workout whose device is gone can be stopped from the banner', asy
   const tablet = await device(browser, baseURL, 'Pixel 7');
   await expect(tablet.locator('#list button.go').first()).toBeVisible();
   await expect(banner(tablet)).toBeEmpty();
+});
+
+/* the cases in docs/multi-device.md that behave as they should; each bug found there gets its test with its fix */
+const live = (page) => page.locator('#live');
+const logged = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('rf2_hist') || '[]').map((h) => h.id));
+
+test('a following device takes over the sound with Play here, or by pausing', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome');
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  await pc.locator('#list button.go').first().click();
+  await phone.getByRole('button', { name: 'Open' }).click();
+  await expect(live(phone)).toContainText('Sound on Windows PC');
+  await expect(live(pc)).toBeHidden();
+
+  // Play here: the phone plays the sound, the PC follows; the workout itself doesn't change
+  const { s0, i } = shared;
+  await live(phone).click();
+  await expect.poll(() => shared.dn).toBe('Android phone');
+  expect(shared).toMatchObject({ s0, i });
+  await expect(live(pc)).toContainText('Sound on Android phone');
+  await expect(live(phone)).toBeHidden();
+
+  // pausing on the follower (now the PC) takes the sound back and pauses it on both
+  await pc.locator('#pp').click();
+  await expect.poll(() => shared.dn).toBe('Windows PC');
+  expect(shared.p).toBeTruthy();
+  await expect(phone.locator('#pp')).toHaveAttribute('aria-label', 'Resume');
+  await expect(live(phone)).toContainText('Sound on Windows PC');
+});
+
+test('a workout ends on a device that has it minimized, and is logged once', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome', SHORT);
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  await pc.locator('#list button.go').first().click();
+  await phone.getByRole('button', { name: 'Open' }).click();
+  await phone.locator('#minBtn').click();
+  await expect(phone.locator('#mcard')).toContainText('Short');
+
+  await expect(pc.locator('#run')).toHaveClass(/\bfin\b/, { timeout: 15000 });
+  await expect(phone.locator('#run')).toHaveClass(/\bfin\b/);
+  expect(shared.end).toBe('done');
+  // each device logs it under the workout's own id, so sync keeps one entry
+  expect(await logged(pc)).toEqual([shared.sid]);
+  expect(await logged(phone)).toEqual([shared.sid]);
+});
+
+test('a workout that ended long before the app was opened again asks before logging', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome', SHORT);
+  await pc.locator('#list button.go').first().click();
+  await expect.poll(() => shared && shared.sid).toBeTruthy();
+  // as if it started an hour ago and the app was closed since
+  const hour = 3600e3;
+  await pc.evaluate((h) => {
+    const d = JSON.parse(localStorage.getItem('rf2_run'));
+    Object.assign(d, { s0: d.s0 - h, t0: d.t0 - h, u: d.u - h });
+    localStorage.setItem('rf2_run', JSON.stringify(d));
+  }, hour);
+  shared = { ...shared, s0: shared.s0 - hour, t0: shared.t0 - hour, u: shared.u - hour };
+  await pc.reload();
+  await expect(pc.locator('#run')).toHaveClass(/\bfin\b/);
+  await expect(pc.locator('#doneView')).toContainText('Ended while the app was closed');
+  expect(await logged(pc)).toEqual([]);
+  await pc.getByRole('button', { name: 'Log it' }).click();
+  expect(await logged(pc)).toEqual([shared.sid]);
 });
