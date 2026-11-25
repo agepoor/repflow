@@ -7,6 +7,7 @@ import {
   cuePlan,
   drawCombo,
   guidedAt,
+  runDevice,
   runLive,
   secondCues,
   unbox,
@@ -94,6 +95,31 @@ describe('runLive: is a stored workout still going?', () => {
   it('a workout waiting for a tap is still going', () => {
     const held = JSON.stringify({ ...JSON.parse(r), rounds: 2, hold: 'rounds' });
     expect(runLive({ ...v, r: held }, 3600e3)).toBe(true);
+  });
+});
+
+describe('runDevice: which device a workout runs on, as the user reads it', () => {
+  const me = { id: 'aaa', name: 'Windows PC' };
+
+  it('this device, by its code', () => {
+    expect(runDevice({ by: 'aaa', dn: 'Windows PC' }, me)).toBe('this device');
+  });
+
+  it('another device by its name', () => {
+    expect(runDevice({ by: 'bbb', dn: 'Android phone' }, me)).toBe('Android phone');
+  });
+
+  it('the same kind of device under another code: another browser or app (issue 121)', () => {
+    expect(runDevice({ by: 'bbb', dn: 'Windows PC' }, me)).toBe('Windows PC (another browser or app)');
+  });
+
+  it('a device without a name, or a workout without a device', () => {
+    expect(runDevice({ by: 'bbb' }, me)).toBe('another device');
+    expect(runDevice({ by: 'bbb', dn: '' }, { id: 'aaa', name: '' })).toBe('another device');
+    expect(runDevice({}, me)).toBe('another device');
+    // the name a device gets when its kind can't be told says nothing about it being the same computer
+    const unknown = { id: 'aaa', name: 'another device' };
+    expect(runDevice({ by: 'bbb', dn: 'another device' }, unknown)).toBe('another device');
   });
 });
 

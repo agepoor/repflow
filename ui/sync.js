@@ -1,6 +1,6 @@
 /* Account & sync: Google / GitHub sign-in (Firebase, in cloud.js) for routines, history and the running workout. */
 import { does } from './actions.js';
-import { runLive, unbox } from '../core/engine.js';
+import { runDevice, runLive, unbox } from '../core/engine.js';
 import { changed, docOf, itemsOf, merge, norm, print } from '../core/merge.js';
 import { PRESETS, iconKey } from '../core/routine.js';
 import { WIPE_KEY, appKeys, storageChange } from '../core/windows.js';
@@ -776,7 +776,7 @@ function onRemoteRun(v) {
       }
     } else if (CR && !CR.end) {
       adopt(CR);
-      toast(`${runName(CR)} started on ${CR.dn || 'another device'}`, true);
+      toast(`${runName(CR)} started on ${runDevice(CR, DEV)}`, true);
     } else if (CR) {
       if (!closeRun()) show('lib');
     }
@@ -824,7 +824,7 @@ function remoteEnd(v) {
     finish(f, Math.max(0, NOW() - f), true);
   } else {
     if (!closeRun()) show('lib');
-    toast(`Workout stopped on ${v.dn || 'another device'}`, true);
+    toast(`Workout stopped on ${runDevice(v, DEV)}`, true);
   }
 }
 function runActive(v) {
@@ -845,7 +845,7 @@ function banner() {
       r = JSON.parse(v.r) || {};
     } catch (e) {}
     const c = COLORS[r.color] || COLORS.blue;
-    h = `<div class="card rcard livebar"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name || 'Workout')}</b><div class="muted">${v.p != null ? 'Paused' : 'Live'} on ${v.by === DEV.id ? 'this device' : esc(v.dn || 'another device')}</div></div><button class="ghost skip" ${does('click:endLive')} title="Stop this workout" aria-label="Stop this workout">${svgi('x', 16)}</button><button class="primary" ${does('click:openLive')}>Open</button></div>`;
+    h = `<div class="card rcard livebar"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name || 'Workout')}</b><div class="muted">${v.p != null ? 'Paused' : 'Live'} on ${esc(runDevice(v, DEV))}</div></div><button class="ghost skip" ${does('click:endLive')} title="Stop this workout" aria-label="Stop this workout">${svgi('x', 16)}</button><button class="primary" ${does('click:openLive')}>Open</button></div>`;
   }
   if (h !== BAN) {
     BAN = h;
@@ -860,7 +860,7 @@ function openLive() {
 function endLive() {
   const v = CR;
   if (!v || !runActive(v)) return;
-  const where = v.by === DEV.id ? 'this device' : v.dn || 'another device';
+  const where = runDevice(v, DEV);
   ask({
     title: 'Stop this workout?',
     text: `<p>It’s ${v.p != null ? 'paused' : 'playing'} on <b>${esc(where)}</b>. Stopping it ends it on every device.</p>`,

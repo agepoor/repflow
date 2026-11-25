@@ -1,6 +1,16 @@
 /* The run screen: plays a workout with the timer engine (core/engine.js), shows it, and keeps it in sync across devices. */
 import { does } from './actions.js';
-import { advance, boxStr, comboGap, drawCombo, guidedAt, runLive, secondCues, unbox } from '../core/engine.js';
+import {
+  advance,
+  boxStr,
+  comboGap,
+  drawCombo,
+  guidedAt,
+  runDevice,
+  runLive,
+  secondCues,
+  unbox,
+} from '../core/engine.js';
 import { iconKey, mig, norm, uid } from '../core/routine.js';
 import { build, callTxt, moves, rTot, spoken, stepLen } from '../core/steps.js';
 import { fmt } from '../core/time.js';
@@ -246,7 +256,7 @@ function replaceOk(r) {
     w = { name: cr.name || 'Workout', id: cr.id, by: CR.by, dn: CR.dn };
   }
   if (!w) return true;
-  const where = w.by && w.by !== DEV.id ? ` on ${w.dn || 'another device'}` : '';
+  const where = w.by && w.by !== DEV.id ? ` on ${runDevice(w, DEV)}` : '';
   if (w.id === r.id)
     return confirm(where ? `Stop “${w.name}”${where} and start it again here?` : `Restart “${w.name}”?`);
   return confirm(`Stop “${w.name}”${where} and start “${r.name}”?`);
@@ -367,7 +377,7 @@ function stopRun() {
 function askStop() {
   ask({
     title: 'Stop this workout?',
-    text: `<p>It’s ${X.p != null ? 'paused' : 'playing'} on <b>${esc(X.dn || 'another device')}</b>. Stop it there too, or only close it here?</p>`,
+    text: `<p>It’s ${X.p != null ? 'paused' : 'playing'} on <b>${esc(runDevice(X, DEV))}</b>. Stop it there too, or only close it here?</p>`,
     buttons: [
       {
         label: 'Stop everywhere',
@@ -636,7 +646,7 @@ function liveUI() {
   if (!el) return;
   let h = '';
   if (X && X.steps) {
-    if (!mine()) h = `${svgi('mute', 15)}<span>Sound on ${esc(X.dn || 'another device')} · <b>Play here</b></span>`;
+    if (!mine()) h = `${svgi('mute', 15)}<span>Sound on ${esc(runDevice(X, DEV))} · <b>Play here</b></span>`;
     else if (!UNLOCKED) h = `${svgi('vol', 15)}<span><b>Tap for sound</b></span>`;
   }
   el.innerHTML = h;
