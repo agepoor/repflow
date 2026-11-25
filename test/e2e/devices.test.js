@@ -151,6 +151,48 @@ test('a workout ends on a device that has it minimized, and is logged once', asy
   expect(await logged(phone)).toEqual([shared.sid]);
 });
 
+/* deleting the routine (#120) elsewhere, as another device does through sync: here another window on this device
+   stores the change (a page without the app, so it doesn't pick up the workout itself, as a second app window would:
+   #79). The workout carries on and is logged, but the done screen offers only Close */
+async function deleteElsewhere(page) {
+  const tab = await page.context().newPage();
+  await tab.goto('./robots.txt');
+  await tab.evaluate(() => {
+    const meta = JSON.parse(localStorage.getItem('rf2_meta') || '{"deleted":{}}');
+    meta.deleted = { ...meta.deleted, short: Date.now() };
+    localStorage.setItem('rf2_routines', '[]');
+    localStorage.setItem('rf2_meta', JSON.stringify(meta));
+  });
+  await tab.close();
+}
+const again = (page) => page.locator('#doneView').getByRole('button', { name: 'Again' });
+const close = (page) => page.locator('#doneView').getByRole('button', { name: 'Close' });
+
+test('a routine deleted while it runs finishes with only Close', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome', SHORT);
+  await expect(pc.locator('#syncDot')).toBeHidden(); // synced: a sync that ends later would bring the routine back
+  await pc.locator('#list button.go').first().click();
+  await expect.poll(() => shared && shared.sid).toBeTruthy();
+  await deleteElsewhere(pc);
+
+  await expect(pc.locator('#run')).toHaveClass(/\bfin\b/, { timeout: 15000 });
+  await expect(pc.locator('#doneView')).toContainText('Workout complete');
+  await expect(close(pc)).toBeVisible();
+  await expect(again(pc)).toHaveCount(0);
+  expect(await logged(pc)).toEqual([shared.sid]);
+});
+
+test('Again goes away when the routine is deleted while the done screen is open', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome', SHORT);
+  await pc.locator('#list button.go').first().click();
+  await expect(pc.locator('#run')).toHaveClass(/\bfin\b/, { timeout: 15000 });
+  await expect(again(pc)).toBeVisible();
+
+  await deleteElsewhere(pc);
+  await expect(again(pc)).toHaveCount(0);
+  await expect(close(pc)).toBeVisible();
+});
+
 test('a workout that ended long before the app was opened again asks before logging', async ({ browser, baseURL }) => {
   const pc = await device(browser, baseURL, 'Desktop Chrome', SHORT);
   await pc.locator('#list button.go').first().click();

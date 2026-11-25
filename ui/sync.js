@@ -278,6 +278,7 @@ function redraw() {
   if (document.getElementById('set').classList.contains('on') && !document.activeElement.closest('#partForm'))
     renderParts();
   if (document.getElementById('hist').classList.contains('on')) renderHist();
+  if (run.classList.contains('fin')) showDone(); // Again and Next follow the routines: one deleted elsewhere drops Again (issue 120)
 }
 /* another window of the app on this device (a tab or the installed app) changed what's stored (core/windows.js).
    Without this, a window holding an old copy writes deleted routines back, or uploads them to the next account.
