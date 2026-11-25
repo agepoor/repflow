@@ -303,3 +303,18 @@ test('starting a routine while another device runs one asks first; Cancel keeps 
   expect(shared.dn).toBe('Android phone');
   await expect(pc.locator('#toast')).toContainText('started on Android phone');
 });
+
+/* the same kind of device under another code (issue 121): another browser, profile or address of the app on the same
+   phone. Its name alone would read as this phone, so it says so */
+test('a workout from the same kind of device under another code says another browser or app', async ({
+  browser,
+  baseURL,
+}) => {
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  const other = await device(browser, baseURL, 'Pixel 7'); // e.g. another browser on the same phone
+  await startAndPause(other);
+  await expect(banner(phone)).toContainText('Paused on Android phone (another browser or app)');
+  await phone.getByRole('button', { name: 'Open' }).click();
+  await expect(live(phone)).toContainText('Sound on Android phone (another browser or app)');
+  await expect(live(phone)).toBeVisible();
+});

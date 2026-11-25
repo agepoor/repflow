@@ -147,4 +147,12 @@ function runLive(v, now) {
   }
   return now < t + 3000;
 }
-export { cuePlan, countdownOf, boxStr, unbox, advance, drawCombo, comboGap, secondCues, guidedAt, runLive };
+/* where a stored workout (v: by, dn) runs, as the user reads it, seen from device me ({id, name}). The name is only a guess
+   from the browser, and another browser, browser profile or address of the app gives the same computer a new code: so a
+   workout from a device with this one's name but another code is said to be in another browser or app (issue 121) */
+function runDevice(v, me) {
+  if (v.by && v.by === me.id) return 'this device';
+  if (!v.dn || v.dn === 'another device') return 'another device'; // also the name of a device whose kind isn't known
+  return v.dn === me.name ? `${v.dn} (another browser or app)` : v.dn;
+}
+export { cuePlan, countdownOf, boxStr, unbox, advance, drawCombo, comboGap, secondCues, guidedAt, runLive, runDevice };
