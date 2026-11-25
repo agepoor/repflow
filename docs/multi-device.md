@@ -55,11 +55,11 @@ _How checked_: **browser** means run in two browsers with the test stand-in for 
 
 ## Problems found
 
-Each one is a candidate for its own issue:
+Each has its own issue:
 
-1. Starting a workout while another device runs one replaces it without asking.
-2. After the controller signs out, the other devices keep the workout and log it as done, even if it was stopped.
-3. Changes made offline overwrite newer changes from other devices when the device is back online.
-4. _Again_ on the done screen does nothing when the routine was deleted.
-5. The same device under a new code reads as another device (_Paused on Windows PC_ on the PC itself).
-6. Two tabs (#79): also a signed-out second tab takes the workout over on reload. Add this to #79.
+- #117 Starting a workout while another device runs one replaces it without asking.
+- #118 After the controller signs out, the other devices keep the workout and log it as done, even if it was stopped.
+- #119 Changes made offline overwrite newer changes from other devices when the device is back online.
+- #120 _Again_ on the done screen does nothing when the routine was deleted.
+- #121 The same device under a new code reads as another device (_Paused on Windows PC_ on the PC itself).
+- #79 Two tabs: also a signed-out second tab takes the workout over on reload (added to the issue).
