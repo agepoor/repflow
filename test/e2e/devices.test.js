@@ -218,3 +218,46 @@ test('Reset all on the controller stops the workout on the other devices', async
   await expect(phone.locator('#toast')).toContainText('Workout stopped on Windows PC');
   expect(shared.end).toBe('stop');
 });
+
+/* starting a routine while another device runs one (#117): ask first, as on the device that runs it */
+test('starting a routine while another device runs one asks first; Cancel keeps it running', async ({
+  browser,
+  baseURL,
+}) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome');
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  await pc.locator('#list button.go').first().click();
+  await expect(banner(phone)).toContainText('Live on Windows PC');
+  const { sid } = shared;
+  const first = await pc.locator('#list .info b').first().textContent();
+  const asked = [];
+
+  // Cancel: nothing changes on either device
+  phone.once('dialog', (d) => {
+    asked.push(d.message());
+    d.dismiss();
+  });
+  await phone.locator('#list button.go').nth(1).click();
+  expect(asked[0]).toMatch(new RegExp(`^Stop “${first}” on Windows PC and start “.+”\\?$`));
+  await expect(phone.locator('#run')).not.toHaveClass(/\bon\b/);
+  await expect(banner(phone)).toContainText('Live on Windows PC');
+  expect(shared.sid).toBe(sid);
+  await expect(pc.locator('#run')).toHaveClass(/\bon\b/);
+
+  // the same routine: start it again here
+  phone.once('dialog', (d) => {
+    asked.push(d.message());
+    d.dismiss();
+  });
+  await phone.locator('#list button.go').first().click();
+  expect(asked[1]).toBe(`Stop “${first}” on Windows PC and start it again here?`);
+  expect(shared.sid).toBe(sid);
+
+  // OK: the phone runs the new one, the PC switches to it
+  phone.once('dialog', (d) => d.accept());
+  await phone.locator('#list button.go').nth(1).click();
+  await expect(phone.locator('#run')).toHaveClass(/\bon\b/);
+  await expect.poll(() => shared.sid).not.toBe(sid);
+  expect(shared.dn).toBe('Android phone');
+  await expect(pc.locator('#toast')).toContainText('started on Android phone');
+});

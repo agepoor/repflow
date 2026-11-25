@@ -1,6 +1,6 @@
 /* The run screen: plays a workout with the timer engine (core/engine.js), shows it, and keeps it in sync across devices. */
 import { does } from './actions.js';
-import { advance, boxStr, comboGap, drawCombo, guidedAt, secondCues, unbox } from '../core/engine.js';
+import { advance, boxStr, comboGap, drawCombo, guidedAt, runLive, secondCues, unbox } from '../core/engine.js';
 import { iconKey, mig, norm, uid } from '../core/routine.js';
 import { build, callTxt, moves, rTot, spoken, stepLen } from '../core/steps.js';
 import { fmt } from '../core/time.js';
@@ -30,7 +30,7 @@ import {
   waitTx,
 } from './sound.js';
 import { H, HDEL, R, S, store } from './storage.js';
-import { CLOUD, CR1, CU, SWITCH, ask, banner } from './sync.js';
+import { CLOUD, CR, CR1, CU, SWITCH, ask, banner } from './sync.js';
 import { partsOn, renderList, show, upNext } from './views.js';
 /* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
    reloads, locked screens and closed apps, and every signed-in device shows the same moment. One device plays the
@@ -234,16 +234,28 @@ function openRun() {
   wake();
   kick();
 }
+/* one workout at a time per account: ask before replacing the one this device shows, or one that runs on another
+   device and is only on the home screen here (it would otherwise be replaced without a word, and not logged) */
+function replaceOk(r) {
+  let w = X && X.steps ? { name: X.r.name, id: X.r.id, by: X.by, dn: X.dn } : null;
+  if (!w && CR && CR.sid && runLive(CR, NOW())) {
+    let cr = {};
+    try {
+      cr = JSON.parse(CR.r) || {};
+    } catch (e) {}
+    w = { name: cr.name || 'Workout', id: cr.id, by: CR.by, dn: CR.dn };
+  }
+  if (!w) return true;
+  const where = w.by && w.by !== DEV.id ? ` on ${w.dn || 'another device'}` : '';
+  if (w.id === r.id)
+    return confirm(where ? `Stop “${w.name}”${where} and start it again here?` : `Restart “${w.name}”?`);
+  return confirm(`Stop “${w.name}”${where} and start “${r.name}”?`);
+}
 function startRun(id, test) {
   // test = test run from the editor: plays normally, never logged
   const r = R.find((r) => r.id === id);
   if (!r) return;
-  if (
-    X &&
-    X.steps &&
-    !confirm(X.r.id === r.id ? `Restart “${X.r.name}”?` : `Stop “${X.r.name}” and start “${r.name}”?`)
-  )
-    return; // one workout at a time
+  if (!replaceOk(r)) return; // one workout at a time
   ac();
   UNLOCKED = true;
   const steps = build(r);
