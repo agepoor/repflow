@@ -170,3 +170,51 @@ test('a workout that ended long before the app was opened again asks before logg
   await pc.getByRole('button', { name: 'Log it' }).click();
   expect(await logged(pc)).toEqual([shared.sid]);
 });
+
+/* signing out on the controller (#118): the other devices close the workout instead of finishing and logging it */
+async function signOutMidWorkout(page, how) {
+  await page.locator('#minBtn').click();
+  await page.locator('#setBtn').click();
+  if (how === 'reset') {
+    await page.getByRole('button', { name: 'Reset all' }).click();
+    await page.getByRole('button', { name: 'Reset this device' }).click();
+  } else {
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await page.locator('#ask').getByRole('button', { name: 'Sign out', exact: true }).click();
+  }
+}
+
+test('signing out on the controller stops the workout on the other devices; it keeps running there', async ({
+  browser,
+  baseURL,
+}) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome', SHORT);
+  const phone = await device(browser, baseURL, 'Pixel 7', SHORT);
+  await pc.locator('#list button.go').first().click();
+  await phone.getByRole('button', { name: 'Open' }).click();
+  await expect(live(phone)).toContainText('Sound on Windows PC');
+
+  await signOutMidWorkout(pc);
+  await expect(phone.locator('#run')).not.toHaveClass(/\bon\b/);
+  await expect(phone.locator('#toast')).toContainText('Workout stopped on Windows PC');
+  expect(shared.end).toBe('stop');
+  // the PC still has it (its own write came back, and is ignored), and finishes it on its own
+  await expect(pc.locator('#mcard')).toContainText('Short');
+  await expect(pc.locator('#run')).toHaveClass(/\bfin\b/, { timeout: 15000 });
+  expect(await logged(pc)).toEqual([shared.sid]);
+  expect(shared.end).toBe('stop');
+  await expect(banner(phone)).toBeEmpty();
+  expect(await logged(phone)).toEqual([]);
+});
+
+test('Reset all on the controller stops the workout on the other devices', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome');
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  await pc.locator('#list button.go').first().click();
+  await phone.getByRole('button', { name: 'Open' }).click();
+
+  await signOutMidWorkout(pc, 'reset');
+  await expect(phone.locator('#run')).not.toHaveClass(/\bon\b/);
+  await expect(phone.locator('#toast')).toContainText('Workout stopped on Windows PC');
+  expect(shared.end).toBe('stop');
+});
