@@ -85,4 +85,10 @@ test('Settings fills in a problem report: version, browser and recent errors, ne
   expect(u.searchParams.get('template')).toBe('problem.yml');
   expect(u.searchParams.get('version')).toMatch(/^\d+\.\d+(\.\d+)? · [0-9a-f]{7,}/);
   expect(u.searchParams.get('more')).toContain('Test error (x.js:7)');
+
+  // where no email app opens: Copy report puts the same report on the clipboard
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByRole('button', { name: 'Copy report' }).click();
+  await expect(page.locator('#toast')).toContainText('Report copied');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('- Test error (x.js:7)');
 });

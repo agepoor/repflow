@@ -2,6 +2,7 @@
 import { does } from './actions.js';
 import { details, issueUrl, mailtoUrl, reportText } from '../core/report.js';
 import { PRESETS } from '../core/routine.js';
+import { toast } from './html.js';
 import { recentErrors } from './errors.js';
 import { sndForm, vdShow, volCtl, volShow } from './sound.js';
 import { R, S, persist, setR } from './storage.js';
@@ -56,4 +57,18 @@ function fillReport(el, kind) {
   else if (kind === 'issue') el.href = issueUrl(d);
   else if (el.open) reportPreview.textContent = reportText(d);
 }
-export { resetAll, addPresets, setOpt, openSettings, fillReport };
+/* for a device where the email link opens nothing (no email app set up): the report on the clipboard, or shown and
+   selected so it can be copied by hand where the clipboard isn't allowed */
+async function copyReport() {
+  const text = reportText(reportDetails());
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Report copied. Paste it in an email to hello@punchpace.app.');
+  } catch (e) {
+    reportInfo.open = true;
+    reportPreview.textContent = text;
+    getSelection().selectAllChildren(reportPreview);
+    toast('Copy the selected report and send it to hello@punchpace.app.');
+  }
+}
+export { resetAll, addPresets, setOpt, openSettings, fillReport, copyReport };

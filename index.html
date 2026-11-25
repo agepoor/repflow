@@ -419,8 +419,13 @@
             data-args='["issue"]'
             >Open a GitHub issue</a
           >
+          <button data-on="click:copyReport">Copy report</button>
         </div>
-        <details class="info" data-on="toggle:fillReport" data-args='["preview"]'>
+        <p class="muted fs-sm m-0 mt-2">
+          Nothing opens? Your device may have no email app set up. Copy the report and send it to
+          <b class="text">hello@punchpace.app</b>.
+        </p>
+        <details class="info" id="reportInfo" data-on="toggle:fillReport" data-args='["preview"]'>
           <summary>What's in it</summary>
           <pre class="body report" id="reportPreview"></pre>
         </details>
