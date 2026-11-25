@@ -82,6 +82,7 @@ import {
   cloud,
   cloudP,
   deleteAcct,
+  endLive,
   fromOtherWindow,
   keepNewAcct,
   linkProv,
@@ -126,6 +127,7 @@ plainActs({
   deleteRoutine,
   delHist,
   dup,
+  endLive,
   exportAll,
   jump,
   keepNewAcct,
@@ -286,7 +288,8 @@ speechSynthesis.onvoiceschanged = () => {
 };
 initSoundUnlock();
 document.addEventListener('keydown', (e) => {
-  if (!run.classList.contains('on')) return;
+  // a dialog (e.g. Stop on a following device) handles its own keys
+  if (!run.classList.contains('on') || document.querySelector('dialog[open]')) return;
   if (e.code === 'Space') {
     e.preventDefault();
     const s = X && X.steps && X.steps[X.i];

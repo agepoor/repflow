@@ -21,7 +21,7 @@
           "nc": { ".validate": "newData.isNumber()" },
           "calls": { ".validate": "newData.isNumber()" },
           "u": { ".validate": "newData.isNumber()" },
-          "end": { ".validate": "newData.isNumber()" },
+          "end": { ".validate": "newData.val() === 'stop' || newData.val() === 'done'" },
           "fin": { ".validate": "newData.isNumber()" },
           "$other": { ".validate": false }
         },

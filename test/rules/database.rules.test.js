@@ -163,8 +163,11 @@ describe('signed in', () => {
     expect(await call('PATCH', 'users/alice', 'alice', all)).toBe(200);
   });
 
-  it('can write a run that has ended or is paused', async () => {
-    expect(await write('users/alice/run', 'alice', { ...RUN, p: 1700000005000, end: 1700000009000, fin: 1 })).toBe(200);
+  it('can write a run that is paused, stopped or done, as runDoc in ui/runner.js writes it', async () => {
+    expect(await write('users/alice/run', 'alice', { ...RUN, p: 1700000005000 })).toBe(200);
+    // end is 'stop' (Stop, also from another device: #114) or 'done' (finished, with fin: when)
+    expect(await write('users/alice/run', 'alice', { ...RUN, p: 1700000005000, end: 'stop' })).toBe(200);
+    expect(await write('users/alice/run', 'alice', { ...RUN, end: 'done', fin: 1700000009000 })).toBe(200);
   });
 
   it('can write an empty order', async () => {
@@ -228,6 +231,8 @@ describe('refuses what the app never writes', () => {
     await refused('v2/parts', { mid: 720, eve: 1020, ts: 1, off: 'yes', m: 1 });
     await refused('v2/since', 'now');
     await refused('run', { ...RUN, i: 'two' });
+    await refused('run', { ...RUN, end: 'paused' });
+    await refused('run', { ...RUN, end: 1700000009000 });
     await refused('run', { ...RUN, r: { steps: [1] } });
   });
 

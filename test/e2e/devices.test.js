@@ -1,0 +1,92 @@
+/* Browser test: one workout seen from two devices. Each browser context is a device with its own device code; they
+   share the running workout through a stand-in for cloud.js (fake-cloud.js), so no Firebase is needed. */
+import { readFileSync } from 'node:fs';
+import { test, expect, devices } from '@playwright/test';
+
+const FAKE = readFileSync(new URL('./fake-cloud.js', import.meta.url), 'utf8');
+
+let shared, pages, errors;
+test.beforeEach(() => {
+  shared = null;
+  pages = [];
+  errors = [];
+});
+test.afterEach(() => expect(errors, 'console errors').toEqual([]));
+
+// a stored value, as the database keeps it: without null fields
+const stored = (v) => (v ? JSON.parse(JSON.stringify(v, (k, x) => (x === null ? undefined : x))) : null);
+
+/* a device signed in to the test account; 'Desktop Chrome' says Windows, so the app calls it "Windows PC" */
+async function device(browser, baseURL, kind) {
+  const ctx = await browser.newContext({ ...devices[kind], baseURL, serviceWorkers: 'block' });
+  await ctx.route('**/cloud.js', (r) => r.fulfill({ contentType: 'text/javascript', body: FAKE }));
+  await ctx.addInitScript(() => localStorage.setItem('rf2_acct', '1')); // signed in before: sync starts on opening
+  await ctx.exposeFunction('ppGetRun', () => shared);
+  await ctx.exposeFunction('ppSetRun', (v) => {
+    shared = stored(v);
+    for (const p of pages) p.evaluate((x) => window.ppRun && window.ppRun(x), shared).catch(() => {});
+  });
+  const page = await ctx.newPage();
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  page.on('pageerror', (e) => errors.push(e.message));
+  pages.push(page);
+  await page.goto('./');
+  await expect(page.locator('#list button.go').first()).toBeVisible();
+  return page;
+}
+/* start the first routine on the home screen and pause it */
+async function startAndPause(page) {
+  await page.locator('#list button.go').first().click();
+  await expect(page.locator('#run')).toHaveClass(/\bon\b/);
+  await page.locator('#pp').click();
+  await expect.poll(() => shared && shared.p).toBeTruthy();
+}
+const banner = (page) => page.locator('#liveBar');
+
+test('a following device asks: stop the workout everywhere, or only close it here', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome');
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  await startAndPause(pc);
+  await expect(banner(phone)).toContainText('Paused on Windows PC');
+
+  // Just close here: the workout keeps going on the PC, so the phone shows it again
+  await phone.getByRole('button', { name: 'Open' }).click();
+  await expect(phone.locator('#run')).toHaveClass(/\bon\b/);
+  await phone.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(phone.locator('#ask')).toContainText('It’s paused on Windows PC');
+  await phone.getByRole('button', { name: 'Just close here' }).click();
+  await expect(phone.locator('#run')).not.toHaveClass(/\bon\b/);
+  await expect(banner(phone)).toContainText('Paused on Windows PC');
+  await expect(pc.locator('#run')).toHaveClass(/\bon\b/);
+
+  // Stop everywhere: gone on both devices
+  await phone.getByRole('button', { name: 'Open' }).click();
+  await phone.getByRole('button', { name: 'Stop', exact: true }).click();
+  await phone.getByRole('button', { name: 'Stop everywhere' }).click();
+  await expect(phone.locator('#run')).not.toHaveClass(/\bon\b/);
+  await expect(banner(phone)).toBeEmpty();
+  await expect(pc.locator('#run')).not.toHaveClass(/\bon\b/);
+  await expect(pc.locator('#toast')).toContainText('Workout stopped on Android phone');
+  expect(shared.end).toBe('stop');
+});
+
+test('a paused workout whose device is gone can be stopped from the banner', async ({ browser, baseURL }) => {
+  const pc = await device(browser, baseURL, 'Desktop Chrome');
+  await startAndPause(pc);
+  // the PC is gone, as after Reset all gave it a new device code: no device plays the workout any more
+  pages = pages.filter((p) => p !== pc);
+  await pc.context().close();
+
+  const phone = await device(browser, baseURL, 'Pixel 7');
+  await expect(banner(phone)).toContainText('Paused on Windows PC');
+  await banner(phone).getByRole('button', { name: 'Stop this workout' }).click();
+  await expect(phone.locator('#ask')).toContainText('Stopping it ends it on every device');
+  await phone.getByRole('button', { name: 'Stop everywhere' }).click();
+  await expect(banner(phone)).toBeEmpty();
+  expect(shared.end).toBe('stop');
+
+  // and it stays gone, also on a device that opens the app later
+  const tablet = await device(browser, baseURL, 'Pixel 7');
+  await expect(tablet.locator('#list button.go').first()).toBeVisible();
+  await expect(banner(tablet)).toBeEmpty();
+});
