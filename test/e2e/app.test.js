@@ -52,3 +52,37 @@ test('Settings shows the version and commit', async ({ page }) => {
   // build.sh fills these in from package.json and git; "dev" would mean the placeholder was left in
   await expect(page.locator('#set')).toContainText(/Version \d+\.\d+(\.\d+)? · [0-9a-f]{7,}(-dirty)?/);
 });
+
+test('Settings fills in a problem report: version, browser and recent errors, never sent by itself', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  // an error as the page would see one; dispatched, so it doesn't count as a console error for this test
+  await page.evaluate(() =>
+    dispatchEvent(
+      new ErrorEvent('error', { message: 'Test error', filename: location.origin + '/ui/x.js', lineno: 7 }),
+    ),
+  );
+
+  await page.getByText("What's in it").click();
+  const preview = page.locator('#reportPreview');
+  await expect(preview).toContainText(/Version: \d+\.\d+(\.\d+)? · [0-9a-f]{7,}/);
+  await expect(preview).toContainText('Browser: Chrome');
+  await expect(preview).toContainText('- Test error (x.js:7)');
+
+  // the links are filled in as they're tapped; stop them opening anything, then read where they'd go
+  await page.evaluate(() => addEventListener('click', (e) => e.target.closest('a') && e.preventDefault()));
+  const email = page.getByRole('link', { name: 'Email a report' });
+  await email.click();
+  const mail = decodeURIComponent(await email.getAttribute('href'));
+  expect(mail).toMatch(/^mailto:hello@punchpace\.app\?subject=PunchPace problem report&body=What happened\?/);
+  expect(mail).toContain('Test error (x.js:7)');
+
+  const issue = page.getByRole('link', { name: 'Open a GitHub issue' });
+  await issue.click();
+  const u = new URL(await issue.getAttribute('href'));
+  expect(u.searchParams.get('template')).toBe('problem.yml');
+  expect(u.searchParams.get('version')).toMatch(/^\d+\.\d+(\.\d+)? · [0-9a-f]{7,}/);
+  expect(u.searchParams.get('more')).toContain('Test error (x.js:7)');
+});

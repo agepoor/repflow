@@ -51,7 +51,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Shown in Settings → About, once the app shows its version. Leave empty if you can't find it.
+      description: Shown in Settings → About. Its "Open a GitHub issue" link fills this in for you, with the browser and recent errors.
   - type: textarea
     id: more
     attributes:

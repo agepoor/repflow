@@ -1,4 +1,5 @@
 /* Starts the app: wires the page to the modules, in the order the app always started. */
+import './errors.js'; // first, so it catches errors from the modules below too
 import { sndCopy } from '../core/routine.js';
 import { acts, initActions, plainActs } from './actions.js';
 import {
@@ -51,7 +52,7 @@ import {
   tap,
   togglePause,
 } from './runner.js';
-import { addPresets, openSettings, resetAll, setOpt } from './settings.js';
+import { addPresets, fillReport, openSettings, resetAll, setOpt } from './settings.js';
 import {
   BG,
   bgOff,
@@ -183,6 +184,8 @@ acts({
   setB0: (el, e, id, k) => setB(id, k, num0(el)),
   setRunV: (el, e, id) => setRun(id, val(el)),
   setOptChk: (el, e, k) => setOpt(k, el.checked),
+  // a report link: filled in as it's tapped, so it has the errors up to now (the link then opens as usual)
+  fillReport: (el, e, kind) => fillReport(el, kind),
   setGuideChk: (el) => setGuide(el.checked),
   sndSetV: (el, e, k, c) => sndSet(k, c, val(el)),
   sndSetN: (el, e, k, c) => sndSet(k, c, num(el)),

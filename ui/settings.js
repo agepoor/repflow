@@ -1,6 +1,8 @@
 /* Settings. */
 import { does } from './actions.js';
+import { details, issueUrl, mailtoUrl, reportText } from '../core/report.js';
 import { PRESETS } from '../core/routine.js';
+import { recentErrors } from './errors.js';
 import { sndForm, vdShow, volCtl, volShow } from './sound.js';
 import { R, S, persist, setR } from './storage.js';
 import { cloud, resetDevice, setSync, syncCard, syncState } from './sync.js';
@@ -36,4 +38,22 @@ function openSettings() {
   setSync(syncState);
   show('set');
 }
-export { resetAll, addPresets, setOpt, openSettings };
+/* a problem report from what this device knows right now: no routines, history or account (core/report.js) */
+const reportDetails = () =>
+  details({
+    version: appVersion.textContent.replace(/^Version /, ''),
+    ua: navigator.userAgent,
+    installed: matchMedia('(display-mode: standalone)').matches,
+    screen: `${screen.width}×${screen.height}`,
+    lang: navigator.language,
+    errors: recentErrors(),
+    now: Date.now(),
+  });
+/* fills in a report link as it's tapped (it then opens as usual), or the "What's in it" preview as it opens */
+function fillReport(el, kind) {
+  const d = reportDetails();
+  if (kind === 'email') el.href = mailtoUrl(d);
+  else if (kind === 'issue') el.href = issueUrl(d);
+  else if (el.open) reportPreview.textContent = reportText(d);
+}
+export { resetAll, addPresets, setOpt, openSettings, fillReport };

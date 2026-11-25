@@ -1995,6 +1995,29 @@ dialog.ask .choice p {
   color: var(--accent-text);
   padding: var(--space-2) 0; /* a taller touch target than the text alone */
 }
+/* a link that looks like a button (the problem report links in Settings → About) */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* touch target (design/README.md) */
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+a.btn:hover {
+  background: var(--surface-raised);
+}
+/* the problem report as it will be sent: wraps, so long lines (the user agent) don't widen the page */
+pre.report {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  margin-left: 0;
+}
 /* small utilities for styles that repeat in the HTML templates. They stand in for inline styles, so like those they win
    over the component rules (!important) */
 .text {
