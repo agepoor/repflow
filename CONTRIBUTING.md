@@ -119,6 +119,8 @@ Sign-in and sync use Firebase. The config in `cloud.js` is public; access is lim
 3. Project settings → add a Web app and paste its config into `FIREBASE_CONFIG` in `cloud.js` (it must include `databaseURL`). Set `authDomain` to `<project-id>.firebaseapp.com`, or to your own domain if you host the app on Firebase Hosting.
 4. Set up App Check with reCAPTCHA Enterprise and put its site key in `APP_CHECK`. When testing locally, set `APP_CHECK_DEBUG` to `true` and add the token it prints under App Check → Manage debug tokens.
 
+Sign-in and sync work on the free Spark plan; daily database backups need the Blaze plan.
+
 To test without a Firebase project, `EMULATOR` in `cloud.js` points sign-in and the database at the Firebase Emulator Suite.
 
 Don't commit your own config: pull requests keep the project's.
