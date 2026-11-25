@@ -1,6 +1,6 @@
 # A workout on more than one device
 
-How a running workout behaves when you're signed in on several devices, or have the app open in several windows. For contributors: read this before changing `ui/runner.js`, the run parts of `ui/sync.js`, or `users/<uid>/run` in `database.rules.json`. Checked on 25 Nov 2026 (#110).
+How a running workout behaves when you're signed in on several devices, or have the app open in several windows. For contributors: read this before changing `ui/runner.js`, the run parts of `ui/sync.js`, or `users/<uid>/run` in `database.rules.json`. Checked on 25 Nov 2026 (#110). `test/e2e/devices.test.js` runs the cases that behave as they should in two browsers: stopping from a follower, stopping a workout whose device is gone, taking over the sound, a minimized follower when the workout ends, and reopening later. A fix for a problem below adds its own case there.
 
 ## The model
 
