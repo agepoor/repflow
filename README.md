@@ -33,6 +33,8 @@ You don't need an account. Without one, everything stays on your device. Sign in
 
 Something not working, or an idea? [Open an issue](https://github.com/agepoor/repflow/issues/new/choose) and pick _Something's wrong_ or _I have an idea_. All you need is a GitHub account.
 
+In the app, **Settings → About → Email a report** or **Open a GitHub issue** fills in the version, your browser and recent errors for you. You see the report before it's sent; it never includes your routines.
+
 ## Contribute
 
 Want to fix something or add a feature? [CONTRIBUTING.md](CONTRIBUTING.md) explains how to run the app locally, how a change gets in, and the rules that keep it safe and working offline. In short: you need git, bash and Python 3 to run it (no bundler, plain JavaScript modules), and Node 22.12+ for the checks.

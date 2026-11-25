@@ -402,8 +402,30 @@
           <a href="https://github.com/agepoor/repflow" target="_blank" rel="noopener">Source code</a>
           <a href="https://github.com/agepoor/repflow/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
         </div>
+        <p class="muted m-0 mt-3 mb-2">
+          <b class="text">Something not working?</b> Send a report. It opens with the version, your browser and recent
+          errors filled in, and you see it before it's sent. A GitHub issue is public; an email isn't.
+        </p>
+        <div class="row">
+          <a class="btn" href="mailto:hello@punchpace.app" data-on="click:fillReport" data-args='["email"]'
+            >Email a report</a
+          >
+          <a
+            class="btn"
+            href="https://github.com/agepoor/repflow/issues/new?template=problem.yml"
+            target="_blank"
+            rel="noopener"
+            data-on="click:fillReport"
+            data-args='["issue"]'
+            >Open a GitHub issue</a
+          >
+        </div>
+        <details class="info" data-on="toggle:fillReport" data-args='["preview"]'>
+          <summary>What's in it</summary>
+          <pre class="body report" id="reportPreview"></pre>
+        </details>
         <!-- build.sh fills in the version from package.json and the commit -->
-        <p class="muted fs-sm m-0 mt-3">Version dev</p>
+        <p class="muted fs-sm m-0 mt-3" id="appVersion">Version dev</p>
       </div>
     </section>
 
