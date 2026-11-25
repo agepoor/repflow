@@ -4,10 +4,74 @@
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid",
+        "doc": { ".validate": false },
+        "run": {
+          ".validate": "newData.hasChildren()",
+          "r": { ".validate": "newData.isString() && newData.val().length <= 100000" },
+          "sid": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "by": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "dn": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "ct": { ".validate": "newData.isString() && newData.val().length <= 1000" },
+          "box": { ".validate": "newData.isString() && newData.val().length <= 10000" },
+          "i": { ".validate": "newData.isNumber()" },
+          "s0": { ".validate": "newData.isNumber()" },
+          "t0": { ".validate": "newData.isNumber()" },
+          "p": { ".validate": "newData.isNumber()" },
+          "tap": { ".validate": "newData.isNumber()" },
+          "nc": { ".validate": "newData.isNumber()" },
+          "calls": { ".validate": "newData.isNumber()" },
+          "u": { ".validate": "newData.isNumber()" },
+          "end": { ".validate": "newData.isNumber()" },
+          "fin": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
         "v2": {
-          "routines": { ".indexOn": ["m"] },
-          "history": { ".indexOn": ["m"] }
-        }
+          ".validate": "newData.hasChildren()",
+          "routines": {
+            ".indexOn": ["m"],
+            ".validate": "newData.hasChildren()",
+            "$id": {
+              ".validate": "$id.length <= 100 && newData.hasChild('m') && newData.hasChild('d') !== newData.hasChild('del')",
+              "d": { ".validate": "newData.isString() && newData.val().length <= 100000" },
+              "del": { ".validate": "newData.isNumber()" },
+              "m": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            }
+          },
+          "history": {
+            ".indexOn": ["m"],
+            ".validate": "newData.hasChildren()",
+            "$id": {
+              ".validate": "$id.length <= 100 && newData.hasChild('m') && newData.hasChild('d') !== newData.hasChild('del')",
+              "d": { ".validate": "newData.isString() && newData.val().length <= 5000" },
+              "del": { ".validate": "newData.isNumber()" },
+              "m": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            }
+          },
+          "order": {
+            ".validate": "newData.hasChildren(['ts', 'm'])",
+            "ids": {
+              ".validate": "newData.hasChildren()",
+              "$i": { ".validate": "$i.matches(/^[0-9]{1,4}$/) && newData.isString() && newData.val().length <= 100" }
+            },
+            "ts": { ".validate": "newData.isNumber()" },
+            "m": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "parts": {
+            ".validate": "newData.hasChildren(['m'])",
+            "mid": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1440" },
+            "eve": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1440" },
+            "ts": { ".validate": "newData.isNumber()" },
+            "off": { ".validate": "newData.isBoolean()" },
+            "m": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "since": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
+        "$other": { ".validate": false }
       }
     }
   }
