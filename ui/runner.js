@@ -386,6 +386,17 @@ function stopShared(v) {
   LASTDOC = d;
   CLOUD.setRun(d).catch(() => {});
 }
+/* before signing out on the controller (issue 118): the account learns the workout stopped, so the other devices close it
+   instead of finishing and logging it on the clock. It keeps running here: the local copy gets the same time and device
+   as the stop, so the echo of this write is ignored (onRemoteRun only reacts when one of them differs). Resolves once
+   the account has it, or after a moment offline, so signing out never waits long */
+function leaveRun() {
+  if (!X || !X.steps || !mine() || !(CU && CLOUD && CR1 && !SWITCH)) return Promise.resolve();
+  X.u = Math.max(NOW(), (X.u || 0) + 1);
+  LASTDOC = runDoc(); // what this device still runs
+  store(localStorage, 'rf2_run', JSON.stringify(LASTDOC));
+  return Promise.race([CLOUD.setRun(runDoc('stop')).catch(() => {}), new Promise((r) => setTimeout(r, 2000))]);
+}
 function claim() {
   if (!X || !X.steps || mine()) return;
   X.by = DEV.id;
@@ -976,6 +987,7 @@ export {
   closeRun,
   stopRun,
   stopShared,
+  leaveRun,
   ppIcon,
   togglePause,
   jump,

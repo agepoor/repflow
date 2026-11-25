@@ -23,6 +23,7 @@ import {
   miniTx,
   ppIcon,
   pushRun,
+  leaveRun,
   stopShared,
   render,
   setLAST,
@@ -512,7 +513,8 @@ function signOutNow() {
 }
 function signOutAnd(wipe) {
   authMsg = '';
-  CLOUD.signOut()
+  leaveRun()
+    .then(() => CLOUD.signOut())
     .then(() => {
       if (wipe) {
         clearLocal();
@@ -545,7 +547,7 @@ function signOutThenWipe() {
   authMsg = '';
   (CLOUD ? Promise.resolve(CLOUD) : cloud())
     .then((m) => {
-      if (m) return m.signOut();
+      if (m) return leaveRun().then(() => m.signOut());
       if (CS !== 'off') throw new Error('sign-in code not loaded');
     })
     .then(wipeDevice, () => {
