@@ -52,7 +52,7 @@ import {
   tap,
   togglePause,
 } from './runner.js';
-import { addPresets, fillReport, openSettings, resetAll, setOpt } from './settings.js';
+import { addPresets, copyReport, fillReport, openSettings, resetAll, setOpt } from './settings.js';
 import {
   BG,
   bgOff,
@@ -118,6 +118,7 @@ if (await forwardFromOldAddress()) await new Promise(() => {});
 plainActs({
   addBlock,
   addToday,
+  copyReport,
   askSwitch,
   closeEditor,
   cloud,
