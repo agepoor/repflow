@@ -1,7 +1,7 @@
 /* PunchPace: account (Google / GitHub sign-in via Firebase Auth) and sync (Firebase Realtime Database).
    Paste the web-app config from the Firebase console (Project settings → Your apps) below. These values are public
    identifiers, not secrets: access is limited by database.rules.json (each account can only read/write users/<its uid>). */
-import { newer } from './core/merge.js';
+import { newer, runWins } from './core/merge.js';
 
 export const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBcskek0bCUDnG8xDArFPbUxzpFQsMjdUs',
@@ -320,13 +320,20 @@ export const put = (list) =>
     );
     return out;
   });
-/* The running workout: a single small node per account; the last write wins */
-export const setRun = (v) => {
+/* The running workout: a single small node per account that every device writes. A transaction, so the write is
+   checked against what the account holds when it arrives, also when it was queued offline: it only replaces a version
+   this device knew about (core/merge.js runWins, #119). seen: the highest u of another device's writes this device had
+   when it made this one. A dropped write changes nothing; the device then gets the account's version (hooks.run) */
+export const setRun = (v, seen) => {
   if (!me || gone) return Promise.resolve();
   const u = me,
     val = JSON.parse(JSON.stringify(v));
   // after a tick, so a removal that arrived together with this change is seen first
   return new Promise((r) => setTimeout(r, 0))
     .then(() => ready)
-    .then(() => (me === u && !gone ? fd.set(fd.ref(D, `users/${u.uid}/run`), val) : null));
+    .then(() =>
+      me === u && !gone
+        ? fd.runTransaction(fd.ref(D, `users/${u.uid}/run`), (cur) => (runWins(cur, val, seen) ? val : undefined))
+        : null,
+    );
 };

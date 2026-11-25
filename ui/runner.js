@@ -40,7 +40,7 @@ import {
   waitTx,
 } from './sound.js';
 import { H, HDEL, R, S, store } from './storage.js';
-import { CLOUD, CR, CR1, CU, SWITCH, ask, banner } from './sync.js';
+import { CLOUD, CR, CR1, CU, SEEN, SWITCH, ask, banner } from './sync.js';
 import { partsOn, renderList, show, upNext } from './views.js';
 /* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
    reloads, locked screens and closed apps, and every signed-in device shows the same moment. One device plays the
@@ -114,7 +114,7 @@ function pushRun(end) {
   LASTDOC = d;
   if (end || !mine()) localStorage.removeItem('rf2_run');
   else store(localStorage, 'rf2_run', JSON.stringify(d));
-  if (CU && CLOUD && CR1 && !SWITCH) CLOUD.setRun(d).catch(() => {});
+  if (CU && CLOUD && CR1 && !SWITCH) CLOUD.setRun(d, SEEN).catch(() => {});
 }
 function kick() {
   if (!LOOP) {
@@ -406,7 +406,7 @@ function stopShared(v) {
   if (!v || !v.sid || !(CU && CLOUD && CR1 && !SWITCH)) return;
   const d = { ...v, by: DEV.id, dn: DEV.name, u: Math.max(NOW(), (+v.u || 0) + 1), end: 'stop' };
   LASTDOC = d;
-  CLOUD.setRun(d).catch(() => {});
+  CLOUD.setRun(d, SEEN).catch(() => {});
 }
 /* before signing out on the controller (issue 118): the account learns the workout stopped, so the other devices close it
    instead of finishing and logging it on the clock. It keeps running here: the local copy gets the same time and device
@@ -417,7 +417,7 @@ function leaveRun() {
   X.u = Math.max(NOW(), (X.u || 0) + 1);
   LASTDOC = runDoc(); // what this device still runs
   store(localStorage, 'rf2_run', JSON.stringify(LASTDOC));
-  return Promise.race([CLOUD.setRun(runDoc('stop')).catch(() => {}), new Promise((r) => setTimeout(r, 2000))]);
+  return Promise.race([CLOUD.setRun(runDoc('stop'), SEEN).catch(() => {}), new Promise((r) => setTimeout(r, 2000))]);
 }
 function claim() {
   if (!X || !X.steps || mine()) return;
