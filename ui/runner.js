@@ -598,7 +598,8 @@ function showDone() {
   if (!LAST) return;
   const { r, entry, ask, L } = LAST,
     e = entry.dur,
-    nx = r.test || !partsOn() ? null : upNext(); // nx: what's left for today, one tap away
+    nx = r.test || !partsOn() ? null : upNext(), // nx: what's left for today, one tap away
+    again = R.some((x) => x.id === r.id); // the routine may have been deleted while it ran: then only Close (issue 120)
   const st = [
     [`${Math.floor(e / 60)}:${String(e % 60).padStart(2, '0')}`, 'Time'],
     [r.rounds, r.rounds === 1 ? 'Round' : 'Rounds'],
@@ -608,7 +609,7 @@ function showDone() {
   doneView.innerHTML = `<div class="badge">${svgi('check', 48, 3)}</div><h2>Workout complete</h2><div class="dname">${svgi(iconKey(r), 16)}<span>${esc(r.name)}</span></div>${ask ? `<div class="streak text-muted">Ended while the app was closed · <button class="ghost" style="padding:var(--space-half) var(--space-1);color:var(--accent-text);font-weight:700" ${does('click:logLate')}>Log it</button></div>` : !L ? `<div class="streak text-muted">${svgi('nolog', 16)}${r.test ? 'Test run · not logged' : 'Not logged'}</div>` : (H.find((h) => h.id === entry.id) || entry).streak === false ? `<div class="streak text-muted">${svgi('nolog', 16)}Logged · not counted for streak</div>` : L.cur ? `<div class="streak">${svgi('flame', 16)}${L.cur}-day streak${L.newBest ? ' · new best!' : ''}</div>` : ''}
     <div class="stats" style="grid-template-columns:repeat(${st.length},1fr)">${st.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
     ${nx ? `<button class="primary nextb" style="background:${COLORS[nx.color] || ''};border-color:${COLORS[nx.color] || ''}" ${does('click:startRun', nx.id)}>${svgi('play', 20)}<span>Next: ${esc(nx.name)} · ~${fmt(rTot(nx))}</span></button>` : ''}
-    <div class="acts"><button ${does('click:stopRun')}>${svgi('x', 18)}Close</button><button class="${nx ? '' : 'primary'}" style="${nx ? '' : `background:${COLORS[r.color] || ''};border-color:${COLORS[r.color] || ''}`}" ${does('click:startRun', r.id, !!r.test)}>${svgi('play', 18)}Again</button></div>`;
+    <div class="acts"><button ${does('click:stopRun')}>${svgi('x', 18)}Close</button>${again ? `<button class="${nx ? '' : 'primary'}" style="${nx ? '' : `background:${COLORS[r.color] || ''};border-color:${COLORS[r.color] || ''}`}" ${does('click:startRun', r.id, !!r.test)}>${svgi('play', 18)}Again</button>` : ''}</div>`;
 }
 function logLate() {
   if (!LAST || !LAST.ask) return;
