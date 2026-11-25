@@ -55,7 +55,7 @@ This runs ESLint, the Prettier format check and the tests. Run it before every c
 
 - `npm run test:watch` reruns the tests on every save.
 - `npm run format` fixes the formatting. Prettier formats all code and Markdown, so don't format by hand.
-- `npm run test:e2e` builds the site and runs a browser test at phone size: the app loads without errors, a new routine can be made, started and stopped, and the app opens offline. Run it when you change `ui/`, `index.html` or `sw.js`; CI runs it on every pull request. The first time, install its browser with `npx playwright install chromium`.
+- `npm run test:e2e` builds the site and runs a browser test at phone size: the app loads without errors, a new routine can be made, started and stopped, the app opens offline, and a workout can be stopped from a second device (with a stand-in for sync, `test/e2e/fake-cloud.js`). Run it when you change `ui/`, `index.html` or `sw.js`; CI runs it on every pull request. The first time, install its browser with `npx playwright install chromium`.
 - `npm run test:rules` tests the database security rules in the Firebase emulator (needs Java 11 or newer). Run it when you change `database.rules.json`; CI runs it on every pull request.
 - `npm run tokens` writes `tokens.css` after you change `design/tokens.json`.
 

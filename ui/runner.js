@@ -30,7 +30,7 @@ import {
   waitTx,
 } from './sound.js';
 import { H, HDEL, R, S, store } from './storage.js';
-import { CLOUD, CR1, CU, SWITCH, banner } from './sync.js';
+import { CLOUD, CR1, CU, SWITCH, ask, banner } from './sync.js';
 import { partsOn, renderList, show, upNext } from './views.js';
 /* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
    reloads, locked screens and closed apps, and every signed-in device shows the same moment. One device plays the
@@ -345,14 +345,46 @@ function closeRun() {
   if (editOn()) vfAll();
   return m;
 } // m: was minimized (stay where you are) · editor: voice notes with what the voice learned
-/* on the device that plays the sound, Stop ends the workout everywhere; on a following device it only closes the view */
+/* Stop. On the device that plays the sound it ends the workout everywhere. A following device asks first: end it on
+   the other device too, or only close it here (issue 108). Without that choice nobody could end a workout whose device is
+   gone, e.g. after Reset all gave it a new device code (issue 114) */
 function stopRun() {
+  if (X && X.steps && !mine() && !run.classList.contains('fin')) return askStop();
+  endRun();
+}
+function askStop() {
+  ask({
+    title: 'Stop this workout?',
+    text: `<p>It’s ${X.p != null ? 'paused' : 'playing'} on <b>${esc(X.dn || 'another device')}</b>. Stop it there too, or only close it here?</p>`,
+    buttons: [
+      {
+        label: 'Stop everywhere',
+        cls: 'danger',
+        run: () => {
+          claim();
+          endRun();
+        },
+      },
+      { label: 'Just close here', run: endRun },
+      { label: 'Cancel', cls: 'ghost' },
+    ],
+  });
+}
+function endRun() {
   const stay = run.classList.contains('fin') && LAST && LAST.min; // finished while minimized: Close returns to where you were
   if (X && X.steps && mine()) pushRun('stop');
   closeRun();
   if (!stay) show('lib');
   else if (document.getElementById('lib').classList.contains('on')) renderList();
   banner();
+}
+/* ends a workout this device isn't showing (× on the home-screen banner), as stopped by this device, so every device
+   closes it. v is the run as the account stores it: the same fields as runDoc */
+function stopShared(v) {
+  if (!v || !v.sid || !(CU && CLOUD && CR1 && !SWITCH)) return;
+  const d = { ...v, by: DEV.id, dn: DEV.name, u: Math.max(NOW(), (+v.u || 0) + 1), end: 'stop' };
+  LASTDOC = d;
+  CLOUD.setRun(d).catch(() => {});
 }
 function claim() {
   if (!X || !X.steps || mine()) return;
@@ -587,7 +619,8 @@ function liveUI() {
   el.hidden = !h;
   const b = document.querySelector('.ctrl .sm');
   if (b) {
-    b.title = X && X.steps && !mine() ? 'Close' : 'Stop';
+    // Stop everywhere; on a following device it asks whether to stop the other device too (stopRun)
+    b.title = 'Stop';
     b.setAttribute('aria-label', b.title);
   }
 }
@@ -942,6 +975,7 @@ export {
   restoreRun,
   closeRun,
   stopRun,
+  stopShared,
   ppIcon,
   togglePause,
   jump,

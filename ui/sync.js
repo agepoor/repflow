@@ -23,6 +23,7 @@ import {
   miniTx,
   ppIcon,
   pushRun,
+  stopShared,
   render,
   setLAST,
   setOFF,
@@ -841,7 +842,7 @@ function banner() {
       r = JSON.parse(v.r) || {};
     } catch (e) {}
     const c = COLORS[r.color] || COLORS.blue;
-    h = `<div class="card rcard livebar"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name || 'Workout')}</b><div class="muted">${v.p != null ? 'Paused' : 'Live'} on ${v.by === DEV.id ? 'this device' : esc(v.dn || 'another device')}</div></div><button class="primary" ${does('click:openLive')}>Open</button></div>`;
+    h = `<div class="card rcard livebar"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name || 'Workout')}</b><div class="muted">${v.p != null ? 'Paused' : 'Live'} on ${v.by === DEV.id ? 'this device' : esc(v.dn || 'another device')}</div></div><button class="ghost skip" ${does('click:endLive')} title="Stop this workout" aria-label="Stop this workout">${svgi('x', 16)}</button><button class="primary" ${does('click:openLive')}>Open</button></div>`;
   }
   if (h !== BAN) {
     BAN = h;
@@ -852,7 +853,22 @@ function banner() {
 function openLive() {
   if (CR && runActive(CR) && adopt(CR)) banner();
 }
+/* × on the banner: stop the workout on every device without opening it, also one whose device is gone (issue 114) */
+function endLive() {
+  const v = CR;
+  if (!v || !runActive(v)) return;
+  const where = v.by === DEV.id ? 'this device' : v.dn || 'another device';
+  ask({
+    title: 'Stop this workout?',
+    text: `<p>It’s ${v.p != null ? 'paused' : 'playing'} on <b>${esc(where)}</b>. Stopping it ends it on every device.</p>`,
+    buttons: [
+      { label: 'Stop everywhere', cls: 'danger', run: () => CR && CR.sid === v.sid && stopShared(CR) },
+      { label: 'Cancel', cls: 'ghost' },
+    ],
+  });
+}
 export {
+  endLive,
   syncState,
   CLOUD,
   CU,
