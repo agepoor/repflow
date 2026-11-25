@@ -1,6 +1,6 @@
 name: Check and deploy
 # Pull requests: lint, format check and tests, the database rules tests against the emulator and the browser test
-# against the built site, then a preview on Firebase Hosting with its link on the PR.
+# against the built site, then the shared preview on Firebase Hosting with its link on the PR.
 # main: the same checks, then publish the database rules and deploy to https://agepoor.github.io/repflow/ and Firebase
 # Hosting (https://punchpace.app, also https://workout-pacer.web.app) only if they pass.
 on:
@@ -86,7 +86,9 @@ jobs:
         uses: actions/deploy-pages@v5
   firebase:
     needs: [check, rules, e2e]
-    # main goes live; a pull request gets a preview (its link is commented on the PR, kept 7 days)
+    # main goes live; every pull request deploys to the one preview channel, so its address stays the same and can be
+    # allowed for sign-in once (#66). It shows the most recently pushed PR; its link is commented on each PR. The channel
+    # expires 30 days (Firebase's maximum) after the last PR deploy: the next one then gets a new address to allow
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -94,8 +96,9 @@ jobs:
       pull-requests: write
       checks: write
     concurrency:
-      group: firebase-${{ github.ref }}
-      cancel-in-progress: true
+      # one preview deploy at a time, each waiting its turn (cancelling would mark another PR's preview as cancelled)
+      group: ${{ github.event_name == 'pull_request' && 'firebase-preview' || format('firebase-{0}', github.ref) }}
+      cancel-in-progress: ${{ github.event_name != 'pull_request' }}
     env:
       # Dependabot and forks get no secrets: then the deploy is skipped instead of failing
       KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER }}
@@ -121,5 +124,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER }}
           projectId: workout-pacer
-          channelId: ${{ github.event_name != 'pull_request' && 'live' || '' }}
-          expires: 7d
+          channelId: ${{ github.event_name != 'pull_request' && 'live' || 'preview' }}
+          expires: 30d
