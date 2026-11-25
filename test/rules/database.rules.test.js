@@ -166,8 +166,24 @@ describe('signed in', () => {
   it('can write a run that is paused, stopped or done, as runDoc in ui/runner.js writes it', async () => {
     expect(await write('users/alice/run', 'alice', { ...RUN, p: 1700000005000 })).toBe(200);
     // end is 'stop' (Stop, also from another device: #114) or 'done' (finished, with fin: when)
-    expect(await write('users/alice/run', 'alice', { ...RUN, p: 1700000005000, end: 'stop' })).toBe(200);
-    expect(await write('users/alice/run', 'alice', { ...RUN, end: 'done', fin: 1700000009000 })).toBe(200);
+    expect(await write('users/alice/run', 'alice', { ...RUN, p: 1700000005000, end: 'stop', u: RUN.u + 1 })).toBe(200);
+    expect(await write('users/alice/run', 'alice', { ...RUN, end: 'done', fin: 1700000009000, u: RUN.u + 2 })).toBe(
+      200,
+    );
+  });
+
+  // #119: a write queued offline must not undo a newer change to the same workout; the app checks first (cloud.js
+  // setRun, core/merge.js runWins), and the database refuses a write that isn't newer than the stored one
+  it('replaces the same workout only with a higher u; a new workout always', async () => {
+    expect(await write('users/alice/run', 'alice', RUN)).toBe(200);
+    expect(await write('users/alice/run', 'alice', { ...RUN, i: 3, u: RUN.u + 1 })).toBe(200);
+    expect(await write('users/alice/run', 'alice', { ...RUN, i: 4, u: RUN.u + 1 })).toBe(401);
+    expect(await write('users/alice/run', 'alice', { ...RUN, i: 1, u: RUN.u })).toBe(401);
+    expect((await stored('users/alice/run')).i).toBe(3);
+    // another workout, even with an older clock (a device whose clock is behind)
+    expect(await write('users/alice/run', 'alice', { ...RUN, sid: 'new000workout', u: RUN.u - 5000 })).toBe(200);
+    // and the account can still be cleared, as Delete account does
+    expect(await call('DELETE', 'users/alice/run', 'alice')).toBe(200);
   });
 
   it('can write an empty order', async () => {

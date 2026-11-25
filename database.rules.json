@@ -6,7 +6,7 @@
         ".write": "auth != null && auth.uid === $uid",
         "doc": { ".validate": false },
         "run": {
-          ".validate": "newData.hasChildren()",
+          ".validate": "newData.hasChildren() && (!data.child('u').isNumber() || newData.child('sid').val() !== data.child('sid').val() || newData.child('u').val() > data.child('u').val())",
           "r": { ".validate": "newData.isString() && newData.val().length <= 100000" },
           "sid": { ".validate": "newData.isString() && newData.val().length <= 100" },
           "by": { ".validate": "newData.isString() && newData.val().length <= 100" },

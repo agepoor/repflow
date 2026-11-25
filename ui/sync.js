@@ -75,7 +75,8 @@ let SWITCH = null,
   PENDRUN,
   DELNOTE = ''; // another account signed in than this device last synced with: wait for a choice before merging
 let CR = null,
-  CR1 = false; // the workout stored online; whether its first value has arrived since signing in
+  CR1 = false, // the workout stored online; whether its first value has arrived since signing in
+  SEEN = 0; // the highest u of another device's run that has reached this device: its writes are based on that (issue 119)
 function saveSY() {
   store(localStorage, 'rf2_sync', JSON.stringify(SY));
 }
@@ -156,6 +157,7 @@ function onUser(u) {
     LISTENING = false;
     CR = null;
     CR1 = false;
+    SEEN = 0;
     NEWACCT = false;
     DOC1 = false;
     clearTimeout(syncTimer);
@@ -758,6 +760,7 @@ const runName = (v) => {
   }
 };
 function onRemoteRun(v) {
+  if (v && v.by !== DEV.id) SEEN = Math.max(SEEN, +v.u || 0);
   if (SWITCH) {
     PENDRUN = v;
     return;
@@ -781,7 +784,7 @@ function onRemoteRun(v) {
       if (!closeRun()) show('lib');
     }
   } else if (first && LASTDOC && LASTDOC.end && CR && CR.sid === LASTDOC.sid && !CR.end && LASTDOC.u > (CR.u || 0))
-    CLOUD.setRun(LASTDOC).catch(() => {});
+    CLOUD.setRun(LASTDOC, SEEN).catch(() => {});
   banner();
   if (document.hidden) bgOn();
 } // in the background: queue the beeps again for the new state
@@ -871,6 +874,7 @@ function endLive() {
   });
 }
 export {
+  SEEN,
   endLive,
   syncState,
   CLOUD,

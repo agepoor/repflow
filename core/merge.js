@@ -131,6 +131,18 @@ function newer(key, stored, mine) {
   }
   return (mine.ts || 0) > (stored.ts || 0);
 }
+/* may this write of the running workout (users/<uid>/run) replace the one the account holds now (cur)? The run is one
+   record that every device writes, so a plain last-write-wins lets a device that was offline undo what happened
+   meanwhile: its queued writes are newer by the clock, but were made without knowing the other device's change (issue 119).
+   So a write goes ahead only if nobody else changed the run since this device last saw it: there is none yet, this
+   device wrote the stored one, or it's one this device had seen (seen: the highest u of another device's writes that
+   had reached this device when it made this one) */
+function runWins(cur, next, seen) {
+  if (!next) return false;
+  if (!cur || !cur.sid) return true;
+  if (cur.by === next.by) return true;
+  return (+cur.u || 0) <= (+seen || 0);
+}
 /* a short fingerprint of an item, to tell which items changed since this device last synced them */
 function print(v) {
   const s = JSON.stringify(v, (k, x) => (k === 'm' ? undefined : x));
@@ -142,4 +154,4 @@ function print(v) {
 const norm = (k, v) => itemsOf(docOf({ [k]: v }))[k];
 /* keys of the items that differ from what this device last synced (synced: key → print) */
 const changed = (items, synced) => Object.keys(items).filter((k) => print(items[k]) !== (synced || {})[k]);
-export { merge, itemsOf, docOf, newer, norm, print, changed };
+export { merge, itemsOf, docOf, newer, runWins, norm, print, changed };

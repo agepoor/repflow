@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { changed, docOf, itemsOf, merge, newer, norm, print } from '../core/merge.js';
+import { changed, docOf, itemsOf, merge, newer, norm, print, runWins } from '../core/merge.js';
 
 const NOW = new Date(2026, 10, 19, 12, 0).getTime();
 beforeEach(() => vi.useFakeTimers({ now: NOW }));
@@ -263,5 +263,31 @@ describe('items: the account stores each routine and workout on its own', () => 
     expect(changed(before, synced)).toEqual([]);
     const after = itemsOf(merge({ routines: [rt('a', 6)] }, merge(doc, {})));
     expect(changed(after, synced)).toEqual(['r/a']);
+  });
+});
+
+describe('runWins: a write of the running workout only replaces a version its device knew about (#119)', () => {
+  const run = (by, u, extra = {}) => ({ sid: 's1', by, u, ...extra });
+  it('goes ahead when the account has no workout', () => {
+    expect(runWins(null, run('pc', 5), 0)).toBe(true);
+    expect(runWins({}, run('pc', 5), 0)).toBe(true);
+  });
+  it('goes ahead over this device’s own last write: nobody changed it since', () => {
+    expect(runWins(run('pc', 9), run('pc', 10), 0)).toBe(true);
+  });
+  it('goes ahead over another device’s write that this device had seen (taking over, stopping it)', () => {
+    expect(runWins(run('phone', 6), run('pc', 7), 6)).toBe(true);
+    expect(runWins(run('phone', 6, { end: 'stop' }), run('pc', 7), 8)).toBe(true);
+  });
+  it('is dropped when another device changed it after this write was made, even with an older clock', () => {
+    // the PC went offline having seen u 6; the phone paused at 8; the PC's queued step at 9 must not undo the pause
+    expect(runWins(run('phone', 8, { p: 8 }), run('pc', 9), 6)).toBe(false);
+    expect(runWins(run('phone', 8), run('pc', 7), 6)).toBe(false);
+  });
+  it('a new workout from another device the writer never saw is not replaced either', () => {
+    expect(runWins({ sid: 's2', by: 'phone', u: 8 }, run('pc', 9), 6)).toBe(false);
+  });
+  it('nothing to write', () => {
+    expect(runWins(run('pc', 1), null, 0)).toBe(false);
   });
 });
