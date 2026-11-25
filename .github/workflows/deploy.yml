@@ -1,8 +1,8 @@
 name: Check and deploy
 # Pull requests: lint, format check and tests, the database rules tests against the emulator and the browser test
 # against the built site, then a preview on Firebase Hosting with its link on the PR.
-# main: the same checks, then deploy to https://agepoor.github.io/repflow/ and Firebase Hosting (https://punchpace.app,
-# also https://workout-pacer.web.app) only if they pass.
+# main: the same checks, then publish the database rules and deploy to https://agepoor.github.io/repflow/ and Firebase
+# Hosting (https://punchpace.app, also https://workout-pacer.web.app) only if they pass.
 on:
   push:
     branches: [main]
@@ -101,6 +101,18 @@ jobs:
       KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WORKOUT_PACER }}
     steps:
       - uses: actions/checkout@v7
+      # The rules go live just before the app on Firebase Hosting, so an app that writes a new field never meets rules
+      # that refuse it. Pull requests never publish rules: a preview uses the live database.
+      - uses: actions/setup-node@v7
+        if: env.KEY != '' && github.event_name != 'pull_request'
+        with:
+          node-version: 22
+      - name: Publish database rules
+        if: env.KEY != '' && github.event_name != 'pull_request'
+        run: |
+          printf '%s' "$KEY" > "$RUNNER_TEMP/key.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/key.json" npm run deploy:rules
+          rm "$RUNNER_TEMP/key.json"
       - name: Build site
         run: bash build.sh _site
       - uses: FirebaseExtended/action-hosting-deploy@v0
