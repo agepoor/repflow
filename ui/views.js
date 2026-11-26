@@ -301,6 +301,8 @@ function skipToday(id, on) {
   persist();
   renderList();
 }
+// a jump instead of a smooth scroll when the system asks for reduced motion
+const scrollMotion = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
 function addToday(id, on) {
   const r = R.find((r) => r.id === id);
   if (!r) return;
@@ -309,7 +311,7 @@ function addToday(id, on) {
   renderList();
   const c = document.querySelector(`#list .rcard[data-id="${id}"]`);
   if (c) {
-    c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    c.scrollIntoView({ block: 'nearest', behavior: scrollMotion() });
     c.classList.add('flash');
     setTimeout(() => c.classList.remove('flash'), 1300);
   }
@@ -461,7 +463,7 @@ function initDrag() {
         const c = to !== from && list.querySelector(`.rcard[data-id="${id}"]`);
         if (c) {
           c.classList.add('flash');
-          c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          c.scrollIntoView({ block: 'nearest', behavior: scrollMotion() });
           setTimeout(() => c.classList.remove('flash'), 1300);
         }
       }, 550);

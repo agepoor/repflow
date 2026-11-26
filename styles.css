@@ -1430,6 +1430,19 @@ header {
     opacity: 1;
   }
 }
+/* reduce motion (system setting): no flash, zoom or pop. A routine that moved still gets its outline, held still for
+   the same time; the run screen's transition checks the setting in ui/runner.js */
+@media (prefers-reduced-motion: reduce) {
+  .flash,
+  #doneView .badge {
+    animation: none;
+  }
+  .rcard.flash {
+    animation: none;
+    outline: 2px solid var(--c);
+    outline-offset: 2px;
+  }
+}
 #doneView h2 {
   margin: 0;
   font-size: var(--fs-3xl);
