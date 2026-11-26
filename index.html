@@ -334,54 +334,45 @@
           <span></span>
         </header>
         <div class="card">
-          <h2 class="mb-2">This device</h2>
-          <p class="muted m-0 mb-3">For the whole app, on this device.</p>
+          <h2>This device</h2>
+          <p class="muted">For the whole app, on this device.</p>
           <div class="settings" id="devForm"></div>
         </div>
         <div class="card">
-          <h2 class="mb-2">Sound &amp; voice for routines</h2>
-          <p class="muted m-0 mb-3">
-            Each routine uses these unless it has its own (editor → Sound &amp; voice → Own).
-          </p>
+          <h2>Sound &amp; voice for routines</h2>
+          <p class="muted">Each routine uses these unless it has its own (editor → Sound &amp; voice → Own).</p>
           <div class="settings" id="setForm"></div>
-          <div
-            class="row"
-            style="
-              flex-wrap: wrap;
-              gap: var(--space-2);
-              margin-top: var(--space-4);
-              padding-top: var(--space-4);
-              border-top: 1px solid var(--border);
-            "
-          >
-            <button class="ib" data-on="click:testAudio"><i data-ic="vol"></i>Test sound & voice</button
-            ><button class="ib ghost" data-on="click:resetAudio"><i data-ic="refresh"></i>Reset to defaults</button>
+          <div class="sgrp">
+            <div class="row">
+              <button class="ib" data-on="click:testAudio"><i data-ic="vol"></i>Test sound & voice</button
+              ><button class="ib ghost" data-on="click:resetAudio"><i data-ic="refresh"></i>Reset to defaults</button>
+            </div>
+            <div
+              id="vdiag"
+              hidden
+              class="muted"
+              style="font-size: var(--fs-xs); line-height: 1.5; word-break: break-word"
+            ></div>
+            <p class="muted fs-sm">
+              Reset restores the settings above to their defaults. This device and routines with their own sound &amp;
+              voice stay as they are.
+            </p>
           </div>
-          <div
-            id="vdiag"
-            hidden
-            class="muted"
-            style="font-size: var(--fs-xs); line-height: 1.5; margin-top: var(--space-2); word-break: break-word"
-          ></div>
-          <p class="muted mt-3 fs-sm">
-            Reset restores the settings above to their defaults. This device and routines with their own sound &amp;
-            voice stay as they are.
-          </p>
         </div>
         <div class="card">
-          <h2 class="mb-2">Parts of the day</h2>
-          <p class="muted m-0 mb-3">
+          <h2>Parts of the day</h2>
+          <p class="muted">
             Groups Today by Morning, Midday, Evening and Anytime, marks the current part “now”, labels one routine Up
             next and offers it as Next after a workout. Set a routine's part in the editor (Part of day). Synced across
             your devices.
           </p>
           <div class="settings" id="partForm"></div>
-          <p class="muted mt-3 fs-sm" id="partSum"></p>
+          <p class="muted fs-sm" id="partSum"></p>
         </div>
         <div class="card" id="syncCard"></div>
         <div class="card">
-          <h2 class="mb-2">Backup</h2>
-          <p class="muted m-0 mb-3">Save your routines to a file, or load them from one.</p>
+          <h2>Backup</h2>
+          <p class="muted">Save your routines to a file, or load them from one.</p>
           <div class="row">
             <button class="ib" data-on="click:exportAll">Export JSON</button>
             <label
@@ -400,8 +391,8 @@
           </div>
         </div>
         <div class="card">
-          <h2 class="mb-2">Reset</h2>
-          <p class="muted m-0 mb-3">
+          <h2>Reset</h2>
+          <p class="muted">
             <b class="text">Restore presets</b> resets the 5 default routines and keeps your own.
             <b class="text">Reset all</b> clears this device: routines, history and settings. Your account, if you're
             signed in, keeps its data.
@@ -412,42 +403,48 @@
           </div>
         </div>
         <div class="card">
-          <h2 class="mb-2">About</h2>
-          <p class="muted m-0 mb-2">PunchPace is free and open source. No ads, no analytics, no tracking.</p>
-          <div class="links">
-            <a href="privacy.html">Privacy</a>
-            <a href="https://github.com/agepoor/repflow" target="_blank" rel="noopener">Source code</a>
-            <a href="https://github.com/agepoor/repflow/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+          <h2>About</h2>
+          <div class="sgrp">
+            <p class="muted">PunchPace is free and open source. No ads, no analytics, no tracking.</p>
+            <div class="links">
+              <a href="privacy.html">Privacy</a>
+              <a href="https://github.com/agepoor/repflow" target="_blank" rel="noopener">Source code</a>
+              <a href="https://github.com/agepoor/repflow/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+            </div>
           </div>
-          <p class="muted m-0 mt-3 mb-2">
-            <b class="text">Something not working?</b> Send a report. It opens with the version, your browser and recent
-            errors filled in, and you see it before it's sent. A GitHub issue is public; an email isn't.
-          </p>
-          <div class="row">
-            <a class="btn" href="mailto:hello@punchpace.app" data-on="click:fillReport" data-args='["email"]'
-              >Email a report</a
-            >
-            <a
-              class="btn"
-              href="https://github.com/agepoor/repflow/issues/new?template=problem.yml"
-              target="_blank"
-              rel="noopener"
-              data-on="click:fillReport"
-              data-args='["issue"]'
-              >Open a GitHub issue</a
-            >
-            <button data-on="click:copyReport">Copy report</button>
+          <div class="sgrp">
+            <p class="muted">
+              <b class="text">Something not working?</b> Send a report. It opens with the version, your browser and
+              recent errors filled in, and you see it before it's sent. A GitHub issue is public; an email isn't.
+            </p>
+            <div class="row">
+              <a class="btn" href="mailto:hello@punchpace.app" data-on="click:fillReport" data-args='["email"]'
+                >Email a report</a
+              >
+              <a
+                class="btn"
+                href="https://github.com/agepoor/repflow/issues/new?template=problem.yml"
+                target="_blank"
+                rel="noopener"
+                data-on="click:fillReport"
+                data-args='["issue"]'
+                >Open a GitHub issue</a
+              >
+              <button data-on="click:copyReport">Copy report</button>
+            </div>
+            <p class="muted fs-sm">
+              Nothing opens? Your device may have no email app set up. Copy the report and send it to
+              <b class="text">hello@punchpace.app</b>.
+            </p>
+            <details class="info" id="reportInfo" data-on="toggle:fillReport" data-args='["preview"]'>
+              <summary>What's in it</summary>
+              <pre class="body report" id="reportPreview"></pre>
+            </details>
           </div>
-          <p class="muted fs-sm m-0 mt-2">
-            Nothing opens? Your device may have no email app set up. Copy the report and send it to
-            <b class="text">hello@punchpace.app</b>.
-          </p>
-          <details class="info" id="reportInfo" data-on="toggle:fillReport" data-args='["preview"]'>
-            <summary>What's in it</summary>
-            <pre class="body report" id="reportPreview"></pre>
-          </details>
-          <!-- build.sh fills in the version from package.json and the commit -->
-          <p class="muted fs-sm m-0 mt-3" id="appVersion">Version dev</p>
+          <div class="sgrp">
+            <!-- build.sh fills in the version from package.json and the commit -->
+            <p class="muted fs-sm" id="appVersion">Version dev</p>
+          </div>
         </div>
       </section>
     </main>
