@@ -116,6 +116,55 @@ test.describe('text at 200% on a 320px screen', () => {
   });
 });
 
+// The run screen's parts that overlap (#134): a row squeezed smaller than its text (which then spills over the circle or
+// is cut off), rows running into each other, the number, cue and sub line sticking out of the circle, and the play
+// controls pushed off the bottom
+const overlaps = (page) =>
+  page.evaluate(() => {
+    const box = (e) => e.getBoundingClientRect();
+    const name = (e) => e.id || e.className;
+    const rows = [...document.querySelectorAll('#run > *')].filter((e) => getComputedStyle(e).display !== 'none');
+    const out = [];
+    // squeezed rows drop to (nearly) nothing; some slack, as the heavy italic font reaches a little past its line box
+    for (const e of rows) if (e.clientHeight < e.scrollHeight * 0.8) out.push(`${name(e)} is squeezed`);
+    for (const [i, a] of rows.entries())
+      for (const b of rows.slice(i + 1))
+        if (box(a).height && box(b).height && box(a).bottom > box(b).top + 0.5)
+          out.push(`${name(a)} runs into ${name(b)}`);
+    if (box(document.querySelector('#run .ctrl')).bottom > innerHeight) out.push('the controls are off the screen');
+    const ring = box(document.getElementById('stage'));
+    for (const e of document.querySelectorAll('#stage .center > *')) {
+      const r = box(e);
+      if (r.height && (r.top < ring.top || r.bottom > ring.bottom || r.left < ring.left || r.right > ring.right))
+        out.push(`#${e.id} sticks out of the circle`);
+    }
+    return out;
+  });
+
+test.describe('run screen on a short screen (a browser tab) with text at 200%', () => {
+  test.use({ viewport: { width: 412, height: 640 } });
+
+  test('nothing overlaps, also with the pill for a workout running elsewhere', async ({ page, context }) => {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Page.setFontSizes', { fontSizes: { standard: 32, fixed: 26 } });
+    await page.goto('./');
+    await page.getByRole('button', { name: 'New routine' }).click();
+    await page.locator('#eName').fill('Morning boxing and mobility');
+    await page.getByRole('button', { name: 'Boxing combos', exact: true }).click();
+    await page.locator('#edit').getByRole('button', { name: 'Start', exact: true }).click();
+    // past Get ready, to a combo: the call, the step name, the time and the cue all show
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.locator('#call')).not.toBeEmpty();
+    expect.soft(await overlaps(page), 'overlapping on the run screen').toEqual([]);
+    // the pill a following device shows; set here, as this test has no second device
+    await page.evaluate(() => {
+      Object.assign(document.getElementById('live'), { hidden: false, textContent: 'Running on Windows · Chrome' });
+    });
+    expect.soft(await overlaps(page), 'overlapping on the run screen with the pill').toEqual([]);
+    await page.getByRole('button', { name: 'Stop' }).click();
+  });
+});
+
 test('reduce motion: nothing flashes or pops', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('./');

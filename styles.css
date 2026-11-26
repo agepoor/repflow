@@ -878,9 +878,14 @@ label .dh.bad {
   padding: var(--space-5) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom));
   transition: background 0.3s;
   user-select: none;
+  overflow-y: auto; /* last resort on a very short screen: scroll rather than overlap */
 }
 #run.on {
   display: flex;
+}
+/* Text never shrinks below its lines, or it spills over the circle (#134): the circle gives way instead */
+#run > * {
+  flex-shrink: 0;
 }
 #run .top {
   width: 100%;
@@ -903,16 +908,25 @@ label .dh.bad {
 #run .meta {
   display: flex;
   justify-content: space-between;
+  gap: var(--space-2);
   font-size: var(--fs-sm);
   color: var(--text-muted);
 }
+#rRound {
+  flex: none;
+  white-space: nowrap; /* the name gets the … instead */
+}
+/* As big as fits: up to min(80vw, 50vh), smaller when the screen is short (a browser's address bar, the live pill,
+   large text). The height flexes and the width follows it; the text inside scales with the circle (cqw). */
 #stage {
   position: relative;
-  width: min(80vw, 50vh);
+  height: min(80vw, 50vh);
+  min-height: 160px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  flex: none;
+  flex: 0 1 auto;
+  container-type: size;
 }
 #stage svg {
   position: absolute;
@@ -945,7 +959,7 @@ label .dh.bad {
 }
 #big {
   font-family: var(--font-display);
-  font-size: clamp(64px, 16vh, 150px);
+  font-size: min(clamp(64px, 16vh, 150px), 45cqw);
   font-weight: 700;
   line-height: 1;
   max-width: 100%;
@@ -958,7 +972,7 @@ label .dh.bad {
 #cueLine {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: clamp(20px, 4.2vh, 34px);
+  font-size: min(clamp(20px, 4.2vh, 34px), 11cqw);
   font-weight: 700;
   line-height: 1.15;
   max-width: 100%;
