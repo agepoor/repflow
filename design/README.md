@@ -30,7 +30,8 @@ Tests in `test/tokens.test.js` check the ones marked ✓.
 **Spacing, type, shape, motion**
 
 - Spacing is on a **4px grid** (`--space-1` = 4px … `--space-16` = 64px). `--space-half` (2px) is only for fine alignment, and 1px hairlines are fine. Sizes of components (a 44px button) are not spacing and can be any value.
-- Type sizes come from the **type scale** (`--fs-xs` 12px … `--fs-3xl` 28px). Body text is 16px; 12px is only for captions and small uppercase labels. The big run-screen numbers scale with the screen (`clamp()`), so they're the exception.
+- Type sizes come from the **type scale** (`--fs-xs` 12px … `--fs-3xl` 28px at the default text size). The scale is in `rem`, so text follows the text size set in the browser or on the phone; don't set a font size in `px` (and never on `html`). Body text is 16px; 12px is only for captions and small uppercase labels. The big run-screen numbers scale with the screen (`clamp()`), so they're the exception.
+- Layouts hold up at a larger text size: nothing sticks out sideways at 320px wide with the text at 200%. Breakpoints (`@media (max-width: …)`) are in `em`, so a narrow layout starts earlier when the text is bigger (35em = 560px at the default size). A row of buttons or chips wraps rather than overflowing.
 - Radii: `--radius-sm` for tags, `-md` for buttons and inputs, `-lg` for cards and dialogs, `-pill` for chips, `-round` for circles.
 - Animations use `--duration-fast` (press feedback), `-base` (movement) or `-slow` (progress).
 - Touch targets are at least **44px** (`--size-target`; `--size-target-lg`, 48px, where there is room, like the run controls). Buttons, inputs and selects get this as a minimum height. A control that looks smaller (an icon, a colour swatch, the − / + in a field) keeps its look and gets the tap area from an invisible `::after` around it: add it to the list at the top of `styles.css`. `test/e2e/a11y.test.js` measures every control on every screen.
