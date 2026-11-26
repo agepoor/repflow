@@ -1,10 +1,18 @@
 /* Design tokens: resolves design/tokens.json and writes tokens.css (npm run tokens). The app's CSS and JS use the theme
    tokens as CSS custom properties: colours by name (--text-muted, --routine-blue, --tone-jab), the scales with a prefix
-   (--space-2, --fs-sm, --radius-md, --duration-fast, --font-display). Primitives are not written: only the theme uses them. */
+   (--space-2, --fs-sm, --size-target, --radius-md, --duration-fast, --font-display). Primitives are not written: only the theme uses them. */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const PREFIX = { color: '', space: 'space', fontSize: 'fs', radius: 'radius', duration: 'duration', font: 'font' };
+const PREFIX = {
+  color: '',
+  space: 'space',
+  fontSize: 'fs',
+  radius: 'radius',
+  size: 'size',
+  duration: 'duration',
+  font: 'font',
+};
 
 const tokens = () => JSON.parse(readFileSync(new URL('./tokens.json', import.meta.url), 'utf8'));
 const get = (t, path) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), t);

@@ -6,6 +6,7 @@
   --text: #f2efe3;
   --text-muted: rgba(242, 239, 227, 0.62);
   --border: rgba(242, 239, 227, 0.15);
+  --border-control: rgba(242, 239, 227, 0.4);
   --tint-1: rgba(242, 239, 227, 0.06);
   --tint-2: rgba(242, 239, 227, 0.12);
   --tint-3: rgba(242, 239, 227, 0.28);
@@ -76,6 +77,8 @@
   --fs-xl: 20px;
   --fs-2xl: 24px;
   --fs-3xl: 28px;
+  --size-target: 44px;
+  --size-target-lg: 48px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;

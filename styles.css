@@ -84,13 +84,39 @@ input,
 select,
 textarea {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   width: 100%;
 }
 textarea {
   resize: vertical;
+}
+/* every control has a tap area of at least --size-target (design/README.md); test/e2e/a11y.test.js measures them */
+button,
+select,
+input:not([type='checkbox'], [type='radio']) {
+  min-height: var(--size-target);
+}
+/* controls that look smaller than that: an invisible ::after around them takes the taps */
+.rcard .skip,
+.rcard .info.tap,
+#minBtn,
+.swatches button,
+.days button,
+#vdiag a {
+  position: relative;
+} /* .durw .ds is already positioned */
+.rcard .skip::after,
+.rcard .info.tap::after,
+#minBtn::after,
+.durw .ds::after,
+.swatches button::after,
+.days button::after,
+#vdiag a::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--size-target)) / 2));
 }
 input[type='checkbox'] {
   width: auto;
@@ -398,13 +424,19 @@ h2 {
   border-color: var(--c);
 }
 .wchip.sk {
-  opacity: 0.5;
+  color: var(--text-muted);
 }
 .wchip.sk span {
   text-decoration: line-through;
 }
+/* missed or skipped: muted text and a faded mark, not half opacity, so the name stays readable (4.5:1) */
 .wday.past .wchip:not(.done):not(.nl),
 .wchip.miss {
+  color: var(--text-muted);
+}
+.wday.past .wchip:not(.done):not(.nl) > .ic,
+.wchip.miss > .ic,
+.wchip.sk > .ic {
   opacity: 0.5;
 }
 .wchip small {
@@ -580,6 +612,8 @@ h2 {
 }
 .days.whens button {
   max-width: none;
+  aspect-ratio: auto;
+  min-height: var(--size-target);
   border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
 }
@@ -624,8 +658,8 @@ h2 {
   font-size: var(--fs-sm);
 }
 .rcard.mini .go {
-  width: 40px;
-  height: 40px;
+  width: var(--size-target);
+  height: var(--size-target);
 }
 .days {
   display: flex;
@@ -634,8 +668,9 @@ h2 {
 .days button {
   flex: 1 1 0;
   min-width: 0;
-  max-width: 40px;
-  height: 40px;
+  max-width: var(--size-target);
+  min-height: 0;
+  aspect-ratio: 1; /* round, as wide as fits: seven in a row on a phone, each with a 44px tap area */
   padding: 0;
   border-radius: var(--radius-round);
   font-size: var(--fs-sm);
@@ -701,7 +736,7 @@ h2 {
 }
 .grid input,
 .grid select {
-  height: 40px;
+  height: var(--size-target);
 }
 input.dur.bad,
 input.dur.bad:focus {
@@ -712,13 +747,15 @@ input.dur.bad:focus {
   position: relative;
 }
 .durw input {
-  padding-right: 62px;
+  padding-right: 92px;
 }
+/* − and +: 36px inside the field, each with a 44px tap area that meets the other's */
 .durw .ds {
   position: absolute;
   top: 4px;
   bottom: 4px;
-  width: 28px;
+  min-height: 0;
+  width: 36px;
   padding: 0;
   border: none;
   background: var(--surface);
@@ -735,14 +772,13 @@ input.dur.bad:focus {
   color: var(--text);
 }
 .durw .ds[data-d='-1'] {
-  right: 34px;
+  right: 48px;
 }
 .durw .ds[data-d='1'] {
   right: 4px;
 }
 label .dh {
   color: var(--text-muted);
-  opacity: 0.75;
 }
 label .dh.bad {
   color: var(--danger-text);
@@ -807,6 +843,7 @@ label .dh.bad {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  min-height: var(--size-target);
   color: var(--text);
 }
 .nst {
@@ -1005,8 +1042,8 @@ label .dh.bad {
   color: var(--text);
 }
 #run .ctrl button.sm {
-  width: 48px;
-  height: 48px;
+  width: var(--size-target-lg);
+  height: var(--size-target-lg);
   background: none;
   border-color: transparent;
   color: var(--text-muted);
@@ -1026,7 +1063,7 @@ label .dh.bad {
   animation: fl 0.25s;
 }
 details.info {
-  margin-top: var(--space-2);
+  margin-top: 0; /* the 44px summary already leaves room above its text */
   font-size: var(--fs-sm);
   color: var(--text-muted);
 }
@@ -1034,6 +1071,7 @@ details.info > summary {
   cursor: pointer;
   list-style: none;
   display: inline-flex;
+  min-height: var(--size-target);
   align-items: center;
   gap: var(--space-2);
   color: var(--text-muted);
@@ -1195,8 +1233,9 @@ header {
   margin-top: var(--space-3);
 }
 .swatches button {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  min-height: 0; /* 36px plus the 8px gap: 44px tap areas that meet */
   border-radius: var(--radius-round);
   padding: 0;
   background: var(--c);
@@ -1235,7 +1274,9 @@ header {
 .block .head .icon {
   display: grid;
   place-items: center;
-  padding: var(--space-2) var(--space-2);
+  width: var(--size-target);
+  padding: 0;
+  flex: none;
 }
 .cuecount span {
   display: inline-flex;
@@ -1281,7 +1322,8 @@ header {
   font-size: var(--fs-sm);
 }
 .pvp {
-  padding: var(--space-half) var(--space-2);
+  min-width: var(--size-target);
+  padding: 0;
   display: inline-grid;
   place-items: center;
   color: var(--text-muted);
@@ -1312,9 +1354,6 @@ header {
 @media (max-width: 480px) {
   .block .head {
     gap: var(--space-half);
-  }
-  .block .head .icon {
-    padding: var(--space-2) var(--space-1);
   }
   .block .head input {
     margin-right: var(--space-1);
@@ -1424,7 +1463,7 @@ header {
 }
 #doneView .acts button {
   flex: 1;
-  height: 48px;
+  height: var(--size-target-lg);
   font-size: var(--fs-md);
   border-radius: var(--radius-lg);
   display: inline-flex;
@@ -1455,7 +1494,7 @@ header {
     gap: 0;
   }
   #lib header .row button.ghost {
-    min-width: 42px;
+    min-width: var(--size-target);
     padding: 0 var(--space-2);
   }
   header .hb .lbl {
@@ -1477,7 +1516,7 @@ header {
     display: none;
   }
   header .eb.hb {
-    width: 38px;
+    width: var(--size-target);
     padding: 0;
     justify-content: center;
   }
@@ -1487,14 +1526,14 @@ header {
     display: none;
   }
   header .eb.tst {
-    width: 38px;
+    width: var(--size-target);
     padding: 0;
     justify-content: center;
   }
 } /* small phones: Test icon-only too, so the sound control fits */
 /* editor actions: one style (outlined, icon + label, same height); Start only differs in colour */
 header .eb {
-  height: 38px;
+  height: var(--size-target);
   padding: 0 var(--space-4);
   gap: var(--space-2);
   font-weight: 600;
@@ -1997,7 +2036,9 @@ dialog.ask .choice p {
 }
 .links a {
   color: var(--accent-text);
-  padding: var(--space-2) 0; /* a taller touch target than the text alone */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
 }
 /* a link that looks like a button (the problem report links in Settings → About) */
 a.btn {
