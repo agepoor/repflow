@@ -221,6 +221,20 @@ h2 {
   flex: 1;
   min-width: 0;
 }
+/* the routine's name and details open the editor: a button, so a keyboard and a screen reader reach it, that looks
+   like text (#131) */
+.rcard button.info {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: start;
+}
+.rcard button.info .muted {
+  display: block;
+}
 .rcard .go {
   width: 52px;
   height: 52px;

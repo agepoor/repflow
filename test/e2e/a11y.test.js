@@ -1,6 +1,7 @@
 /* Browser test: what you can see and tap meets design/README.md on every screen at phone size. Every control has a tap
-   area of at least 44×44px (its box, or a larger ::after around it), and text has enough contrast (axe-core's WCAG
-   colour check, which also sees opacity and real backgrounds, unlike test/tokens.test.js). Text follows the browser's
+   area of at least 44×44px (its box, or a larger ::after around it), and axe-core finds no WCAG A/AA problems: text has
+   enough contrast (it also sees opacity and real backgrounds, unlike test/tokens.test.js), every field and control has
+   a name. Text follows the browser's
    text size without anything sticking out sideways at 320px wide, and reduce motion stops the flash and pop. */
 import { createRequire } from 'node:module';
 import { test, expect } from '@playwright/test';
@@ -40,17 +41,20 @@ const small = (page, scope) =>
     { scope, min: TARGET },
   );
 
-const lowContrast = async (page, scope) => {
+// axe-core's WCAG 2.2 A and AA rules: contrast, a name for every field and control, valid ARIA (#131)
+const wcagProblems = async (page, scope) => {
   await page.addScriptTag({ path: AXE });
   return page.evaluate(async (scope) => {
-    const r = await window.axe.run(scope, { runOnly: ['color-contrast'] });
-    return r.violations.flatMap((v) => v.nodes.map((n) => `${n.target.join(' ')}: ${n.any[0].message.split('.')[0]}`));
+    const r = await window.axe.run(scope, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
+    });
+    return r.violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(' ')}`));
   }, scope);
 };
 
 const check = async (page, scope) => {
   expect.soft(await small(page, scope), `controls under ${TARGET}px in ${scope}`).toEqual([]);
-  expect.soft(await lowContrast(page, scope), `text without enough contrast in ${scope}`).toEqual([]);
+  expect.soft(await wcagProblems(page, scope), `WCAG A/AA problems in ${scope}`).toEqual([]);
 };
 
 // Opens every screen in turn and runs check on it: home, week, history, Settings (all its explainers open), the editor
@@ -85,7 +89,7 @@ async function everyScreen(page, check) {
   await check(page, '#run');
 }
 
-test('every screen: tap areas of at least 44px and readable text', ({ page }) => everyScreen(page, check));
+test('every screen: tap areas of at least 44px and no WCAG A/AA problems', ({ page }) => everyScreen(page, check));
 
 // Everything on a screen that sticks out past its right or left edge
 const sideways = (page, scope) =>

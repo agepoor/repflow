@@ -29,6 +29,7 @@ You don't need an account. Without one, everything stays on your device. Sign in
 - **Keeps track:** workouts are logged, with streaks and a week overview.
 - **Works anywhere:** installable, works offline, and syncs across devices if you sign in.
 - **Fits your settings:** text follows the text size set in your browser, and flashes and pops stay off when your device is set to reduce motion.
+- **Screen readers:** every button and field says what it is, and a routine opens from its name with the keyboard too.
 
 ## Feedback
 
