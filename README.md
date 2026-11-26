@@ -28,6 +28,7 @@ You don't need an account. Without one, everything stays on your device. Sign in
 - **Plans your day:** routines show up on the days and times of day you choose, with a gentle hint about what's next.
 - **Keeps track:** workouts are logged, with streaks and a week overview.
 - **Works anywhere:** installable, works offline, and syncs across devices if you sign in.
+- **Fits your settings:** text follows the text size set in your browser, and flashes and pops stay off when your device is set to reduce motion.
 
 ## Feedback
 
