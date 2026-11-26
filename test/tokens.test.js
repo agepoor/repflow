@@ -124,4 +124,9 @@ describe('contrast rules', () => {
   it('the focus ring stands out (3:1)', () => {
     for (const bg of grounds) expect(contrast(V['--focus'], V[bg])).toBeGreaterThanOrEqual(3);
   });
+
+  // a field is --bg inside a card: its edge has to show against both
+  it('the edge of a field stands out (3:1) on the page, cards and raised cards', () => {
+    for (const bg of grounds) expect(contrast(V['--border-control'], V[bg]), bg).toBeGreaterThanOrEqual(3);
+  });
 });

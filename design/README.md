@@ -33,7 +33,9 @@ Tests in `test/tokens.test.js` check the ones marked ✓.
 - Type sizes come from the **type scale** (`--fs-xs` 12px … `--fs-3xl` 28px). Body text is 16px; 12px is only for captions and small uppercase labels. The big run-screen numbers scale with the screen (`clamp()`), so they're the exception.
 - Radii: `--radius-sm` for tags, `-md` for buttons and inputs, `-lg` for cards and dialogs, `-pill` for chips, `-round` for circles.
 - Animations use `--duration-fast` (press feedback), `-base` (movement) or `-slow` (progress).
-- Touch targets are at least **44px** (48px where there is room). Not all controls meet this yet: see #37.
+- Touch targets are at least **44px** (`--size-target`; `--size-target-lg`, 48px, where there is room, like the run controls). Buttons, inputs and selects get this as a minimum height. A control that looks smaller (an icon, a colour swatch, the − / + in a field) keeps its look and gets the tap area from an invisible `::after` around it: add it to the list at the top of `styles.css`. `test/e2e/a11y.test.js` measures every control on every screen.
+- ✓ The edge of a field (input, select, text area) uses `--border-control`, at least **3:1**, because it shows where to type. Cards and buttons keep the subtle `--border`.
+- Don't dim text with `opacity`: it drops below 4.5:1 without the token test noticing. Use `--text-muted` instead; `test/e2e/a11y.test.js` checks the contrast of what's on screen.
 
 **Classes instead of inline styles**
 

@@ -144,7 +144,7 @@ function renderParts() {
     on = partsOn(),
     d = on ? '' : ' disabled';
   el.innerHTML = `<div class="tg"><label class="chk"><input type="checkbox" ${on ? 'checked' : ''} ${does('change:setGuideChk')}> Guide me through the day</label></div>
-  <div class="dim"${on ? '' : ''}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" ${does('change:setPart')}${d}></div><div class="dim"${on ? '' : ''}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" ${does('change:setPart')}${d}></div>`;
+  <div${on ? '' : ' class="dim"'}><label for="pMid">Midday starts</label><input id="pMid" type="time" value="${hhmm(t.mid)}" ${does('change:setPart')}${d}></div><div${on ? '' : ' class="dim"'}><label for="pEve">Evening starts</label><input id="pEve" type="time" value="${hhmm(t.eve)}" ${does('change:setPart')}${d}></div>`;
   partSum();
 }
 function setGuide(on) {
