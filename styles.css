@@ -41,6 +41,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font: var(--fs-md) / 1.5 var(--font-body);
+  overflow-wrap: break-word; /* a long word or address that doesn't fit (large text size) breaks instead of overflowing */
 }
 button,
 input,
@@ -309,7 +310,11 @@ h2 {
   border-radius: var(--radius-lg);
   background: var(--surface);
 }
+.wseg {
+  max-width: 100%;
+}
 .wseg button {
+  white-space: normal; /* a large text size wraps the label instead of pushing the screen wider */
   border: none;
   background: none;
   padding: var(--space-1) var(--space-4);
@@ -343,7 +348,7 @@ h2 {
   border-bottom: none;
 }
 .wday .wd {
-  width: 40px;
+  width: 2.5rem; /* 40px at the default text size; rem so the day and date keep fitting at a larger one */
   flex: none;
   display: flex;
   flex-direction: column;
@@ -361,8 +366,8 @@ h2 {
   font-family: var(--font-display);
   font-size: var(--fs-xl);
   font-weight: 700;
-  width: 32px;
-  height: 32px;
+  width: 1.6em; /* 32px at the default text size, growing with it */
+  height: 1.6em;
   display: grid;
   place-items: center;
   border-radius: var(--radius-round);
@@ -610,7 +615,11 @@ h2 {
 .sech + .sech.part {
   margin-top: 0;
 }
+.days.whens {
+  flex-wrap: wrap;
+}
 .days.whens button {
+  min-width: max-content; /* equal widths; with a large text size the parts of the day wrap onto two lines */
   max-width: none;
   aspect-ratio: auto;
   min-height: var(--size-target);
@@ -685,7 +694,7 @@ h2 {
 .grid.hgrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-@media (max-width: 560px) {
+@media (max-width: 35em) {
   .grid.hgrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -694,9 +703,15 @@ h2 {
     grid-column: 1/-1;
   }
 }
-@media (max-width: 340px) {
+@media (max-width: 21.25em) {
   .grid > .wide {
     grid-column: 1/-1;
+  }
+}
+/* one column when even two don't fit: below 280px at the default text size, so in practice a larger text size */
+@media (max-width: 17.5em) {
+  .grid.hgrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .tips {
@@ -736,7 +751,7 @@ h2 {
 }
 .grid input,
 .grid select {
-  height: var(--size-target);
+  min-height: var(--size-target); /* min: a larger text size makes the field taller instead of cutting off the text */
 }
 input.dur.bad,
 input.dur.bad:focus {
@@ -829,7 +844,7 @@ label .dh.bad {
 #eSndBox[hidden] {
   display: none;
 }
-@media (max-width: 560px) {
+@media (max-width: 35em) {
   .settings {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1121,12 +1136,28 @@ details.info .body p {
 button {
   white-space: nowrap;
 }
+:not(header) > .row > :is(button, a.btn) {
+  max-width: 100%;
+  white-space: normal;
+} /* a button alone on its line that is still too wide (large text size) wraps its label instead */
 header .row {
   flex-wrap: nowrap;
   gap: var(--space-1);
 }
 header {
   flex-wrap: nowrap;
+}
+/* narrower than a 320px phone at the default text size, so in practice a larger text size: the title and buttons
+   no longer fit on one line, so they wrap (home keeps one line: its logo shrinks instead) */
+@media (max-width: 19.5em) {
+  header,
+  header .row {
+    flex-wrap: wrap;
+  }
+  #lib header,
+  #lib header .row {
+    flex-wrap: nowrap;
+  }
 }
 .ib {
   display: inline-flex;
@@ -1351,7 +1382,7 @@ header {
   flex: 1;
   min-width: 0;
 }
-@media (max-width: 480px) {
+@media (max-width: 30em) {
   .block .head {
     gap: var(--space-half);
   }
@@ -1397,6 +1428,19 @@ header {
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+/* reduce motion (system setting): no flash, zoom or pop. A routine that moved still gets its outline, held still for
+   the same time; the run screen's transition checks the setting in ui/runner.js */
+@media (prefers-reduced-motion: reduce) {
+  .flash,
+  #doneView .badge {
+    animation: none;
+  }
+  .rcard.flash {
+    animation: none;
+    outline: 2px solid var(--c);
+    outline-offset: 2px;
   }
 }
 #doneView h2 {
@@ -1486,7 +1530,7 @@ header {
   align-items: center;
   justify-content: center;
 }
-@media (max-width: 480px) {
+@media (max-width: 30em) {
   #lib header {
     gap: var(--space-3);
   }
@@ -1510,7 +1554,7 @@ header {
     padding: 0 var(--space-3);
   }
 }
-@media (max-width: 660px) {
+@media (max-width: 41.25em) {
   header .hb:has(+ .row .eb) .lbl,
   header .eb.hb .lbl {
     display: none;
@@ -1521,7 +1565,7 @@ header {
     justify-content: center;
   }
 } /* editor actions: Back, Archive and Delete icon-only before the row gets too wide */
-@media (max-width: 400px) {
+@media (max-width: 25em) {
   header .eb.tst .lbl {
     display: none;
   }
@@ -1533,7 +1577,7 @@ header {
 } /* small phones: Test icon-only too, so the sound control fits */
 /* editor actions: one style (outlined, icon + label, same height); Start only differs in colour */
 header .eb {
-  height: var(--size-target);
+  min-height: var(--size-target);
   padding: 0 var(--space-4);
   gap: var(--space-2);
   font-weight: 600;
@@ -1558,12 +1602,13 @@ header .eb.danger {
   font-variant-numeric: tabular-nums;
 }
 .hstats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
 .hstat {
+  flex: 1 1 0; /* equal widths; with a large text size a stat that no longer fits moves to the next line */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1591,9 +1636,12 @@ header .eb.danger {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(7, 1fr);
+  grid-auto-columns: minmax(0, 1fr); /* the weeks share the width, so larger day labels can't push it off screen */
+  min-width: 0;
   gap: var(--space-1);
 }
 .heat i {
+  align-self: center; /* square, in the middle of a row that a larger day label made taller */
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
   background: var(--heat-0);
@@ -1713,7 +1761,7 @@ header .eb.danger {
   font-size: var(--fs-md);
   margin-top: -8px;
 }
-@media (max-width: 480px) {
+@media (max-width: 30em) {
   .hstat b {
     font-size: var(--fs-2xl);
   }
@@ -1751,8 +1799,8 @@ header .eb.danger {
   border-radius: var(--radius-pill);
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  white-space: nowrap;
   color: var(--text);
+  max-width: 100%; /* one line where it fits (the row wraps first); wider than the screen (large text size), it wraps */
 }
 .sc svg {
   color: var(--c, var(--text-muted));

@@ -1,6 +1,7 @@
 /* Browser test: what you can see and tap meets design/README.md on every screen at phone size. Every control has a tap
    area of at least 44×44px (its box, or a larger ::after around it), and text has enough contrast (axe-core's WCAG
-   colour check, which also sees opacity and real backgrounds, unlike test/tokens.test.js). */
+   colour check, which also sees opacity and real backgrounds, unlike test/tokens.test.js). Text follows the browser's
+   text size without anything sticking out sideways at 320px wide, and reduce motion stops the flash and pop. */
 import { createRequire } from 'node:module';
 import { test, expect } from '@playwright/test';
 
@@ -52,7 +53,9 @@ const check = async (page, scope) => {
   expect.soft(await lowContrast(page, scope), `text without enough contrast in ${scope}`).toEqual([]);
 };
 
-test('every screen: tap areas of at least 44px and readable text', async ({ page }) => {
+// Opens every screen in turn and runs check on it: home, week, history, Settings (all its explainers open), the editor
+// with one block of each kind (explainers open) and the run screen
+async function everyScreen(page, check) {
   await page.goto('./');
   await expect(page.getByRole('button', { name: 'New routine' })).toBeVisible();
   await check(page, '#lib');
@@ -70,7 +73,6 @@ test('every screen: tap areas of at least 44px and readable text', async ({ page
   await check(page, '#set');
   await page.locator('#set').getByRole('button', { name: 'Back' }).click();
 
-  // the editor with one block of each kind
   await page.getByRole('button', { name: 'New routine' }).click();
   await page.locator('#eName').fill('Tap test');
   for (const kind of ['Reps / counts', 'Timed', 'Sequence', 'Boxing combos', 'Rest'])
@@ -81,4 +83,51 @@ test('every screen: tap areas of at least 44px and readable text', async ({ page
   await page.locator('#edit').getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.locator('#run')).toHaveClass(/\bon\b/);
   await check(page, '#run');
+}
+
+test('every screen: tap areas of at least 44px and readable text', ({ page }) => everyScreen(page, check));
+
+// Everything on a screen that sticks out past its right or left edge
+const sideways = (page, scope) =>
+  page.evaluate((scope) => {
+    const W = document.documentElement.clientWidth,
+      out = [];
+    for (const e of document.querySelectorAll(`${scope}, ${scope} *`)) {
+      const r = e.getBoundingClientRect();
+      if (r.width && (r.right > W + 0.5 || r.left < -0.5))
+        out.push(`${e.tagName.toLowerCase()}.${[...e.classList].join('.')} "${e.textContent.trim().slice(0, 20)}"`);
+    }
+    if (document.documentElement.scrollWidth > W)
+      out.push(`page scrolls sideways (${document.documentElement.scrollWidth}px)`);
+    return out;
+  }, scope);
+
+test.describe('text at 200% on a 320px screen', () => {
+  test.use({ viewport: { width: 320, height: 640 } });
+
+  test('every screen: the text is larger and nothing sticks out sideways', async ({ page, context }) => {
+    // the browser's text size setting, as a phone's text size reaches the page: 32px is 200% of the default 16px
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Page.setFontSizes', { fontSizes: { standard: 32, fixed: 26 } });
+    await everyScreen(page, async (page, scope) => {
+      expect(await page.evaluate(() => getComputedStyle(document.body).fontSize)).toBe('32px');
+      expect.soft(await sideways(page, scope), `sticks out sideways in ${scope}`).toEqual([]);
+    });
+  });
+});
+
+test('reduce motion: nothing flashes or pops', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./');
+  await expect(page.getByRole('button', { name: 'New routine' })).toBeVisible();
+  // the classes the app adds: a new step on the run screen, a routine that moved, and the done screen's badge
+  const animations = await page.evaluate(() => {
+    const badge = Object.assign(document.createElement('div'), { className: 'badge' });
+    document.getElementById('doneView').append(badge);
+    const card = document.querySelector('#list .rcard');
+    document.getElementById('big').classList.add('flash');
+    card.classList.add('flash');
+    return [document.getElementById('big'), card, badge].map((e) => getComputedStyle(e).animationName);
+  });
+  expect(animations).toEqual(['none', 'none', 'none']);
 });
