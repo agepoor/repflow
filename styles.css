@@ -180,6 +180,27 @@ h2 {
   padding: var(--space-4);
   margin-bottom: var(--space-3);
 }
+/* Settings cards space their parts with one rule, so no line picks its own margin (#143, design/README.md): 12px
+   between parts, 8px under the heading, and a card with more than one topic puts each in a group (.sgrp), set off by
+   a line and 20px. test/e2e/a11y.test.js measures every gap. */
+#set .card,
+.sgrp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+#set .card > *,
+.sgrp > * {
+  margin: 0;
+}
+#set .card > h2 + * {
+  margin-top: calc(var(--space-2) - var(--space-3));
+}
+#set .card > :not(h2) + .sgrp {
+  margin-top: calc(var(--space-5) - var(--space-3));
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
 .rcard {
   display: flex;
   align-items: center;
@@ -1950,7 +1971,7 @@ header .eb.danger {
 .acct-k {
   font-size: var(--fs-sm);
   color: var(--text-muted);
-  margin: var(--space-4) 0 var(--space-1);
+  margin: 0 0 var(--space-1); /* its group gives the space above */
 }
 .meth {
   display: flex;

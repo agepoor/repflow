@@ -214,6 +214,35 @@ test.describe('home on a 384px phone screen', () => {
   });
 });
 
+// Settings cards space their parts with one rule (#143, design/README.md): 8px under the heading, 20px (and a line)
+// before a group of its own (.sgrp), 12px between everything else. Every gap that doesn't fit, with the card it's in.
+const settingsGaps = (page) =>
+  page.evaluate(() => {
+    const out = [];
+    const shown = (e) => e.getBoundingClientRect().height > 0;
+    const label = (e) => e.tagName.toLowerCase() + (e.className ? '.' + e.className.split(' ').join('.') : '');
+    for (const box of document.querySelectorAll('#set .card, #set .card > .sgrp')) {
+      const card = box.closest('.card').querySelector('h2')?.textContent;
+      const kids = [...box.children].filter(shown);
+      for (const [i, b] of kids.entries()) {
+        const a = kids[i - 1];
+        if (!a) continue;
+        const want = a.tagName === 'H2' ? 8 : b.classList.contains('sgrp') ? 20 : 12;
+        const gap = Math.round((b.getBoundingClientRect().top - a.getBoundingClientRect().bottom) * 2) / 2;
+        if (gap !== want) out.push(`${card}: ${label(a)} → ${label(b)} ${gap}px (want ${want})`);
+      }
+    }
+    return out;
+  });
+
+test('Settings: every card spaces its parts with one rule', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.locator('#reportInfo summary').click();
+  await expect(page.locator('#reportPreview')).not.toBeEmpty();
+  expect(await settingsGaps(page)).toEqual([]);
+});
+
 // Tab until the element with focus matches sel (a CSS selector) and holds text, as someone with only a keyboard would
 async function tabTo(page, sel, text = '') {
   for (let i = 0; i < 80; i++) {
