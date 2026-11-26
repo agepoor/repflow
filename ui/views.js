@@ -27,6 +27,29 @@ import { buzz } from './sound.js';
 import { H, META, R, persist, saveRaw, setR, store } from './storage.js';
 import { banner, scheduleSync } from './sync.js';
 let ROUTING = false;
+/* Keyboard and screen reader (issue 131): a view that opens moves focus to its heading, so a screen reader starts reading
+   there. Back home, focus returns to the button that left it, found again by its action as the list is redrawn. */
+let BACK = null;
+function remember() {
+  const el = document.activeElement;
+  if (el && el.dataset && el.dataset.on && el.closest('#lib'))
+    BACK = { on: el.dataset.on, args: el.dataset.args || '' };
+}
+function refocus() {
+  const b = BACK;
+  BACK = null;
+  if (!b) return;
+  const el = [...document.querySelectorAll('#lib [data-on]')].find(
+    (e) => e.dataset.on === b.on && (e.dataset.args || '') === b.args,
+  );
+  if (el && el.offsetParent) el.focus({ preventScroll: true });
+}
+function focusHeading(v) {
+  const h = document.querySelector(`#${v} h1, #${v} h2`);
+  if (!h) return;
+  h.tabIndex = -1;
+  h.focus({ preventScroll: true });
+}
 function routeOf(v) {
   return v === 'hist'
     ? '#/history'
@@ -41,9 +64,13 @@ function routeOf(v) {
           : '#/';
 }
 function show(v) {
+  const from = (document.querySelector('.view.on') || {}).id;
+  if (from === 'lib' && v !== 'lib') remember();
   if (v === 'lib' && document.getElementById('list')) renderList();
+  if (v === 'edit') eTitle.textContent = cur && cur._new ? 'New routine' : 'Edit routine';
   document.querySelectorAll('.view').forEach((e) => e.classList.toggle('on', e.id === v));
   scrollTo(0, 0);
+  if (v !== from) v === 'lib' ? refocus() : focusHeading(v);
   if (v !== 'edit') sessionStorage.removeItem('rf2_draft');
   else vfAll(); // back in the editor: voice notes with the latest settings and what the voice learned
   if (ROUTING) return;
@@ -476,6 +503,8 @@ function initDrag() {
 export {
   ROUTING,
   show,
+  remember,
+  refocus,
   saveDraft,
   route,
   partsOn,

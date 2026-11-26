@@ -41,7 +41,7 @@ import {
 } from './sound.js';
 import { H, HDEL, R, S, store } from './storage.js';
 import { CLOUD, CR, CR1, CU, SEEN, SWITCH, ask, banner } from './sync.js';
-import { partsOn, renderList, show, upNext } from './views.js';
+import { partsOn, refocus, remember, renderList, show, upNext } from './views.js';
 /* The timer runs on the wall clock: a workout is stored as start times (ms, on the sync server's clock), so it survives
    reloads, locked screens and closed apps, and every signed-in device shows the same moment. One device plays the
    sound (the one you last controlled it from); the others follow silently. */
@@ -141,7 +141,9 @@ function liveCard() {
   const r = X.r,
     c = COLORS[r.color] || COLORS.blue,
     p = X.p != null;
-  return `<div class="card rcard live" id="mcard" style="--c:${c}" ${does('click:maxRun')} role="button" aria-label="Open workout"><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><div class="info"><b>${esc(r.name)}</b><div class="muted" id="mbTx"></div></div><span class="mexp" aria-hidden="true">${svgi('up', 18)}</span><button class="go primary" id="mbPP" style="background:${c};border-color:${c}" ${does('click:pauseOnly')} aria-label="${p ? 'Resume' : 'Pause'}">${svgi(p ? 'play' : 'pause', 22)}</button><i id="mbP"></i></div>`;
+  // the whole card opens the workout; its name is a button (no action of its own: the click reaches the card's), so a
+  // keyboard and a screen reader reach it (issue 131)
+  return `<div class="card rcard live" id="mcard" style="--c:${c}" ${does('click:maxRun')}><div class="dot" style="background:${tint(c, 13)};color:${c}">${svgi(iconKey(r), 22)}</div><button type="button" class="info" title="Open workout"><b>${esc(r.name)}</b><span class="muted" id="mbTx"></span></button><span class="mexp" aria-hidden="true">${svgi('up', 18)}</span><button class="go primary" id="mbPP" style="background:${c};border-color:${c}" ${does('click:pauseOnly')} aria-label="${p ? 'Resume' : 'Pause'}">${svgi(p ? 'play' : 'pause', 22)}</button><i id="mbP"></i></div>`;
 }
 const shown = (el) => (el && el.offsetParent ? el.getBoundingClientRect() : null);
 function minRun(back) {
@@ -153,6 +155,8 @@ function minRun(back) {
     else if (v !== 'lib') show('lib');
   } // Back: route() goes home
   miniUI();
+  const b = document.querySelector('#mcard .info');
+  if (b) b.focus({ preventScroll: true }); // the run screen it had focus in is going away
   requestAnimationFrame(() => {
     const c = document.getElementById('mcard');
     if (shown(c)) c.scrollIntoView({ block: 'nearest' });
@@ -170,6 +174,7 @@ function maxRun() {
   render();
   miniUI();
   morph(true, r);
+  pp.focus({ preventScroll: true });
 }
 function miniUI() {
   renderList();
@@ -265,6 +270,7 @@ function startRun(id, test) {
   // test = test run from the editor: plays normally, never logged
   const r = R.find((r) => r.id === id);
   if (!r) return;
+  remember(); // Stop returns focus to the Start that was used
   if (!replaceOk(r)) return; // one workout at a time
   ac();
   UNLOCKED = true;
@@ -302,6 +308,7 @@ function startRun(id, test) {
   ppIcon();
   liveUI();
   enter(0, t);
+  pp.focus({ preventScroll: true }); // only when started here: a workout followed from another device doesn't take focus
 }
 /* open a workout from its saved state: after a reload, or one that is running on another device */
 function adopt(d) {
@@ -363,6 +370,7 @@ function closeRun() {
   hush();
   run.classList.remove('on', 'fin');
   run.style.background = 'var(--bg)';
+  runSay.textContent = '';
   localStorage.removeItem('rf2_run');
   if (editOn()) vfAll();
   return m;
@@ -399,6 +407,7 @@ function endRun() {
   if (!stay) show('lib');
   else if (document.getElementById('lib').classList.contains('on')) renderList();
   banner();
+  refocus();
 }
 /* ends a workout this device isn't showing (× on the home-screen banner), as stopped by this device, so every device
    closes it. v is the run as the account stores it: the same fields as runDoc */
@@ -483,6 +492,11 @@ function stepUI() {
   ring.style.stroke = c;
   phase.textContent = s.seq ? s.blk : s.label;
   phase.style.color = c;
+  // a screen reader hears each new step; the voice coach already says it when it's on (issue 131)
+  if (X.said !== i) {
+    X.said = i;
+    if (!vOn()) runSay.textContent = s.label;
+  }
   showCall(s.seq ? s.label : X.ct, false);
   rRound.textContent = `Round ${s.round}/${X.r.rounds}`;
   const n = X.steps[i + 1];
@@ -601,6 +615,7 @@ function finish(end, late = 0, remote) {
   updHistBtn();
   showDone();
   run.classList.add('on', 'fin');
+  runSay.textContent = 'Workout done';
   banner();
   if (mr) morph(true, mr);
 }

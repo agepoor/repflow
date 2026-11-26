@@ -127,7 +127,10 @@ const overlaps = (page) =>
   page.evaluate(() => {
     const box = (e) => e.getBoundingClientRect();
     const name = (e) => e.id || e.className;
-    const rows = [...document.querySelectorAll('#run > *')].filter((e) => getComputedStyle(e).display !== 'none');
+    // rows in the layout: not hidden, and not taken out of it (the screen reader line, .sr)
+    const rows = [...document.querySelectorAll('#run > *')].filter(
+      (e) => getComputedStyle(e).display !== 'none' && getComputedStyle(e).position !== 'absolute',
+    );
     const out = [];
     // squeezed rows drop to (nearly) nothing; some slack, as the heavy italic font reaches a little past its line box
     for (const e of rows) if (e.clientHeight < e.scrollHeight * 0.8) out.push(`${name(e)} is squeezed`);
@@ -167,6 +170,66 @@ test.describe('run screen on a short screen (a browser tab) with text at 200%', 
     expect.soft(await overlaps(page), 'overlapping on the run screen with the pill').toEqual([]);
     await page.getByRole('button', { name: 'Stop' }).click();
   });
+});
+
+// Tab until the element with focus matches sel (a CSS selector) and holds text, as someone with only a keyboard would
+async function tabTo(page, sel, text = '') {
+  for (let i = 0; i < 80; i++) {
+    await page.keyboard.press('Tab');
+    const hit = await page.evaluate(
+      ([sel, text]) => document.activeElement.matches(sel) && document.activeElement.textContent.includes(text),
+      [sel, text],
+    );
+    if (hit) return;
+  }
+  throw new Error(`Tab never reached ${sel} ${text}`);
+}
+
+test('keyboard only: make a routine, start it and stop it; focus follows each screen', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.getByRole('button', { name: 'New routine' })).toBeVisible();
+  await tabTo(page, '[data-on="click:newRoutine"]');
+  await page.keyboard.press('Enter');
+  // a view that opens moves focus to its heading, where a screen reader starts reading
+  await expect(page.locator('#eTitle')).toBeFocused();
+  await expect(page.locator('#eTitle')).toHaveText('New routine');
+  await tabTo(page, '#eName');
+  await page.keyboard.type('Keyboard test');
+  await tabTo(page, '[data-on="click:addBlock"][data-args=\'["timed"]\']');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#blocks')).toContainText('Work');
+  await tabTo(page, '#edit .go1');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#run')).toHaveClass(/\bon\b/);
+  await expect(page.locator('#pp')).toBeFocused();
+  await tabTo(page, '#run [data-on="click:stopRun"]');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#run')).not.toHaveClass(/\bon\b/);
+  // back home, focus returns to where you left it (New routine), not to the top of the page
+  await expect(page.locator('[data-on="click:newRoutine"]')).toBeFocused();
+  // the routine opens from its name
+  await tabTo(page, '#list button.info', 'Keyboard test');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#eTitle')).toHaveText('Edit routine');
+  await expect(page.locator('#eName')).toHaveValue('Keyboard test');
+});
+
+test('the run screen tells a screen reader each new step when the voice coach is off', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const voice = page.locator('#setForm').getByRole('checkbox', { name: 'Voice coach' });
+  if (await voice.isChecked()) await voice.uncheck();
+  await page.locator('#set').getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: 'New routine' }).click();
+  await page.locator('#eName').fill('Announce test');
+  await page.getByRole('button', { name: 'Timed', exact: true }).click();
+  await page.locator('#edit').getByRole('button', { name: 'Start', exact: true }).click();
+  const say = page.locator('#runSay');
+  await expect(say).toHaveAttribute('aria-live', 'polite');
+  await expect(say).toHaveText('Get ready');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(say).not.toHaveText('Get ready');
+  await expect(say).toHaveText(await page.locator('#phase').textContent(), { ignoreCase: true });
 });
 
 test('reduce motion: nothing flashes or pops', async ({ page }) => {

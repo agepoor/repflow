@@ -160,6 +160,7 @@
       <!-- EDITOR -->
       <section id="edit" class="view">
         <header>
+          <h2 class="sr" id="eTitle">Edit routine</h2>
           <button class="ghost ib hb" data-on="click:closeEditor" title="Back">
             <i data-ic="back"></i><span class="lbl">Back</span>
           </button>
@@ -491,6 +492,8 @@
       <div id="next"></div>
       <div id="tapHint"></div>
       <div id="doneView"></div>
+      <!-- the step name for a screen reader when the voice coach is off (#131) -->
+      <p class="sr" id="runSay" aria-live="polite"></p>
       <div class="ctrl">
         <button class="sm" data-on="click:stopRun" title="Stop" aria-label="Stop"></button>
         <button class="md" data-on="click:jump" data-args="[-1]" title="Previous" aria-label="Previous"></button>
