@@ -2,7 +2,8 @@
    area of at least 44×44px (its box, or a larger ::after around it), and axe-core finds no WCAG A/AA problems: text has
    enough contrast (it also sees opacity and real backgrounds, unlike test/tokens.test.js), every field and control has
    a name. Text follows the browser's
-   text size without anything sticking out sideways at 320px wide, and reduce motion stops the flash and pop. */
+   text size without anything sticking out sideways at 320px wide, home's cards wrap their text instead of running it
+   under their buttons, and reduce motion stops the flash and pop. */
 import { createRequire } from 'node:module';
 import { test, expect } from '@playwright/test';
 
@@ -169,6 +170,47 @@ test.describe('run screen on a short screen (a browser tab) with text at 200%', 
     });
     expect.soft(await overlaps(page), 'overlapping on the run screen with the pill').toEqual([]);
     await page.getByRole('button', { name: 'Stop' }).click();
+  });
+});
+
+// Home's routine cards whose name or details reach under the buttons beside them (#144). The text itself is measured,
+// not its box: text that doesn't wrap spills out of a box that stays in place. Compact rows are left out: they cut
+// their text off with … on purpose.
+const underButtons = (page) =>
+  page.evaluate(() => {
+    const out = [];
+    for (const card of document.querySelectorAll('#lib .rcard:not(.mini)')) {
+      const info = card.querySelector('.info'),
+        next = card.querySelector('.info ~ button');
+      if (!info || !next || !next.getBoundingClientRect().width) continue;
+      const text = document.createRange();
+      text.selectNodeContents(info);
+      const over = text.getBoundingClientRect().right - next.getBoundingClientRect().left;
+      if (over > 0.5) out.push(`${info.querySelector('b').textContent} (${Math.round(over)}px)`);
+    }
+    return out;
+  });
+
+test.describe('home on a 384px phone screen', () => {
+  test.use({ viewport: { width: 384, height: 832 } });
+
+  test("a routine's name and details wrap instead of running under its buttons", async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('#list .rcard').first()).toBeVisible();
+    // planned for every day, so it shows as today's full card: a long name, and details with count 1.5 s and log only
+    // (the report in #144); another one archived
+    await page.evaluate(() => {
+      const R = JSON.parse(localStorage.getItem('rf2_routines'));
+      const name = 'Morning mobility, shadow boxing and stretching';
+      Object.assign(R[0], { name, sec: 1.5, streak: false, days: [0, 1, 2, 3, 4, 5, 6] });
+      Object.assign(R[1], { name: 'An archived routine with a long name', archived: true });
+      localStorage.setItem('rf2_routines', JSON.stringify(R));
+    });
+    await page.reload();
+    await expect(page.locator('#list .rcard.today')).toHaveCount(1);
+    await page.getByRole('button', { name: /^Archived/ }).click();
+    await expect(page.locator('#arch .rcard')).toBeVisible();
+    expect(await underButtons(page)).toEqual([]);
   });
 });
 

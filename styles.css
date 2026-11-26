@@ -231,6 +231,7 @@ h2 {
   border-radius: var(--radius-sm);
   background: none;
   text-align: start;
+  white-space: normal; /* buttons don't wrap (below), but a long name or details must, not run under ✕ and play (#144) */
 }
 .rcard button.info .muted {
   display: block;
