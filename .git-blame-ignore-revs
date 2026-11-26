@@ -3,3 +3,6 @@
 
 # Format all app code with Prettier (#31)
 cb1ee4f19ba2f213caa1604bae5519882b378d4b
+
+# Views in a main landmark: re-indents index.html (#131)
+48f621488846174c6ac5bfb45ebe99efdc9a0ba8

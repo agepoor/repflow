@@ -119,7 +119,7 @@ function durStep(btn) {
 }
 function dur(id, k, v, lbl, min = 0) {
   v = Math.max(min, Math.round(+v || 0));
-  return `<div><label>${lbl} <span class="dh"></span></label><div class="durw"><input class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" ${does('input:durInB blur:durOut', id, k)}><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`;
+  return `<div><label for="${id}-${k}">${lbl} <span class="dh"></span></label><div class="durw"><input id="${id}-${k}" class="dur" inputmode="decimal" autocomplete="off" placeholder="0:00" data-min="${min}" data-v="${v}" value="${fmtDur(v)}" ${does('input:durInB blur:durOut', id, k)}><button type="button" class="ds" tabindex="-1" data-d="-1" aria-label="Less">−</button><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button></div></div>`;
 }
 function toggleArchiveCur() {
   readHead();
@@ -252,7 +252,7 @@ function fillEditor() {
   renderBlocks();
 }
 function num(id, k, v, lbl, step = 1, min = 0) {
-  return `<div><label>${lbl}</label><input type="number" step="${step}" min="${min}" value="${v}" ${does('input:setBN', id, k)}></div>`;
+  return `<div><label for="${id}-${k}">${lbl}</label><input id="${id}-${k}" type="number" step="${step}" min="${min}" value="${v}" ${does('input:setBN', id, k)}></div>`;
 }
 function renderBlocks() {
   blocks.innerHTML = cur.blocks
@@ -261,21 +261,21 @@ function renderBlocks() {
       let f = '';
       if (b.type === 'reps')
         f = `<div class="grid">${num(b.id, 'reps', b.reps, 'Reps')}${num(b.id, 'counts', b.counts, 'Counts per rep', 1, 1)}
-     <div><label>Mode</label><select ${does('change:setBV', b.id, 'mode')}><option value="guided" ${b.mode === 'guided' ? 'selected' : ''}>Guided tempo</option><option value="tap" ${b.mode === 'tap' ? 'selected' : ''}>Tap to count</option></select></div>
-     <div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo > 0 ? b.tempo : ''}" data-rsec placeholder="Routine (${cur.sec || 1} s)" ${does('input:setB0', b.id, 'tempo')}></div>${num(b.id, 'repPause', b.repPause, 'Breather (s)', 0.5)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <div class="grid mt-3"><div><label>Display</label><select ${does('change:setBV', b.id, 'display')}>${[
+     <div><label for="${b.id}-mode">Mode</label><select id="${b.id}-mode" ${does('change:setBV', b.id, 'mode')}><option value="guided" ${b.mode === 'guided' ? 'selected' : ''}>Guided tempo</option><option value="tap" ${b.mode === 'tap' ? 'selected' : ''}>Tap to count</option></select></div>
+     <div><label for="${b.id}-tempo">Count length (s)</label><input id="${b.id}-tempo" type="number" step="0.05" min="0.05" value="${b.tempo > 0 ? b.tempo : ''}" data-rsec placeholder="Routine (${cur.sec || 1} s)" ${does('input:setB0', b.id, 'tempo')}></div>${num(b.id, 'repPause', b.repPause, 'Breather (s)', 0.5)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
+     <div class="grid mt-3"><div><label for="${b.id}-display">Display</label><select id="${b.id}-display" ${does('change:setBV', b.id, 'display')}>${[
        ['both', 'Cue + number'],
        ['cue', 'Cue only'],
        ['number', 'Number only'],
      ]
        .map(([v, l]) => `<option value="${v}" ${(b.display || 'both') === v ? 'selected' : ''}>${l}</option>`)
        .join('')}</select></div></div>
-     <label class="mt-3">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" ${does('input:setBV', b.id, 'cues')}><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>`;
+     <label class="mt-3" for="${b.id}-cues">Count cues (optional, comma-separated — spoken/shown instead of numbers)</label><input id="${b.id}-cues" value="${esc(b.cues)}" placeholder="down, plank, push, up, jump…" ${does('input:setBV', b.id, 'cues')}><div class="cuecount" id="cc_${b.id}">${cueInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>`;
       if (b.type === 'timed')
         f = `<div class="grid">${dur(b.id, 'work', b.work, 'Work', 1)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <label class="mt-3">Spoken cue at start</label><input value="${esc(b.cue)}" ${does('input:setBV', b.id, 'cue')}>`;
+     <label class="mt-3" for="${b.id}-cue">Spoken cue at start</label><input id="${b.id}-cue" value="${esc(b.cue)}" ${does('input:setBV', b.id, 'cue')}>`;
       if (b.type === 'boxing')
-        f = `<div class="grid">${dur(b.id, 'work', b.work, 'Duration', 1)}<div><label>Count length (s)</label><input type="number" step="0.05" min="0.05" value="${b.tempo > 0 ? b.tempo : ''}" data-rsec placeholder="Routine (${cur.sec || 1} s)" ${does('input:setB0', b.id, 'tempo')}></div>${num(b.id, 'minGap', b.minGap, 'Extra s (min)', 0.5, 0)}${num(b.id, 'maxGap', b.maxGap, 'Extra s (max)', 0.5, 0)}<div><label>Order</label><select ${does('change:setBV', b.id, 'order')}>${[
+        f = `<div class="grid">${dur(b.id, 'work', b.work, 'Duration', 1)}<div><label for="${b.id}-tempo">Count length (s)</label><input id="${b.id}-tempo" type="number" step="0.05" min="0.05" value="${b.tempo > 0 ? b.tempo : ''}" data-rsec placeholder="Routine (${cur.sec || 1} s)" ${does('input:setB0', b.id, 'tempo')}></div>${num(b.id, 'minGap', b.minGap, 'Extra s (min)', 0.5, 0)}${num(b.id, 'maxGap', b.maxGap, 'Extra s (max)', 0.5, 0)}<div><label for="${b.id}-order">Order</label><select id="${b.id}-order" ${does('change:setBV', b.id, 'order')}>${[
           ['random', 'Random'],
           ['shuffle', 'Shuffle (each once)'],
           ['sequence', 'In order'],
@@ -284,7 +284,7 @@ function renderBlocks() {
           .join(
             '',
           )}</select></div>${num(b.id, 'repeat', b.repeat || 1, 'Repeat each call ×', 1, 1)}${num(b.id, 'poolPause', b.poolPause || 0, 'Pause after full pool (s)', 0.5)}${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <label class="mt-3">Combo pool — one per line</label><textarea rows="5" ${does('input:setBV', b.id, 'combos')}>${esc(b.combos)}</textarea><div id="vf-${b.id}">${vfNote(b)}</div>
+     <label class="mt-3" for="${b.id}-combos">Combo pool — one per line</label><textarea id="${b.id}-combos" rows="5" ${does('input:setBV', b.id, 'combos')}>${esc(b.combos)}</textarea><div id="vf-${b.id}">${vfNote(b)}</div>
      <div class="grid mt-3"><div class="span-all"><label for="vs-${b.id}">Calls</label><select class="w-auto" id="vs-${b.id}" ${does('change:setBV', b.id, 'vfit')}>${[
        ['wait', 'Voice'],
        ['pace', 'Voice, tones when too fast'],
@@ -298,15 +298,15 @@ function renderBlocks() {
      ${info(b.id + '-pv', 'Show moves per combo', `<div id="pv-${b.id}">${poolPreview(b.id)}</div>`)}
      ${info(b.id + '-how', 'How timing works', `<p><b class="text">Moves:</b> each line is split at spaces, dashes (-) and commas. Join words with _ to count them as one move (e.g. <code>Roll_Step</code>, spoken as "Roll Step").</p><p><b class="text">Time per call</b> = moves × count length + a random extra between min and max. When the voice needs longer to say a combo (this device learns how long it takes), a note under the combo pool shows it.</p><p><b class="text">Calls:</b> <b class="text">Voice</b> says every call in full (when it's too slow, calls wait for it). <b class="text">Voice, tones when too fast</b> keeps calls on time: said faster (up to 1.5×), or played as tones when even that doesn't fit. <b class="text">Tones only</b>: exact timing, and on Android they keep playing with the screen off.</p><p><b class="text">Tones:</b> one per move, in rhythm at the count length, the same in every routine. Jab (1) and cross (2) steady, hooks (3, 4) fall, uppercuts (5, 6) rise; lead hand low, rear hand high. Slip, duck and roll: a soft whoosh. Other moves get the next free tone (up to 8 different sounds per routine), then a tick. They are calls, so they play with Beeps off too. ▶ under <i>Show moves per combo</i> plays a combo.</p><p><b class="text">Pause after full pool:</b> extra break once every combo has been called at least once (in Random order that can take more calls than the pool size).</p><p class="m-0"><b class="text">Rest after block:</b> starts after the full Duration.</p>`)}`;
       if (b.type === 'seq')
-        f = `<div class="grid"><div><label>Time per step (s)</label><input type="number" step="0.5" min="0.1" value="${+b.work > 0 ? b.work : ''}" placeholder="3" ${does('input:setB0', b.id, 'work')}></div>${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
-     <label class="mt-3">Steps — one per line</label><textarea rows="6" placeholder="Ready @tap&#10;Step one&#10;Hold @10" ${does('input:setBV', b.id, 'steps')}>${esc(b.steps)}</textarea><div class="cuecount" id="sq-${b.id}">${seqInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>
+        f = `<div class="grid"><div><label for="${b.id}-work">Time per step (s)</label><input id="${b.id}-work" type="number" step="0.5" min="0.1" value="${+b.work > 0 ? b.work : ''}" placeholder="3" ${does('input:setB0', b.id, 'work')}></div>${dur(b.id, 'restAfter', b.restAfter, 'Rest after block')}</div>
+     <label class="mt-3" for="${b.id}-steps">Steps — one per line</label><textarea id="${b.id}-steps" rows="6" placeholder="Ready @tap&#10;Step one&#10;Hold @10" ${does('input:setBV', b.id, 'steps')}>${esc(b.steps)}</textarea><div class="cuecount" id="sq-${b.id}">${seqInfo(b)}</div><div id="vf-${b.id}">${vfNote(b)}</div>
      ${info(b.id + '-how', 'How it works', `<p><b class="text">Steps</b> run once, top to bottom; each is spoken and shown as you type it. The block lasts as long as its steps together.</p><p><b class="text">Own time:</b> end a line with <code>@6</code> (6 s), <code>@1.5</code> (1.5 s), <code>@1:30</code> (1 min 30 s) or <code>@tap</code> (waits for a tap). Other lines get the Time per step. A line with only a time (<code>@2</code>) is a silent pause.</p><p><b class="text">Beeps:</b> one at the start of each step; countdown beeps only on steps of 10 s or longer.</p><p class="m-0"><b class="text">Rest after block:</b> starts after the last step.</p>`)}`;
       if (b.type === 'rest') f = `<div class="grid">${dur(b.id, 'work', b.work, 'Rest', 1)}</div>`;
       return `<div class="card block" style="border-left-color:${COLORS[col]}"><div class="head"><span style="color:${COLORS[col]};display:flex">${ic}</span>
-    <input value="${esc(b.name)}" ${does('input:setBV', b.id, 'name')}>
+    <input value="${esc(b.name)}" aria-label="Block name" ${does('input:setBV', b.id, 'name')}>
     <button class="icon ghost" ${does('click:mv', i, -1)} title="Move up">${svgi('up', 18)}</button><button class="icon ghost" ${does('click:mv', i, 1)} title="Move down">${svgi('down', 18)}</button>
     <button class="icon ghost" ${does('click:dup', i)} title="Duplicate">${svgi('copy', 17)}</button><button class="icon ghost danger" ${does('click:rm', i)} title="Remove">${svgi('x', 18)}</button></div>
-    ${f}<div class="grid mt-3"><div class="span-all"><label>Runs in</label><select class="w-auto" ${does('change:setRunV', b.id)}>${[
+    ${f}<div class="grid mt-3"><div class="span-all"><label for="${b.id}-runs">Runs in</label><select class="w-auto" id="${b.id}-runs" ${does('change:setRunV', b.id)}>${[
       ['all', 'Every round'],
       ['first', 'First round only (warm-up)'],
       ['last', 'Last round only (finisher)'],

@@ -447,12 +447,12 @@ function sndForm(o, k) {
   const chk = (c, l) =>
       `<label class="chk"><input type="checkbox" ${o[c] ? 'checked' : ''} ${does('change:sndSetChk', k, c)}> ${l}</label>`,
     rng = (c, l, a, b, tst) =>
-      `<div><label>${l} <span class="dh">${sndVal(c, o[c])}</span></label><input type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" ${does(tst ? 'input:sndRange change:sndTest' : 'input:sndRange', k, c)}></div>`;
+      `<div><label for="snd${k}-${c}">${l} <span class="dh">${sndVal(c, o[c])}</span></label><input id="snd${k}-${c}" type="range" min="${a}" max="${b}" step="0.05" value="${o[c]}" ${does(tst ? 'input:sndRange change:sndTest' : 'input:sndRange', k, c)}></div>`;
   return (
     `<div class="tg">${chk('beeps', 'Beeps') + chk('voice', 'Voice coach')}</div>` +
     `
-  <div><label>Voice language</label><select ${does('change:sndSetV', k, 'lang')}>${ls.map((l) => `<option ${l === o.lang ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
-  <div><label>Voice</label><div style="display:flex;gap:var(--space-2)"><select style="flex:1;min-width:0" ${does('change:sndVoice', k)}><option value="">Default for ${esc(o.lang)}</option>${langVoices(
+  <div><label for="snd${k}-lang">Voice language</label><select id="snd${k}-lang" ${does('change:sndSetV', k, 'lang')}>${ls.map((l) => `<option ${l === o.lang ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
+  <div><label for="snd${k}-voice">Voice</label><div style="display:flex;gap:var(--space-2)"><select id="snd${k}-voice" style="flex:1;min-width:0" ${does('change:sndVoice', k)}><option value="">Default for ${esc(o.lang)}</option>${langVoices(
     o.lang,
   )
     .map(
@@ -463,7 +463,7 @@ function sndForm(o, k) {
       '',
     )}</select><button type="button" class="ib" style="padding:var(--space-1) var(--space-3)" ${does('click:testVoice', k)} title="Test voice">${svgi('play', 14)}Test</button></div></div>
   <div style="grid-column:1/-1;margin-top:-8px">${vTimeInfo(o, k)}</div>
-  <div><label>Speak counts</label><select ${does('change:sndSetV', k, 'speakCounts')}>
+  <div><label for="snd${k}-counts">Speak counts</label><select id="snd${k}-counts" ${does('change:sndSetV', k, 'speakCounts')}>
     ${[
       ['every', 'Every count'],
       ['reps', 'Rep numbers only'],
@@ -471,7 +471,7 @@ function sndForm(o, k) {
     ]
       .map(([v, l]) => `<option value="${v}" ${o.speakCounts === v ? 'selected' : ''}>${l}</option>`)
       .join('')}</select></div>
-  <div><label>Countdown beeps (last s)</label><input type="number" min="0" max="10" value="${o.countdown}" ${does('input:sndSetN', k, 'countdown')}></div>
+  <div><label for="snd${k}-countdown">Countdown beeps (last s)</label><input id="snd${k}-countdown" type="number" min="0" max="10" value="${o.countdown}" ${does('input:sndSetN', k, 'countdown')}></div>
   ${rng('rate', 'Voice speed', '0.7', '1.8', 1)}${rng('pitch', 'Voice pitch', '0.5', '1.5', 1)}`
   );
 }

@@ -192,11 +192,11 @@
           <div class="grid hgrid mt-3">
             <!-- rounds · how it plays · when and tracking -->
             <div>
-              <label>Rounds</label
+              <label for="eRounds">Rounds</label
               ><input id="eRounds" type="number" min="1" title="How many times all blocks are repeated" />
             </div>
             <div>
-              <label>Rest between rounds <span class="dh"></span></label>
+              <label for="eRest">Rest between rounds <span class="dh"></span></label>
               <div class="durw">
                 <input
                   id="eRest"
@@ -222,7 +222,7 @@
               </select>
             </div>
             <div>
-              <label>Get-ready <span class="dh"></span></label>
+              <label for="ePrep">Get-ready <span class="dh"></span></label>
               <div class="durw">
                 <input
                   id="ePrep"
@@ -236,7 +236,10 @@
                 ><button type="button" class="ds" tabindex="-1" data-d="1" aria-label="More">+</button>
               </div>
             </div>
-            <div><label>Count length (s)</label><input id="eSec" type="number" min="0.05" max="10" step="0.05" /></div>
+            <div>
+              <label for="eSec">Count length (s)</label
+              ><input id="eSec" type="number" min="0.05" max="10" step="0.05" />
+            </div>
             <div>
               <label for="eSnd">Sound &amp; voice</label
               ><select
@@ -306,7 +309,7 @@
               </div>
             </details>
           </div>
-          <label class="mt-3">Notes</label><textarea id="eNotes" rows="2"></textarea>
+          <label class="mt-3" for="eNotes">Notes</label><textarea id="eNotes" rows="2"></textarea>
         </div>
         <div class="card" id="eStruct"></div>
         <div id="blocks"></div>
@@ -448,8 +451,8 @@
       </section>
     </main>
 
-    <!-- RUNNER -->
-    <div id="run">
+    <!-- RUNNER: over the views, named after the routine -->
+    <div id="run" role="dialog" aria-labelledby="rName">
       <div class="top">
         <div class="meta">
           <span class="ml"

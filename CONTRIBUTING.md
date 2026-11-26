@@ -84,6 +84,7 @@ The checks catch some of these; the rest break the app for real users if missed.
 - **Syncing something new?** The database only accepts the keys, types and sizes listed in `database.rules.json`. Add the new field there with a test in `test/rules/`, or its writes are refused.
 - **Changing the routine format:** update `schema/routine.schema.json`, add a migration in `core/routine.js` and bump the version, so old routines, exports and other devices keep working.
 - **Design tokens, not hard-coded values:** colours by role (`--text-muted`), spacing on the 4px grid (`--space-3`), the type scale (`--fs-sm`). A light theme is planned, so don't assume dark.
+- **Every field and button has a name** a screen reader can say: a `<label for>` or `aria-label`. Something you tap is a `<button>`, not a `div`, so a keyboard reaches it. The browser test checks this.
 - **Plain, short text.** Step cues say what to do ("Right knee: lift forward, swing out, down"), not exercise jargon.
 - **User-facing change:** update the [README](README.md) if it describes it.
 
