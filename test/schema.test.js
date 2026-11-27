@@ -165,6 +165,14 @@ describe('schema/routine.schema.json', () => {
     ]);
   });
 
+  it('every combo order the editor offers is valid', () => {
+    const r = canon(structuredClone(V2)).find((x) => x.blocks.some((b) => b.type === 'boxing'));
+    const box = r.blocks.find((b) => b.type === 'boxing');
+    ['random', 'shuffle', 'sequence'].forEach((order) =>
+      expect(valid({ ...r, blocks: [{ ...box, order }] })).toEqual([]),
+    );
+  });
+
   it('every preset is valid', () => {
     PRESETS().forEach((p) => expect(valid(p)).toEqual([]));
   });

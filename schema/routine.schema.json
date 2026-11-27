@@ -125,7 +125,10 @@
         },
         "minGap": { "type": "number", "minimum": 0 },
         "maxGap": { "type": "number", "minimum": 0 },
-        "order": { "enum": ["random", "shuffle"] },
+        "order": {
+          "enum": ["random", "shuffle", "sequence"],
+          "description": "Which combo is called next. Absent: random."
+        },
         "repeat": { "type": "number", "minimum": 0 },
         "poolPause": { "type": "number", "minimum": 0 },
         "vfit": {
