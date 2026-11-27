@@ -1,6 +1,76 @@
 /* The routine model: presets, migration of older data, repair of blocks, and what a routine's settings mean.
    No DOM or browser UI: runs in any JavaScript engine. */
 import { parseDur } from './time.js';
+/* The routine format as types, for `npm run typecheck` and editors (schema/routine.schema.json is the full description,
+   with what each field means). Data from storage, sync or an import can be older or broken: mig() and norm() bring it
+   into this shape, so code that takes a Routine can rely on it. */
+/** @typedef {'reps' | 'timed' | 'boxing' | 'seq' | 'rest'} BlockType */
+/**
+ * @typedef {object} Block
+ * @property {string} id unique within the routine
+ * @property {BlockType} type
+ * @property {string} name
+ * @property {boolean} [firstOnly] only in the first round (warm-up)
+ * @property {boolean} [lastOnly] only in the last round (finisher)
+ * @property {number} [restAfter]
+ * @property {number} [work] timed, boxing, rest: duration · seq: time per step
+ * @property {number} [tempo] reps, boxing: own count length (s); 0 or absent: the routine's sec
+ * @property {number} [reps]
+ * @property {number} [counts] counts per rep
+ * @property {'guided' | 'tap'} [mode]
+ * @property {number} [repPause]
+ * @property {string} [cues] comma-separated, said instead of the count numbers
+ * @property {'both' | 'cue' | 'number'} [display]
+ * @property {string} [cue] timed: said at the start
+ * @property {string} [combos] boxing: one combo per line
+ * @property {number} [minGap]
+ * @property {number} [maxGap]
+ * @property {'random' | 'shuffle' | 'sequence'} [order] boxing: which combo is called next
+ * @property {number} [repeat]
+ * @property {number} [poolPause]
+ * @property {'' | 'wait' | 'pace' | 'tones'} [vfit]
+ * @property {string} [steps] seq: one step per line
+ */
+/**
+ * @typedef {object} Sound a routine's own sound & voice (all of SND), or the Settings ones
+ * @property {boolean} [beeps]
+ * @property {boolean} [voice]
+ * @property {string} [lang]
+ * @property {string} [voiceURI]
+ * @property {'every' | 'reps' | 'off'} [speakCounts]
+ * @property {number} [countdown]
+ * @property {number} [rate]
+ * @property {number} [pitch]
+ */
+/**
+ * @typedef {object} Routine
+ * @property {string} id
+ * @property {string} name
+ * @property {number} rounds
+ * @property {number} rest rest between rounds (s)
+ * @property {number} prep get ready (s)
+ * @property {Block[]} blocks
+ * @property {number} [cv] format version (CV)
+ * @property {string} [icon]
+ * @property {string} [color]
+ * @property {string} [notes]
+ * @property {number} [sec] count length (s)
+ * @property {'rounds' | 'blocks'} [hold]
+ * @property {number[]} [days] 0 = Sunday … 6 = Saturday
+ * @property {'am' | 'mid' | 'pm'} [when]
+ * @property {string[]} [skip]
+ * @property {string[]} [add]
+ * @property {boolean} [archived]
+ * @property {boolean} [nolog]
+ * @property {boolean} [streak]
+ * @property {Sound} [snd]
+ * @property {number} [upd] last change (ms since 1970)
+ */
+/**
+ * One line of a sequence block: its text and time (s); tap: waits for a tap · bad: the time v couldn't be read ·
+ * q: a silent pause
+ * @typedef {{ t: string, dur?: number, tap?: boolean, bad?: boolean, v?: string, q?: boolean }} SeqStep
+ */
 const ROUTINE_ICONS = [
   'activity',
   'wind',
@@ -223,6 +293,10 @@ const MIGRATIONS = {
     return x;
   },
 };
+/**
+ * @param {any} r a routine as stored, synced or imported, in any older format
+ * @returns {any} the same in the current format (cv: CV); anything that isn't an object as it was
+ */
 function mig(r) {
   if (!r || typeof r !== 'object' || r.cv >= CV) return r;
   let x = r;
@@ -237,6 +311,10 @@ const BDEF = {
   seq: { name: 'Sequence', work: 3, steps: '' },
   rest: { name: 'Rest', work: 30 },
 };
+/**
+ * @param {any} r
+ * @returns {Routine}
+ */
 function norm(r) {
   if (!r || typeof r !== 'object') return r;
   const seen = new Set();
@@ -282,6 +360,10 @@ function norm(r) {
   }
   return fixed || !Array.isArray(r.blocks) ? out : r;
 }
+/**
+ * @param {any[]} list
+ * @returns {Routine[]}
+ */
 function canon(list) {
   list = list.filter((r) => r && typeof r === 'object').map((r) => norm(mig(r)));
   const P = PRESET_IDS(),
@@ -295,12 +377,13 @@ function canon(list) {
     return r;
   });
 }
-const sig = (r) => {
+const sig = (/** @type {Routine} */ r) => {
   const { upd, ...x } = r;
   return JSON.stringify(x);
 };
 /* Sequence block: one step per line, spoken and shown as typed. "@6" (s), "@1.5", "@1:30" or "@tap" at the end of a line
    gives it its own time or waits for a tap; other lines get the block's time per step; a line with only a time is a silent pause */
+/** @param {string} v */
 function stepSec(v) {
   v = v.replace(/,/g, '.');
   const m = v.match(/^(\d+(?:\.\d+)?)\s*(?:s|secs?|seconds?)?$/);
@@ -308,6 +391,10 @@ function stepSec(v) {
   const s = parseDur(v);
   return s > 0 ? s : NaN;
 }
+/**
+ * @param {Block} b
+ * @returns {SeqStep[]}
+ */
 function seqSteps(b) {
   const d = +b.work > 0 ? +b.work : 3;
   return (b.steps || '')
@@ -325,6 +412,11 @@ function seqSteps(b) {
       return t ? { t, dur: s } : { t: 'Pause', dur: s, q: true };
     });
 }
+/**
+ * @param {Block} b
+ * @param {Routine} r
+ * @returns {number | null} s; null: a tap reps block (as long as it takes)
+ */
 function bDur(b, r) {
   if (b.type === 'seq') return seqSteps(b).reduce((a, x) => a + (x.tap ? 0 : x.dur), 0);
   if (b.type === 'reps') {
@@ -337,14 +429,27 @@ function bDur(b, r) {
 }
 
 // A block runs in every round, or only in the first round (warm-up) or only in the last round (finisher)
+/**
+ * @param {Block} b
+ * @param {boolean} first
+ * @param {boolean} last
+ */
 function inRound(b, first, last) {
   return b.firstOnly ? first : b.lastOnly ? last : true;
 }
 /* Continue: '' = auto-start; 'rounds' = wait for a tap before each next round; 'blocks' = before each next block */
+/**
+ * @param {Routine} r
+ * @returns {'' | 'rounds' | 'blocks'}
+ */
 function holdMode(r) {
   return r.hold === 'blocks' || r.hold === 'rounds' ? r.hold : '';
 }
 /* logging per routine: nolog = No logging; streak:false = Log only (the workout is logged with streak:false: in history, not in streaks); neither = Log and count for streak */
+/**
+ * @param {Routine} r
+ * @returns {'off' | 'log' | 'streak'}
+ */
 function logMode(r) {
   return r.nolog ? 'off' : r.streak === false ? 'log' : 'streak';
 }

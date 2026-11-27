@@ -1,10 +1,51 @@
 /* A routine as the list of steps the timer plays, and the moves and tones of boxing combos.
    No DOM or browser UI: runs in any JavaScript engine. */
 import { holdMode, inRound, seqSteps } from './routine.js';
-const rTot = (r) => build(r).reduce((a, s) => a + (s.dur || 0), 0);
+/** @typedef {import('./routine.js').Routine} Routine */
+/**
+ * One step the timer plays. type: time (runs for dur s), reps (counted) or wait (until a tap) · kind: what it is to the
+ * user (beeps, colours) · round: 1-based. The other fields belong to one kind of block: reps (reps … cues), timed (cue),
+ * boxing (boxing … bid), sequence (seq … sn; q: a silent pause)
+ * @typedef {object} Step
+ * @property {'time' | 'reps' | 'wait'} type
+ * @property {'prep' | 'work' | 'rest'} kind
+ * @property {string} label
+ * @property {number} round
+ * @property {number} [dur] s; a tap reps step: 0
+ * @property {number} [reps]
+ * @property {number} [counts]
+ * @property {number} [tempo] s per count
+ * @property {'guided' | 'tap'} [mode]
+ * @property {number} [repPause]
+ * @property {'both' | 'cue' | 'number'} [display]
+ * @property {string[]} [cues]
+ * @property {string} [cue]
+ * @property {boolean} [boxing]
+ * @property {string[]} [combos]
+ * @property {number} [minGap]
+ * @property {number} [maxGap]
+ * @property {number} [cl] count length (s per move)
+ * @property {'random' | 'shuffle' | 'sequence'} [order]
+ * @property {number} [repeat]
+ * @property {number} [poolPause]
+ * @property {'' | 'pace' | 'tones'} [vfit]
+ * @property {Map<string, number>} [tm] move → tone (toneMap)
+ * @property {string} [bid] the block's id
+ * @property {boolean} [seq]
+ * @property {boolean} [q]
+ * @property {string} [blk] the sequence block's name
+ * @property {number} [si] 0-based step in the sequence
+ * @property {number} [sn] steps in the sequence
+ */
+const rTot = (/** @type {Routine} */ r) => build(r).reduce((a, s) => a + (s.dur || 0), 0);
+/**
+ * @param {Routine} r
+ * @returns {Step[]}
+ */
 function build(r) {
+  /** @type {Step[]} */
   const st = [];
-  const P = (s) => st.push(s);
+  const P = (/** @type {Step} */ s) => st.push(s);
   const hm = holdMode(r),
     tm = toneMap(r.blocks);
   if (r.prep > 0) P({ type: 'time', kind: 'prep', label: 'Get ready', dur: r.prep, round: 1 });
@@ -94,7 +135,7 @@ function build(r) {
   }
   return out.filter((s, i) => !(s.type === 'wait' && !s.seq && out[i + 1] && out[i + 1].type === 'wait'));
 } // right before a sequence's own tap step: one tap
-const stepLen = (s) =>
+const stepLen = (/** @type {Step} */ s) =>
   s.type === 'wait'
     ? Infinity
     : s.type === 'time'
