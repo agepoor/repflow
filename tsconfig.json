@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "target": "es2023",
+    "module": "nodenext",
+    "lib": ["es2023"],
+    "types": []
+  },
+  "include": ["core/**/*.js", "types/*.d.ts"]
+}

@@ -2,9 +2,17 @@
    and the beeps ahead (for the background). Times are ms on the wall clock. No DOM or browser UI: runs in any JavaScript engine. */
 import { mig, norm } from './routine.js';
 import { build, moves, stepLen } from './steps.js';
+/** @typedef {import('./steps.js').Step} Step */
 /* the beeps of a workout from step i0 (started at s0, ms) on, as they will sound: {ms, f (Hz), d (s), type, vol}, in order, up to an hour
    ahead of now and until a step that waits for a tap, or to the end bell. {box, i, s0}: Tones only combo calls of step i (drawn by the caller).
    cd(s): countdown beeps (last s) of step s */
+/**
+ * @param {Step[]} steps
+ * @param {number} i0
+ * @param {number} s0
+ * @param {number} now
+ * @param {(s: Step) => number} cd
+ */
 function cuePlan(steps, i0, s0, now, cd) {
   const ev = [],
     at = (ms, f, d, type = 'sine', vol = 1) => ev.push({ ms, f, d, type, vol }),
@@ -37,7 +45,8 @@ function cuePlan(steps, i0, s0, now, cd) {
   bellAt(s0);
   return ev;
 } // done
-const countdownOf = (s, countdown) => (s.seq && s.dur < 10 ? 0 : countdown | 0); // countdown beeps (last s): none on short sequence steps
+const countdownOf = (/** @type {Step} */ s, /** @type {number} */ countdown) =>
+  s.seq && s.dur < 10 ? 0 : countdown | 0; // countdown beeps (last s): none on short sequence steps
 const boxStr = (b) => JSON.stringify(b || {}, (k, v) => (v instanceof Set ? [...v] : v));
 function unbox(s) {
   let b = {};
@@ -51,6 +60,13 @@ function unbox(s) {
 }
 /* where a workout is at time now (ms), from step i that started at s0: the step it is in and when that started (moved: not i any more),
    or done (the last step ended at end). late: ms since the last step change. wait: a following device gives the playing one a moment to finish first */
+/**
+ * @param {Step[]} steps
+ * @param {number} i
+ * @param {number} s0
+ * @param {number} now
+ * @param {boolean} [wait]
+ */
 function advance(steps, i, s0, now, wait) {
   let moved = false,
     late = 0;
@@ -69,6 +85,11 @@ function advance(steps, i, s0, now, wait) {
   return { i, s0, moved, late, done: false };
 }
 /* the next call of boxing step s; box: the draw state per block (which combos were called, the shuffle bag, repeats left) */
+/**
+ * @param {Step} s
+ * @param {Record<string, any>} box
+ * @returns {string}
+ */
 function drawCombo(s, box) {
   const L = s.combos,
     n = L.length;
@@ -106,12 +127,17 @@ function poolChk(B, n) {
     B.seen = new Set();
   }
 }
-const comboGap = (s, c, box) =>
+const comboGap = (/** @type {Step} */ s, /** @type {string} */ c, /** @type {Record<string, any>} */ box) =>
   moves(c) * (s.cl || 1) +
   s.minGap +
   Math.random() * Math.max(0, s.maxGap - s.minGap) +
   (s.poolPause > 0 && box[s.bid] && box[s.bid].poolDone ? s.poolPause : 0); // until the next call, right after drawCombo drew c
 /* a timed step at a new whole second left (sec): beep = countdown beep pitch (0: none), count: also say the number, halfway / ten: say so. cd: countdown beeps (last s) */
+/**
+ * @param {Step} s
+ * @param {number} sec
+ * @param {number} cd
+ */
 function secondCues(s, sec, cd) {
   const b = sec <= cd && sec > 0,
     w = s.kind === 'work';
@@ -123,6 +149,10 @@ function secondCues(s, sec, cd) {
   };
 }
 /* a guided reps step at t s: rep (0-based) and count c (0-based; -2 = breather) */
+/**
+ * @param {Step} s
+ * @param {number} t
+ */
 function guidedAt(s, t) {
   const per = s.counts * s.tempo + s.repPause,
     rep = Math.floor(t / per),

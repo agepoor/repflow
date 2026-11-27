@@ -51,15 +51,16 @@ Everything works locally except signing in, which only works on the app's own ad
 npm run check
 ```
 
-This runs ESLint, the Prettier format check and the tests. Run it before every commit; CI runs it too and a red check blocks the merge.
+This runs ESLint, the Prettier format check, the type check and the tests. Run it before every commit; CI runs it too and a red check blocks the merge.
 
 - `npm run test:watch` reruns the tests on every save.
+- `npm run typecheck` checks the types in `core/`. The code stays plain JavaScript: types are JSDoc comments (`/** @param {Routine} r */`) that TypeScript reads without building anything, and editors use them for autocomplete. The routine, block and step types sit next to their code in `core/routine.js` and `core/steps.js`.
 - `npm run format` fixes the formatting. Prettier formats all code and Markdown, so don't format by hand.
 - `npm run test:e2e` builds the site and runs a browser test at phone size: the app loads without errors, a new routine can be made, started and stopped, the app opens offline, every control on every screen has a 44px tap area and readable text, and a workout behaves on two devices as [`docs/multi-device.md`](docs/multi-device.md) describes (with a stand-in for sync, `test/e2e/fake-cloud.js`). Run it when you change `ui/`, `index.html` or `sw.js`; CI runs it on every pull request. The first time, install its browser with `npx playwright install chromium`.
 - `npm run test:rules` tests the database security rules in the Firebase emulator (needs Java 11 or newer). Run it when you change `database.rules.json`; CI runs it on every pull request, and after a merge to `main` publishes the rules just before the app.
 - `npm run tokens` writes `tokens.css` after you change `design/tokens.json`.
 
-Changed something in `core/`? Add or update its tests in `test/` (one file per module).
+Changed something in `core/`? Add or update its tests in `test/` (one file per module), and give new exported functions JSDoc types.
 
 ## Where things are
 

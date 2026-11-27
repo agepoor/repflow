@@ -1,8 +1,44 @@
 /* Sync: merging this device's data with the account's, and the items the account stores it as. No DOM or browser UI:
    runs in any JavaScript engine. */
 import { canon } from './routine.js';
+/** @typedef {import('./routine.js').Routine} Routine */
+/**
+ * A finished workout in the history. calls: combo calls per boxing block · streak: false for Log only
+ * @typedef {object} Workout
+ * @property {string} id the run's id, the same on every device that followed it
+ * @property {number} ts when it ended (ms since 1970)
+ * @property {string} [rid] the routine's id
+ * @property {string} [name]
+ * @property {string} [icon]
+ * @property {string} [color]
+ * @property {number} [dur] s
+ * @property {number} [rounds]
+ * @property {number} [reps]
+ * @property {any} [calls]
+ * @property {boolean} [streak]
+ */
+/**
+ * A device's or the account's data. deleted, hdel: id → when the routine or workout was deleted (ms since 1970) ·
+ * parts: parts of the day (core/schedule.js), the newest change wins
+ * @typedef {object} Doc
+ * @property {string} [app]
+ * @property {number} [v]
+ * @property {Routine[]} [routines]
+ * @property {Record<string, number>} [deleted]
+ * @property {{ ids: string[], ts: number }} [order]
+ * @property {Workout[]} [history]
+ * @property {Record<string, number>} [hdel]
+ * @property {{ ts?: number, off?: boolean, mid?: number, eve?: number }} [parts]
+ */
+/** @typedef {{ d?: string, del?: number, m?: number } & Record<string, any>} Item one item the account stores (see itemsOf) */
 /* L: this device, Rm: the account (all of it, or only the items that changed). stored: ids of routines already in the
    account besides those in Rm (Rm may be partial), so two devices settling the same identical copies keep the same one */
+/**
+ * @param {Doc} L
+ * @param {Doc} Rm
+ * @param {string[]} [stored]
+ * @returns {Doc}
+ */
 function merge(L, Rm, stored = []) {
   const del = { ...(Rm.deleted || {}) };
   Object.entries(L.deleted || {}).forEach(([k, v]) => {
@@ -23,7 +59,7 @@ function merge(L, Rm, stored = []) {
   const keep = {};
   const rid = new Set([...(Rm.routines || []).map((r) => r.id), ...stored]);
   list
-    .sort((a, b) => rid.has(b.id) - rid.has(a.id) || (a.id < b.id ? -1 : 1))
+    .sort((a, b) => +rid.has(b.id) - +rid.has(a.id) || (a.id < b.id ? -1 : 1))
     .forEach((r) => {
       const k = strip(r);
       if (keep[k]) del[r.id] = Math.max(Date.now(), r.upd || 0);
@@ -70,18 +106,26 @@ function merge(L, Rm, stored = []) {
 /* The account stores every routine and workout as its own item, so a device downloads only what changed:
    'r/<id>': {d: routine JSON} or {del: time deleted}; 'h/<id>': {d: workout JSON} or {del: time deleted};
    'order': {ids, ts}; 'parts': parts of the day. (cloud.js adds m: when the item was written.) */
+/**
+ * @param {Doc} doc
+ * @returns {Record<string, Item>}
+ */
 function itemsOf(doc) {
   const it = {};
   Object.entries(doc.deleted || {}).forEach(([id, t]) => (it['r/' + id] = { del: t }));
   (doc.routines || []).forEach((r) => (it['r/' + r.id] = { d: JSON.stringify(r) })); // merge only keeps routines edited after their delete
   (doc.history || []).forEach((h) => (it['h/' + h.id] = { d: JSON.stringify(h) }));
   Object.entries(doc.hdel || {}).forEach(([id, t]) => (it['h/' + id] = { del: t }));
-  const o = doc.order || {};
+  const o = doc.order || { ids: [], ts: 0 };
   it.order = { ids: o.ids || [], ts: o.ts || 0 };
   if (doc.parts) it.parts = doc.parts;
   return it;
 }
 /* items (all, or only some) back into a document merge() understands; broken items are skipped */
+/**
+ * @param {Record<string, Item>} items
+ * @returns {Doc}
+ */
 function docOf(items) {
   const doc = { routines: [], deleted: {}, history: [], hdel: {} };
   const parse = (v, id) => {
@@ -113,6 +157,11 @@ function docOf(items) {
 /* should this device's version of an item replace the stored one? The same rules as merge(): the newest edit or delete
    of a routine (a delete wins a tie), a deleted workout stays deleted and otherwise the stored copy stays, the newest
    order and parts of the day */
+/**
+ * @param {string} key
+ * @param {Item | undefined} stored
+ * @param {Item | undefined} mine
+ */
 function newer(key, stored, mine) {
   if (!mine) return false;
   if (!stored) return true;
