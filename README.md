@@ -6,9 +6,13 @@ PunchPace talks you through the routines you repeat every day or week, from a mo
 
 <p>
   <img src="docs/screenshots/home.png" width="200" alt="Home screen: today's routines grouped by morning, midday and evening, with the next one marked Up next">
-  <img src="docs/screenshots/run.jpg" width="200" alt="Run screen during a boxing round: the combo 1-2-5-2 in large type above a countdown ring at 2:54">
+  <img src="docs/screenshots/run.jpg" width="200" alt="Run screen during a boxing round: the combo 1-2 slip slip in large type above a countdown ring at 2:54">
   <img src="docs/screenshots/editor.png" width="200" alt="Editor: a boxing block's combo pool, each move shown in the colour of its tone">
   <img src="docs/screenshots/week.png" width="200" alt="Week view: the routines planned for each day, with the done ones ticked">
+</p>
+<p>
+  <img src="docs/screenshots/tablet-run.jpg" width="260" alt="On a tablet: the run screen during a boxing round, the combo above a large countdown ring">
+  <img src="docs/screenshots/computer-week.png" width="540" alt="On a computer: the week view, each day's routines in a row with the done ones ticked">
 </p>
 
 ## Try it

@@ -169,6 +169,12 @@ describe('schema/routine.schema.json', () => {
     PRESETS().forEach((p) => expect(valid(p)).toEqual([]));
   });
 
+  it('the README screenshots’ demo routines are valid once loaded (docs/screenshots/demo.json)', () => {
+    const demo = JSON.parse(readFileSync(new URL('../docs/screenshots/demo.json', import.meta.url), 'utf8'));
+    expect(demo.routines.length).toBeGreaterThan(0);
+    canon(demo.routines).forEach((r) => expect(valid(r)).toEqual([]));
+  });
+
   it('stored v2 routines are valid once loaded', () => {
     canon(structuredClone(V2)).forEach((r) => expect(valid(r)).toEqual([]));
   });

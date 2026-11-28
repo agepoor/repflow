@@ -26,7 +26,10 @@ export default [
   { files: ['core/**/*.js'], languageOptions: { globals: { ...globals['shared-node-browser'] } } },
   { files: ['ui/**/*.js', 'cloud.js'], languageOptions: { globals: { ...globals.browser, ...elementIds } } },
   { files: ['sw.js'], languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } } },
-  { files: ['test/**/*.js', 'design/**/*.js', '*.config.js'], languageOptions: { globals: { ...globals.node } } },
-  // the browser test also runs code inside the page (page.evaluate)
-  { files: ['test/e2e/**/*.js'], languageOptions: { globals: { ...globals.browser } } },
+  {
+    files: ['test/**/*.js', 'design/**/*.js', 'docs/**/*.js', '*.config.js'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+  // the browser test and the screenshot script also run code inside the page (page.evaluate)
+  { files: ['test/e2e/**/*.js', 'docs/screenshots/**/*.js'], languageOptions: { globals: { ...globals.browser } } },
 ];

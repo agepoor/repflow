@@ -1,0 +1,150 @@
+{
+  "routines": [
+    {
+      "id": "demo-mobility",
+      "cv": 3,
+      "name": "Morning mobility",
+      "icon": "wind",
+      "color": "teal",
+      "rounds": 1,
+      "rest": 0,
+      "prep": 5,
+      "sec": 1,
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "when": "am",
+      "notes": "",
+      "blocks": [
+        {
+          "id": "b-neck",
+          "type": "seq",
+          "name": "Neck and shoulders",
+          "work": 10,
+          "steps": "Neck: slowly left and right\nNeck: chin to chest, then up\nShoulders: roll back\nShoulders: roll forward\nArms: big circles forward\nArms: big circles back",
+          "lastOnly": false,
+          "restAfter": 0
+        },
+        {
+          "id": "b-hips",
+          "type": "seq",
+          "name": "Hips and legs",
+          "work": 15,
+          "steps": "Hips: circles to the left\nHips: circles to the right\nRight knee: lift forward, swing out, down\nLeft knee: lift forward, swing out, down\nSquat: down slowly, hold @20\nCalves: up on your toes and down @20",
+          "lastOnly": false,
+          "restAfter": 0
+        }
+      ]
+    },
+    {
+      "id": "demo-burpees",
+      "cv": 3,
+      "name": "Burpees 12-count",
+      "icon": "flame",
+      "color": "orange",
+      "rounds": 3,
+      "rest": 75,
+      "prep": 10,
+      "sec": 1,
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "when": "am",
+      "notes": "Breathe in on the way down (1–4), out on the push-up (5) and the jump (12).",
+      "blocks": [
+        {
+          "id": "b-burpees",
+          "type": "reps",
+          "name": "Burpees",
+          "reps": 8,
+          "counts": 12,
+          "mode": "guided",
+          "repPause": 2,
+          "cues": "",
+          "lastOnly": false,
+          "restAfter": 0
+        }
+      ]
+    },
+    {
+      "id": "demo-pushups",
+      "cv": 3,
+      "name": "Push-ups",
+      "icon": "dumbbell",
+      "color": "green",
+      "rounds": 3,
+      "rest": 60,
+      "prep": 5,
+      "sec": 1,
+      "days": [1, 2, 4, 6],
+      "when": "mid",
+      "notes": "Tap the circle for each rep.",
+      "blocks": [
+        {
+          "id": "b-pushups",
+          "type": "reps",
+          "name": "Push-ups",
+          "reps": 15,
+          "counts": 1,
+          "tempo": 2,
+          "mode": "tap",
+          "repPause": 0,
+          "cues": "",
+          "lastOnly": false,
+          "restAfter": 0
+        }
+      ]
+    },
+    {
+      "id": "demo-boxing",
+      "cv": 3,
+      "name": "Shadow boxing 3 × 3",
+      "icon": "glove",
+      "color": "blue",
+      "rounds": 3,
+      "rest": 60,
+      "prep": 10,
+      "sec": 1,
+      "days": [2, 4, 6],
+      "when": "pm",
+      "notes": "1 jab · 2 cross · 3 lead hook · 4 rear hook · 5 lead uppercut · 6 rear uppercut",
+      "blocks": [
+        {
+          "id": "b-combos",
+          "type": "boxing",
+          "name": "Combos",
+          "work": 180,
+          "combos": "1-2\n1-1-2\n1-2-3\n1-2-3-2\n1-6-3-2\n2-3-2\n1-2 slip slip\n3-2-3\n1-2-5-2",
+          "minGap": 1,
+          "maxGap": 2,
+          "order": "random",
+          "vfit": "pace",
+          "lastOnly": false,
+          "restAfter": 0
+        }
+      ]
+    },
+    {
+      "id": "demo-breathing",
+      "cv": 3,
+      "name": "Box breathing",
+      "icon": "heart",
+      "color": "purple",
+      "rounds": 6,
+      "rest": 0,
+      "prep": 5,
+      "sec": 1,
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "when": "pm",
+      "notes": "",
+      "blocks": [
+        {
+          "id": "b-box",
+          "type": "seq",
+          "name": "One box",
+          "work": 4,
+          "steps": "Breathe in\nHold\nBreathe out\nHold",
+          "lastOnly": false,
+          "restAfter": 0
+        }
+      ]
+    }
+  ],
+  "settings": {}
+}
