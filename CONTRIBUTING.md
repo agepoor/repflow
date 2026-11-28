@@ -58,6 +58,7 @@ This runs ESLint, the Prettier format check and the tests. Run it before every c
 - `npm run test:e2e` builds the site and runs a browser test at phone size: the app loads without errors, a new routine can be made, started and stopped, the app opens offline, every control on every screen has a 44px tap area and readable text, and a workout behaves on two devices as [`docs/multi-device.md`](docs/multi-device.md) describes (with a stand-in for sync, `test/e2e/fake-cloud.js`). Run it when you change `ui/`, `index.html` or `sw.js`; CI runs it on every pull request. The first time, install its browser with `npx playwright install chromium`.
 - `npm run test:rules` tests the database security rules in the Firebase emulator (needs Java 11 or newer). Run it when you change `database.rules.json`; CI runs it on every pull request, and after a merge to `main` publishes the rules just before the app.
 - `npm run tokens` writes `tokens.css` after you change `design/tokens.json`.
+- `npm run screenshots` rebuilds the README screenshots in `docs/screenshots/` (a phone, a tablet and a computer) with the demo routines in `docs/screenshots/demo.json`. Run it when you change a screen the README shows (home, run, editor, week), look at the new pictures and commit them.
 
 Changed something in `core/`? Add or update its tests in `test/` (one file per module).
 
@@ -70,6 +71,7 @@ Changed something in `core/`? Add or update its tests in `test/` (one file per m
 - `design/`: the design tokens (`tokens.json`) and the design rules ([`design/README.md`](design/README.md)).
 - `schema/routine.schema.json`: the routine format.
 - [`docs/multi-device.md`](docs/multi-device.md): how a running workout behaves on several devices and windows, with its edge cases. Read it before changing the run screen or sync of a running workout, and keep it up to date.
+- `docs/screenshots/`: the README screenshots, and `take.js`, which makes them.
 - `test/`: Vitest tests for `core/`, `test/rules/` for the database rules and `test/e2e/` for the browser test.
 - `sw.js`: the offline cache. `build.sh`: builds the site.
 
